@@ -1,10 +1,21 @@
 module Dep.Bricks.Gate where
 
+import Dep.Bricks.Box(boxhu, boxlt, boxrt, boxv)
 import Dep.Bricks.Layout(CircuitLayout(Horizontal, Vertical))
 
-import Graphics.Vty.Image(Image, string)
+import Graphics.Vty.Attributes(Attr)
+import Graphics.Vty.Image(Image, (<->), string)
 
-gate :: Char -> CircuitLayout -> Int -> Image
-gate gt = go
-  where go Horizontal _ = string undefined ""
-        go Vertical _ = string undefined ""
+gateLine :: Char -> Char -> Char -> Int -> Attr -> Image
+gateLine c0 ci cn n = (`string` (c0 : replicate n ci ++ [cn]))
+
+gateH :: Char -> Int -> Attr -> Image
+gateH ci n attr = gateLine boxlt boxhu boxrt n attr <-> gateLine boxv ci boxv n attr
+
+gateV :: Char -> Int -> Attr -> Image
+gateV = undefined
+
+gate :: Char -> CircuitLayout -> Int -> Attr -> Image
+gate gt = (`go` gt)
+  where go Horizontal = gateH
+        go Vertical = gateV

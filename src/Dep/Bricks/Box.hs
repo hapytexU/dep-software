@@ -1,15 +1,35 @@
 module Dep.Bricks.Box (
-    boxlb, boxlt, boxrb, boxrt
+    boxh,  boxv
+  , boxlb, boxlt, boxrb, boxrt
+  , boxhu, boxhd, boxvl, boxvr
   ) where
 
 boxlt :: Char
-boxlt = '\x250c'
+boxlt = '\x250f'
+
+boxh :: Char
+boxh = '\x2501'
+
+boxv :: Char
+boxv = '\x2503'
 
 boxrt :: Char
-boxrt = '\x2510'
+boxrt = '\x2513'
 
 boxlb :: Char
-boxlb = '\x2514'
+boxlb = '\x2517'
 
 boxrb :: Char
-boxrb = '\x2518'
+boxrb = '\x251b'
+
+boxhu :: Char
+boxhu = '\x2537'
+
+boxhd :: Char
+boxhd = '\x252f'
+
+boxvl :: Char
+boxvl = '\x2528'
+
+boxvr :: Char
+boxvr = '\x2520'
