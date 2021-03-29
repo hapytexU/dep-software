@@ -1,5 +1,7 @@
 module Dep.Core (
     BFunc, BFunc1, BFunc2, BFunc3, BFunc4
+  , Mergeable(merge)
+  , WithDontCare(DontCare, Value)
   ) where
 
 type BFunc = [Bool] -> Bool
