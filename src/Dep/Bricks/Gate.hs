@@ -1,6 +1,8 @@
 module Dep.Bricks.Gate where
 
-import Dep.Bricks.Box(boxh, boxhu, boxhd, boxlt, boxrt, boxlb, boxrb, boxv, boxvl, boxvr)
+import Data.Bool(bool)
+
+import Dep.Bricks.Box(boxh, boxhu, boxhd, boxlt, boxrt, boxlb, boxrb, boxv, boxvl, boxvr, negator)
 import Dep.Bricks.Layout(CircuitLayout(Horizontal, Vertical))
 
 import Graphics.Vty.Attributes(Attr)
@@ -14,6 +16,9 @@ gateLineH c0 ci cn n = (`string` (c0 : replicate n ci ++ [cn]))
 
 gateLineV :: Char -> Char -> Char -> Int -> Attr -> Image
 gateLineV c0 ci cn n = (`vstring` (c0 : replicate n ci ++ [cn]))
+
+negationList :: (Image -> Image -> Image) -> Char -> [Bool] -> Attr -> Image
+negationList mgr lns bls attr = foldr (mgr . char attr . bool lns negator) emptyImage bls
 
 gateH :: Char -> Int -> Attr -> Image
 gateH ci n attr = gateLineH boxlt boxhu boxrt n attr <-> gateLineH boxv ci boxv n attr <-> string attr (boxlb : replicate n2 boxh ++ boxhd : replicate (n-n2-1) boxh ++ [boxrb])
