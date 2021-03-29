@@ -1,5 +1,7 @@
 module Main where
 
+import Brick(simpleMain)
+import Dep.Bricks.Circuit(circuit)
+
 main :: IO ()
-main = do
-  putStrLn "hello world"
+main = simpleMain circuit
