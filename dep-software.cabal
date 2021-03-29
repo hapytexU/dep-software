@@ -17,7 +17,8 @@ executable dep-software
   hs-source-dirs:      src
   main-is:             Main.hs
   other-modules:
-     Dep.Bricks.Box
+     Dep.Core
+   , Dep.Bricks.Box
    , Dep.Bricks.Gate
    , Dep.Bricks.Karnaugh
    , Dep.Bricks.Layout
