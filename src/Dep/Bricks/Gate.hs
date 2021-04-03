@@ -2,6 +2,7 @@ module Dep.Bricks.Gate where
 
 import Dep.Bricks.Box(boxh, boxhu, boxhd, boxlt, boxrt, boxlb, boxrb, boxv, boxvl, boxvr)
 import Dep.Bricks.Layout(CircuitLayout(Horizontal, Vertical))
+import Dep.Bricks.Negation(negation, negationHList, negationVList)
 
 import Graphics.Vty.Attributes(Attr)
 import Graphics.Vty.Image(Image, (<->), (<|>), char, emptyImage, string)
@@ -27,6 +28,9 @@ gate :: Char -> CircuitLayout -> Int -> Attr -> Image
 gate = flip go
   where go Horizontal = gateH
         go Vertical = gateV
+
+-- genericGate :: Char -> CircuitLayout -> [Bool] -> Bool -> Attr -> Image
+-- genericGate ci = go
 
 andGate :: CircuitLayout -> Int -> Attr -> Image
 andGate = gate '&'

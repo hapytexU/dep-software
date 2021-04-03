@@ -24,6 +24,7 @@ executable dep-software
    , Dep.Bricks.Karnaugh
    , Dep.Bricks.Layout
    , Dep.Bricks.Negation
+   , Dep.Data.Three
   default-language:    Haskell2010
   ghc-options: -rtsopts -threaded
   build-depends:

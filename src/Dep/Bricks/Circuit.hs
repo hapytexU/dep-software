@@ -15,4 +15,4 @@ circuit = Widget Fixed Fixed $ do
   c <- getContext
   let a = c ^. attrL
   -- return (emptyResult & imageL .~ andGateV3 (c ^. attrL))
-  return (emptyResult & imageL .~ (char a ' ' <|> negationHList linev [False, True, True] a) <-> andGateH3 a)
+  return (emptyResult & imageL .~ (char a ' ' <|> negationHList [False, True, True] a) <-> andGateH3 a)
