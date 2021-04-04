@@ -1,9 +1,24 @@
 {-# LANGUAGE DeriveFoldable, DeriveFunctor #-}
 
+{-|
+Module      : Dep.Data.ThreeValue
+Description : A module that defines a /three/ data structure, used for lookup tables with don't cares.
+Maintainer  : hapytexeu+gh@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+This modules defines a /three/, a tree-like data structure with a leaf, a node, and a link where both
+subtrees are the same. This is used to make more compact and efficient representations of a boolean function.
+-}
+
 module Dep.Data.Three (
+    -- * Defining a three
     Three(Leaf, Link, Split)
+    -- * Catamorphisms
   , three, depth
-  , step, walk
+    -- * Lookups and constructions
+  , step, walk, apply
+    -- * Simplifying
   , simplify
   ) where
 

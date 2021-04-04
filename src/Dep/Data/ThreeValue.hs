@@ -1,12 +1,24 @@
+{-|
+Module      : Dep.Data.ThreeValue
+Description : A module to define three-value logic.
+Maintainer  : hapytexeu+gh@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+A module that defines three-value logic, for example used in thruth tables, Karnaugh cards, etc.
+-}
+
 module Dep.Data.ThreeValue (
+    -- * Define three-value logic
     ThreeValue(DontCare, Zero, One)
-  , threeValue, toMaybeBool
+    -- * Catamorphisms
+  , threeValue, toMaybeBool, toChar
+    -- * Type aliasses
   , ThreeValues
   ) where
 
 import Dep.Core(Mergeable(merge))
 
-import Test.QuickCheck(frequency)
 import Test.QuickCheck.Arbitrary(Arbitrary(arbitrary), arbitraryBoundedEnum)
 
 -- | A data type that is used if a value can present three logical values: /don't care/ (or don't know);
