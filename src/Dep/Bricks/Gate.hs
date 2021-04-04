@@ -2,7 +2,7 @@ module Dep.Bricks.Gate where
 
 import Dep.Bricks.Box(boxh, boxhu, boxhd, boxlt, boxrt, boxlb, boxrb, boxv, boxvl, boxvr)
 import Dep.Bricks.Layout(CircuitLayout(Horizontal, Vertical))
-import Dep.Bricks.Negation(negation, negationHList, negationVList)
+import Dep.Bricks.Negation(negationH, negationV, negationHList, negationVList)
 
 import Graphics.Vty.Attributes(Attr)
 import Graphics.Vty.Image(Image, (<->), (<|>), char, emptyImage, string)
@@ -29,8 +29,15 @@ gate = flip go
   where go Horizontal = gateH
         go Vertical = gateV
 
--- genericGate :: Char -> CircuitLayout -> [Bool] -> Bool -> Attr -> Image
--- genericGate ci = go
+negationOut :: Int -> (Image -> Image -> Image) -> (Bool -> Attr -> Image) -> Bool -> Attr -> Image
+negationOut n mgr wr bl atr = foldr (flip mgr) emptyImage (wr bl atr : replicate (n+1) (char atr ' '))
+
+genericGate :: Char -> CircuitLayout -> [Bool] -> Bool -> Attr -> Image
+genericGate ci ly ngi ng atr = go ly
+  where go Horizontal = (char atr ' ' <|> negationHList ngi atr) <-> gateH ci n atr <-> negationOut n2 (<|>) negationH ng atr
+        go Vertical = (char atr ' ' <-> negationVList ngi atr) <|> gateV ci n atr <|> negationOut n2 (<->) negationV ng atr
+        n = length ngi
+        n2 = div n 2
 
 andGate :: CircuitLayout -> Int -> Attr -> Image
 andGate = gate '&'
