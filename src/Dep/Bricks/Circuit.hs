@@ -12,4 +12,4 @@ circuit = Widget Fixed Fixed $ do
   c <- getContext
   let a = c ^. attrL
   -- return (emptyResult & imageL .~ andGateV3 (c ^. attrL))
-  return (emptyResult & imageL .~ (genericGate '&' Horizontal [False, True, False, True] True a))
+  return (emptyResult & imageL .~ genericGate '&' Horizontal [False, True, False, True] True a)
