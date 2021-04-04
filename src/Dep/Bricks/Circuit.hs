@@ -4,11 +4,8 @@ import Brick.Types(Size(Fixed), Widget(Widget), attrL, emptyResult, getContext, 
 
 import Control.Lens.Operators((&), (.~), (^.))
 
-import Dep.Bricks.Box(linev)
 import Dep.Bricks.Gate(genericGate)
 import Dep.Bricks.Layout(CircuitLayout(Horizontal))
-
-import Graphics.Vty.Image((<|>), (<->), char)
 
 circuit :: Widget ()
 circuit = Widget Fixed Fixed $ do
