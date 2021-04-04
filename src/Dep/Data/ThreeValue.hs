@@ -6,17 +6,19 @@ module Dep.Data.ThreeValue (
 
 import Dep.Core(Mergeable(merge))
 
-data ThreeValue
-  = DontCare
-  | Zero
-  | One
-  deriving (Enum, Eq, Ord, Read, Show)
+import Test.QuickCheck(frequency)
+import Test.QuickCheck.Arbitrary(Arbitrary(arbitrary), arbitraryBoundedEnum)
 
-threeValue :: a -> a -> a -> ThreeValue -> a
-threeValue d z o = go
-  where go DontCare = d
-        go Zero = z
-        go ~One = o
+-- | A data type that is used if a value can present three logical values: /don't care/ (or don't know);
+-- /zero/; and /one/.
+data ThreeValue
+  = DontCare  -- ^ We do not care or do not know the value.
+  | Zero  -- ^ The value is /zero/ or /false/.
+  | One  -- ^ The value is /one/ or /true/.
+  deriving (Bounded, Enum, Eq, Ord, Read, Show)
+
+instance Arbitrary ThreeValue where
+  arbitrary = arbitraryBoundedEnum
 
 instance Mergeable ThreeValue where
   merge DontCare x = Just x
@@ -25,7 +27,33 @@ instance Mergeable ThreeValue where
   merge One One = Just One
   merge _ _ = Nothing
 
-toMaybeBool :: ThreeValue -> Maybe Bool
+-- | Convert the given 'ThreeValue' object to the corresponding value.
+-- This acts as a /catamorphism/ for the 'ThreeValue' type.
+threeValue
+  :: a  -- ^ The value for 'DontCare'.
+  -> a  -- ^ The value for 'Zero'.
+  -> a  -- ^ The value for 'One'.
+  -> ThreeValue  -- ^ The value to convert to one of the given values.
+  -> a  -- ^ The corresponding value.
+threeValue d z o = go
+  where go DontCare = d
+        go Zero = z
+        go ~One = o
+
+-- | Convert the given 'ThreeValue' to a 'Maybe' 'Bool' object.
+-- where 'DontCare' is mapped to 'Nothing' and 'Zero' and 'One' to
+-- 'True' and 'False' wrapped in a 'Just' accordingly.
+toMaybeBool
+  :: ThreeValue  -- ^ The given 'ThreeValue' to convert.
+  -> Maybe Bool  -- ^ The corresponding 'Bool' wrapped in a 'Maybe'.
 toMaybeBool = threeValue Nothing (Just False) (Just True)
 
+-- | Convert the given 'ThreeValue' to a 'Char' that presents the given
+-- value. 'DontCare' is mapped to @-@; 'Zero' to @0@; and 'One' to @1@.
+toChar
+  :: ThreeValue  -- ^ The given 'ThreeValue' object to map.
+  -> Char  -- ^ The corresponding 'Char' that presents the 'ThreeValue'.
+toChar = threeValue '-' '0' '1'
+
+-- | A type alias for a list of 'ThreeValue' objects.
 type ThreeValues = [ThreeValue]
