@@ -22,7 +22,7 @@ module Dep.Data.Three (
   , simplify
   ) where
 
-import Control.Applicative(Applicative((<*>), liftA2, pure))
+import Control.Applicative(Applicative(liftA2))
 
 import Data.Bool(bool)
 
