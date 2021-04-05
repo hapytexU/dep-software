@@ -17,10 +17,12 @@ module Dep.Data.Three (
     -- * Catamorphisms
   , three, depth
     -- * Lookups and constructions
-  , step, walk, apply
+  , step, walk, apply, applyTo
     -- * Simplifying
   , simplify
   ) where
+
+import Control.Applicative(Applicative((<*>), liftA2, pure))
 
 import Data.Bool(bool)
 
@@ -62,6 +64,27 @@ apply = foldr go . Leaf
         go (Just True) = Split lid
         go ~Nothing = Link
         lid = Leaf id
+
+_getChildren :: Three a -> (Three a, Three a)
+_getChildren l@(Leaf _) = (l, l)
+_getChildren (Link l) = (l, l)
+_getChildren (Split la lb) = (la, lb)
+
+-- | Apply the given function to the elements in the given 'Three' that satisfy the given path.
+applyTo
+  :: (a -> a)  -- ^ The given function to apply to some parts of the 'Three'.
+  -> [Maybe Bool]  -- ^ The given path that specifies what for what parts of the 'Three' we should apply the function.
+  -> Three a  -- ^ The given 'Three' where (part) of the 'Three' will be modified with a given function.
+  -> Three a  -- ^ The resulting 'Three' after applying the given function to parts of the 'Three' that satisfy the given path.
+applyTo f = go
+  where go [] = fmap f
+        go (Nothing:xs) = go'
+          where go' (Split la lb) = Split (go xs la) (go xs lb)
+                go' l@(Leaf _) = Link (go xs l)
+                go' (Link l) = Link (go xs l)
+        go ~(~(Just sl):xs) = go' sl . _getChildren
+          where go' True ~(la, lb) = Split la (go xs lb)
+                go' ~False ~(la, lb) = Split (go xs la) lb
 
 -- | Determine the maximum depth of the 'Three' tree.
 depth
@@ -114,6 +137,15 @@ instance Applicative Three where
   (<*>) ~(Split fa fb) = go
       where go (Split xa xb) = Split (fa <*> xa) (fb <*> xb)
             go l = Split (fa <*> x') (fb <*> x') where x' = _linkLeaf l
+  liftA2 f = go
+      where go (Leaf x) (Leaf y) = Leaf (f x y)
+            go x@(Leaf _) (Link y) = Link (go x y)
+            go x@(Leaf _) (Split ya yb) = Split (go x ya) (go x yb)
+            go (Link x) (Split ya yb) = Split (go x ya) (go x yb)
+            go (Link x) y = Link (go x (_linkLeaf y))
+            go (Split xa xb) (Split ya yb) = Split (go xa ya) (go xb yb)
+            go (Split xa xb) y = Split (go xa y') (go xb y')
+              where y' = _linkLeaf y
 
 instance Arbitrary1 Three where
     liftArbitrary arb = go
