@@ -14,6 +14,8 @@ subtrees are the same. This is used to make more compact and efficient represent
 module Dep.Data.Three (
     -- * Defining a three
     Three(Leaf, Link, Split)
+    -- * Paths in a three
+  , ThreePath
     -- * Catamorphisms
   , three, depth
     -- * Lookups and constructions
@@ -38,6 +40,8 @@ data Three a
   | Split (Three a) (Three a)  -- ^ A /split/ where this variable determines the outcome.
   deriving (Eq, Foldable, Functor, Ord, Read, Show)
 
+type ThreePath = [Maybe Bool]
+
 _linkLeaf :: Three a -> Three a
 _linkLeaf (Link x) = x
 _linkLeaf x = x
@@ -56,7 +60,7 @@ three f g h = go
 -- objects.
 apply
   :: (a -> a)  -- ^ The given function to apply for the items that satisfy the given path.
-  -> [Maybe Bool]  -- ^ The given path to use.
+  -> ThreePath  -- ^ The given path to use.
   -> Three (a -> a)  -- ^ A 'Three' object of functions where the elements that satisfy
                      -- the path will use the given function and the others will use 'id'.
 apply = foldr go . Leaf
@@ -73,7 +77,7 @@ _getChildren (Split la lb) = (la, lb)
 -- | Apply the given function to the elements in the given 'Three' that satisfy the given path.
 applyTo
   :: (a -> a)  -- ^ The given function to apply to some parts of the 'Three'.
-  -> [Maybe Bool]  -- ^ The given path that specifies what for what parts of the 'Three' we should apply the function.
+  -> ThreePath  -- ^ The given path that specifies what for what parts of the 'Three' we should apply the function.
   -> Three a  -- ^ The given 'Three' where (part) of the 'Three' will be modified with a given function.
   -> Three a  -- ^ The resulting 'Three' after applying the given function to parts of the 'Three' that satisfy the given path.
 applyTo f = go

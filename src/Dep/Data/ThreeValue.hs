@@ -29,6 +29,13 @@ data ThreeValue
   | One  -- ^ The value is /one/ or /true/.
   deriving (Bounded, Enum, Eq, Ord, Read, Show)
 
+instance Semigroup ThreeValue where
+  (<>) DontCare = id
+  (<>) x = const x
+
+instance Monoid ThreeValue where
+  mempty = DontCare
+
 instance Arbitrary ThreeValue where
   arbitrary = arbitraryBoundedEnum
 

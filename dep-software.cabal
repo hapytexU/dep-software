@@ -17,6 +17,7 @@ library
   hs-source-dirs: src
   exposed-modules:
      Dep.Core
+   , Dep.Algorithm.Synthesis
    , Dep.Bricks.Box
    , Dep.Bricks.Circuit
    , Dep.Bricks.Gate
@@ -32,6 +33,7 @@ library
     , lens >=4.0
     , QuickCheck
     , vty >= 5.32
+    , unicode-tricks >=0.1
 
 executable dep-software
   hs-source-dirs:      app
