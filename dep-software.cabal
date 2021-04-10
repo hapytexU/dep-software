@@ -32,8 +32,9 @@ library
     , brick >= 0.50
     , lens >=4.0
     , QuickCheck
-    , vty >= 5.32
+    , text >=0.1
     , unicode-tricks >=0.1
+    , vty >= 5.32
 
 executable dep-software
   hs-source-dirs:      app

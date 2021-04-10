@@ -2,6 +2,9 @@ module Dep.Algorithm.Synthesis where
 
 import Control.Applicative((<|>))
 
+import Data.Char.Small(asSub')
+import Data.Text(Text, cons, empty)
+
 import Dep.Data.Three(Three(Leaf, Link, Split), ThreePath, applyTo, simplify)
 import Dep.Data.ThreeValue(ThreeValue(DontCare, Zero, One))
 
@@ -43,3 +46,11 @@ synthesis th = _synthesis (simplify th)
         _synthesis thr
           | Just j <- extractProduct thr = j : _synthesis (wipeout j thr)
           | otherwise = []
+
+printProduct :: Char -> ThreePath -> Text
+printProduct ci = go (0 :: Int)
+    where go _ [] = empty
+          go n (Nothing:xs) = go (n+1) xs
+          go n (Just True:xs) = _printvar id n xs
+          go n (Just False:xs) = _printvar (cons '\'') n xs
+          _printvar f n xs = cons ci (asSub' n) <> f (go (n+1) xs)
