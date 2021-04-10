@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Dep.Algorithm.Synthesis where
 
 import Control.Applicative((<|>))
@@ -48,16 +50,17 @@ synthesis th = _synthesis (simplify th)
           | otherwise = []
 
 showSumOfProducts :: Char -> [ThreePath] -> Text
-showSumOfProducts = flip showSumOfProducts' mempty
-
-showSumOfProducts' :: Char -> Text -> [ThreePath] -> Text
-showSumOfProducts' ci = foldr (flip (`showProduct'` ci))
+showSumOfProducts _ [] = mempty
+showSumOfProducts ci (x:xs) = go x xs
+  where go z [] = go' mempty z
+        go z ~(y:ys) = go' (" + " <> go y ys) z
+        go' = showProduct' ci
 
 showProduct :: Char -> ThreePath -> Text
-showProduct = showProduct' mempty
+showProduct = (`showProduct'` mempty)
 
-showProduct' :: Text -> Char -> ThreePath -> Text
-showProduct' tl ci = go (0 :: Int)
+showProduct' :: Char -> Text -> ThreePath -> Text
+showProduct' ci tl = go (0 :: Int)
     where go _ [] = tl
           go n (Nothing:xs) = go (n+1) xs
           go n (Just True:xs) = _printvar id n xs
