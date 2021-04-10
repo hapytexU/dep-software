@@ -20,10 +20,10 @@ upper _ = True
 upperbound :: Three ThreeValue -> Three Bool
 upperbound = simplify . fmap upper
 
-_pushFalse :: Functor f => f [Maybe Bool] -> f [Maybe Bool]
+_pushFalse :: Functor f => f Product -> f Product
 _pushFalse = fmap (Just False:)
 
-_pushTrue :: Functor f => f [Maybe Bool] -> f [Maybe Bool]
+_pushTrue :: Functor f => f Product -> f Product
 _pushTrue = fmap (Just True:)
 
 {-guessProduct :: Three Bool -> Three ThreeValue -> Maybe ThreePath
@@ -32,11 +32,12 @@ guessPro
 guessProduct (Link l) s@(Split _ _) = extractProduct s
 guessProduct ()-}
 
-extractProduct :: Three ThreeValue -> Maybe Product
-extractProduct (Leaf One) = Just []
-extractProduct (Leaf _) = Nothing
-extractProduct (Link l) = (Nothing :) <$> extractProduct l
-extractProduct ~(Split la lb) = _pushFalse (extractProduct la) <|> _pushTrue (extractProduct lb)
+extractProduct :: Three Bool -> Three ThreeValue -> Maybe Product
+extractProduct _ = go
+  where go (Leaf One) = Just []
+        go (Leaf _) = Nothing
+        go (Link l) = (Nothing :) <$> go l
+        go ~(Split la lb) = _pushFalse (go la) <|> _pushTrue (go lb)
 
 wipeout :: Product -> Three ThreeValue -> Three ThreeValue
 wipeout path = simplify . applyTo (const DontCare) path
@@ -47,8 +48,9 @@ minimizeProduct = const
 synthesis :: Three ThreeValue -> SumOfProducts
 synthesis th = _synthesis (simplify th)
   where _upper = upperbound th
+        _takeProduct = extractProduct _upper
         _synthesis thr
-          | Just j <- extractProduct thr = let j' = minimizeProduct j _upper in j' : _synthesis (wipeout j' thr)
+          | Just j <- _takeProduct thr = let j' = minimizeProduct j _upper in j' : _synthesis (wipeout j' thr)
           | otherwise = []
 
 showSumOfProducts :: Char -> SumOfProducts -> Text
