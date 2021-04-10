@@ -10,6 +10,9 @@ import Data.Text(Text, cons)
 import Dep.Data.Three(Three(Leaf, Link, Split), ThreePath, applyTo, simplify)
 import Dep.Data.ThreeValue(ThreeValue(DontCare, Zero, One))
 
+type Product = ThreePath
+type SumOfProducts = [Product]
+
 upper :: ThreeValue -> Bool
 upper Zero = False
 upper _ = True
@@ -29,37 +32,36 @@ guessPro
 guessProduct (Link l) s@(Split _ _) = extractProduct s
 guessProduct ()-}
 
-extractProduct :: Three ThreeValue -> Maybe ThreePath
+extractProduct :: Three ThreeValue -> Maybe Product
 extractProduct (Leaf One) = Just []
 extractProduct (Leaf _) = Nothing
 extractProduct (Link l) = (Nothing :) <$> extractProduct l
 extractProduct ~(Split la lb) = _pushFalse (extractProduct la) <|> _pushTrue (extractProduct lb)
 
-wipeout :: ThreePath -> Three ThreeValue -> Three ThreeValue
+wipeout :: Product -> Three ThreeValue -> Three ThreeValue
 wipeout path = simplify . applyTo (const DontCare) path
 
-minimizeProduct :: ThreePath -> Three Bool -> [(Int, ThreePath)]
+minimizeProduct :: Product -> Three Bool -> [(Int, Product)]
 minimizeProduct = undefined
 
-synthesis :: Three ThreeValue -> [ThreePath]
+synthesis :: Three ThreeValue -> SumOfProducts
 synthesis th = _synthesis (simplify th)
   where _upper = upperbound th
-        _synthesis :: Three ThreeValue -> [ThreePath]
         _synthesis thr
           | Just j <- extractProduct thr = j : _synthesis (wipeout j thr)
           | otherwise = []
 
-showSumOfProducts :: Char -> [ThreePath] -> Text
+showSumOfProducts :: Char -> SumOfProducts -> Text
 showSumOfProducts _ [] = mempty
 showSumOfProducts ci (x:xs) = go x xs
   where go z [] = go' mempty z
         go z ~(y:ys) = go' (" + " <> go y ys) z
         go' = showProduct' ci
 
-showProduct :: Char -> ThreePath -> Text
+showProduct :: Char -> Product -> Text
 showProduct = (`showProduct'` mempty)
 
-showProduct' :: Char -> Text -> ThreePath -> Text
+showProduct' :: Char -> Text -> Product -> Text
 showProduct' ci tl = go (0 :: Int)
     where go _ [] = tl
           go n (Nothing:xs) = go (n+1) xs
