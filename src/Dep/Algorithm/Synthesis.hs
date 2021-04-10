@@ -41,14 +41,14 @@ extractProduct ~(Split la lb) = _pushFalse (extractProduct la) <|> _pushTrue (ex
 wipeout :: Product -> Three ThreeValue -> Three ThreeValue
 wipeout path = simplify . applyTo (const DontCare) path
 
-minimizeProduct :: Product -> Three Bool -> [(Int, Product)]
-minimizeProduct = undefined
+minimizeProduct :: Product -> Three Bool -> Product
+minimizeProduct = const
 
 synthesis :: Three ThreeValue -> SumOfProducts
 synthesis th = _synthesis (simplify th)
   where _upper = upperbound th
         _synthesis thr
-          | Just j <- extractProduct thr = j : _synthesis (wipeout j thr)
+          | Just j <- extractProduct thr = let j' = minimizeProduct j _upper in j' : _synthesis (wipeout j' thr)
           | otherwise = []
 
 showSumOfProducts :: Char -> SumOfProducts -> Text
