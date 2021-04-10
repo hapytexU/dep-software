@@ -19,7 +19,7 @@ module Dep.Data.Three (
     -- * Catamorphisms
   , three, depth
     -- * Lookups and constructions
-  , step, nstep', nstep, walk, apply, applyTo
+  , step, nstep', nstep, allnstep, walk, apply, applyTo
     -- * Simplifying
   , simplify
     -- * Retrieve children according to a path
@@ -140,6 +140,13 @@ nstep' (Split la lb) = go
     where go (Just False) = (la:)
           go (Just True) = (lb:)
           go ~Nothing = (la:) . (lb:)
+
+-- | Perform the same non-deterministic step on all the given 'Three's.
+allnstep
+  :: [Three a]  -- ^ The list of 'Three's to apply the same step on.
+  -> Maybe Bool  -- ^ The given non-deterministic step to take.
+  -> [Three a]  -- ^ The corresponding list of 'Three's.
+allnstep thr stp = foldr (`nstep'` stp) [] thr
 
 -- | Take a non-deterministic step where a 'Nothing' means we work with both 'True'
 -- and 'False'.
