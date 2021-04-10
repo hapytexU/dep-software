@@ -19,9 +19,11 @@ module Dep.Data.Three (
     -- * Catamorphisms
   , three, depth
     -- * Lookups and constructions
-  , step, walk, apply, applyTo
+  , step, nstep', nstep, walk, apply, applyTo
     -- * Simplifying
   , simplify
+    -- * Retrieve children according to a path
+  , children, children'
   ) where
 
 import Control.Applicative(Applicative(liftA2))
@@ -125,12 +127,55 @@ step l@(Leaf _) = const l
 step (Link t) = const t
 step ~(Split la lb) = bool la lb
 
+-- | Take a non-deterministic step where a 'Nothing' means we work with both 'True'
+-- and 'False'.
+nstep'
+  :: Three a  -- ^ The given 'Three' where we make a non-determinstic step.
+  -> Maybe Bool  -- ^ The step that we make, this can be 'Nothing' if we want to query both 'True' and 'False'.
+  -> [Three a]  -- ^ The list of tail elements added to the result.
+  -> [Three a]  -- ^ The list of the possible 'Three's with the step.
+nstep' l@(Leaf _) = const (l:)
+nstep' (Link t) = const (t:)
+nstep' (Split la lb) = go
+    where go (Just False) = (la:)
+          go (Just True) = (lb:)
+          go ~Nothing = (la:) . (lb:)
+
+-- | Take a non-deterministic step where a 'Nothing' means we work with both 'True'
+-- and 'False'.
+nstep
+  :: Three a  -- ^ The given 'Three' where we make a non-determinstic step.
+  -> Maybe Bool  -- ^ The step that we make, this can be 'Nothing' if we want to query both 'True' and 'False'.
+  -> [Three a]  -- ^ The list of the possible 'Three's with the step.
+nstep thr pth = nstep' thr pth []
+
 -- | Take a sequence of steps with the given list of 'Bool's.
 walk
   :: Three a  -- ^ The given 'Three' object where we make a walk.
   -> [Bool]  -- ^ A list of 'Bool's that determine for each step if we take the left or right subthree.
   -> Three a  -- ^ The corresponding subthree. For a 'Leaf' we will each time keep returning the same leaf.
 walk = foldl step
+
+-- | Obtain the children that satisfy a given 'ThreePath'.
+children
+  :: ThreePath  -- ^ The given 'ThreePath' for the query.
+  -> Three a  -- ^ The given 'Three' that we query.
+  -> [a]  -- ^ A list of /children/ that satisfy the given 'ThreePath'.
+children path thr = children' path thr []
+
+-- | Obtain the children that satisfy the given 'ThreePath'.
+children'
+  :: ThreePath  -- ^ The given 'ThreePath' for the query.
+  -> Three a  -- ^ The given 'Three' that we query.
+  -> [a]  -- ^ The list of tail elements.
+  -> [a]  -- ^ The list of /children/ followed by the given list of tail elements.
+children' _ (Leaf x) = (x :)
+children' (_:ys) (Link x) = children' ys x
+children' (Nothing:ys) (Split la lb) = go lb . go la
+  where go = children' ys
+children' ~(~(Just j):ys) ~(Split la lb) = go
+  where go | j = children' ys lb
+           | otherwise = children' ys la
 
 instance Applicative Three where
   pure = Leaf
