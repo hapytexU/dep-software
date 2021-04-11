@@ -30,6 +30,8 @@ import Control.Applicative(Applicative(liftA2))
 
 import Data.Bool(bool)
 
+import Dep.Data.ThreeValue(ThreeValue(DontCare, Zero, One))
+
 import Test.QuickCheck(frequency)
 import Test.QuickCheck.Arbitrary(Arbitrary(arbitrary), Arbitrary1(liftArbitrary), arbitrary1)
 
@@ -42,7 +44,8 @@ data Three a
   | Split (Three a) (Three a)  -- ^ A /split/ where this variable determines the outcome.
   deriving (Eq, Foldable, Functor, Ord, Read, Show)
 
-type ThreePath = [Maybe Bool]
+type ThreeStep = ThreeValue
+type ThreePath = [ThreeStep]
 
 _linkLeaf :: Three a -> Three a
 _linkLeaf (Link x) = x
@@ -66,9 +69,9 @@ apply
   -> Three (a -> a)  -- ^ A 'Three' object of functions where the elements that satisfy
                      -- the path will use the given function and the others will use 'id'.
 apply = foldr go . Leaf
-  where go (Just False) = (`Split` lid)
-        go (Just True) = Split lid
-        go ~Nothing = Link
+  where go Zero = (`Split` lid)
+        go One = Split lid
+        go ~DontCare = Link
         lid = Leaf id
 
 _getChildren :: Three a -> (Three a, Three a)
@@ -84,13 +87,13 @@ applyTo
   -> Three a  -- ^ The resulting 'Three' after applying the given function to parts of the 'Three' that satisfy the given path.
 applyTo f = go
   where go [] = fmap f
-        go (Nothing:xs) = go'
+        go (DontCare:xs) = go'
           where go' (Split la lb) = Split (go xs la) (go xs lb)
                 go' l@(Leaf _) = Link (go xs l)
                 go' (Link l) = Link (go xs l)
-        go ~(~(Just sl):xs) = go' sl . _getChildren
-          where go' True ~(la, lb) = Split la (go xs lb)
-                go' ~False ~(la, lb) = Split (go xs la) lb
+        go ~(sl:xs) = go' sl . _getChildren
+          where go' One ~(la, lb) = Split la (go xs lb)
+                go' ~Zero ~(la, lb) = Split (go xs la) lb
 
 -- | Determine the maximum depth of the 'Three' tree.
 depth
@@ -127,32 +130,32 @@ step l@(Leaf _) = const l
 step (Link t) = const t
 step ~(Split la lb) = bool la lb
 
--- | Take a non-deterministic step where a 'Nothing' means we work with both 'True'
--- and 'False'.
+-- | Take a non-deterministic step where a 'DontCare' means we work with both 'Zero'
+-- and 'One'.
 nstep'
   :: Three a  -- ^ The given 'Three' where we make a non-determinstic step.
-  -> Maybe Bool  -- ^ The step that we make, this can be 'Nothing' if we want to query both 'True' and 'False'.
+  -> ThreeStep  -- ^ The step that we make, this can be 'DontCare' if we want to query both 'Zero' and 'One'.
   -> [Three a]  -- ^ The list of tail elements added to the result.
   -> [Three a]  -- ^ The list of the possible 'Three's with the step.
 nstep' l@(Leaf _) = const (l:)
 nstep' (Link t) = const (t:)
 nstep' (Split la lb) = go
-    where go (Just False) = (la:)
-          go (Just True) = (lb:)
-          go ~Nothing = (la:) . (lb:)
+    where go Zero = (la:)
+          go One = (lb:)
+          go ~DontCare = (la:) . (lb:)
 
 -- | Perform the same non-deterministic step on all the given 'Three's.
 allnstep
   :: [Three a]  -- ^ The list of 'Three's to apply the same step on.
-  -> Maybe Bool  -- ^ The given non-deterministic step to take.
+  -> ThreeStep  -- ^ The given non-deterministic step that we make, this can be 'DontCare' if we want to query both 'Zero' and 'One'.
   -> [Three a]  -- ^ The corresponding list of 'Three's.
 allnstep thr stp = foldr (`nstep'` stp) [] thr
 
--- | Take a non-deterministic step where a 'Nothing' means we work with both 'True'
--- and 'False'.
+-- | Take a non-deterministic step where a 'DontCare' means we work with both 'Zero'
+-- and 'One'.
 nstep
   :: Three a  -- ^ The given 'Three' where we make a non-determinstic step.
-  -> Maybe Bool  -- ^ The step that we make, this can be 'Nothing' if we want to query both 'True' and 'False'.
+  -> ThreeStep  -- ^ The given non-deterministic step that we make, this can be 'DontCare' if we want to query both 'Zero' and 'One'.
   -> [Three a]  -- ^ The list of the possible 'Three's with the step.
 nstep thr pth = nstep' thr pth []
 
@@ -178,11 +181,10 @@ children'
   -> [a]  -- ^ The list of /children/ followed by the given list of tail elements.
 children' _ (Leaf x) = (x :)
 children' (_:ys) (Link x) = children' ys x
-children' (Nothing:ys) (Split la lb) = go lb . go la
+children' (DontCare:ys) (Split la lb) = go lb . go la
   where go = children' ys
-children' ~(~(Just j):ys) ~(Split la lb) = go
-  where go | j = children' ys lb
-           | otherwise = children' ys la
+children' (Zero:ys) ~(Split la _) = children' ys la
+children' ~(~One:ys) ~(Split _ lb) = children' ys lb
 
 instance Applicative Three where
   pure = Leaf

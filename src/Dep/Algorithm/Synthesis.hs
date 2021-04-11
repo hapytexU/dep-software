@@ -21,10 +21,10 @@ upperbound :: Three ThreeValue -> Three Bool
 upperbound = simplify . fmap upper
 
 _pushFalse :: Functor f => f Product -> f Product
-_pushFalse = fmap (Just False:)
+_pushFalse = fmap (Zero:)
 
 _pushTrue :: Functor f => f Product -> f Product
-_pushTrue = fmap (Just True:)
+_pushTrue = fmap (One:)
 
 {-guessProduct :: Three Bool -> Three ThreeValue -> Maybe ThreePath
 guessProduct (Leaf True) thr = [] <$ extractProduct thr
@@ -36,7 +36,7 @@ extractProduct :: Three Bool -> Three ThreeValue -> Maybe Product
 extractProduct _ = go
   where go (Leaf One) = Just []
         go (Leaf _) = Nothing
-        go (Link l) = (Nothing :) <$> go l
+        go (Link l) = (DontCare :) <$> go l
         go ~(Split la lb) = _pushFalse (go la) <|> _pushTrue (go lb)
 
 wipeout :: Product -> Three ThreeValue -> Three ThreeValue
@@ -66,7 +66,7 @@ showProduct = (`showProduct'` mempty)
 showProduct' :: Char -> Text -> Product -> Text
 showProduct' ci tl = go (0 :: Int)
     where go _ [] = tl
-          go n (Nothing:xs) = go (n+1) xs
-          go n (Just True:xs) = _printvar id n xs
-          go n (Just False:xs) = _printvar (cons '\'') n xs
+          go n (DontCare:xs) = go (n+1) xs
+          go n (One:xs) = _printvar id n xs
+          go n ~(Zero:xs) = _printvar (cons '\'') n xs
           _printvar f n xs = cons ci (asSub' n) <> f (go (n+1) xs)
