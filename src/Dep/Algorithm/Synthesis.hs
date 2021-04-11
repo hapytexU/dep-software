@@ -1,6 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Dep.Algorithm.Synthesis where
+module Dep.Algorithm.Synthesis (
+    -- * Synthesize a 'Three'
+    synthesis
+    -- * Type synonyms to represent synthesis
+  , Product, SumOfProducts
+    -- * Show results
+  , showSumOfProducts, showProduct, showProduct'
+  ) where
 
 import Control.Applicative((<|>))
 
