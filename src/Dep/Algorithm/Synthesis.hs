@@ -12,9 +12,10 @@ module Dep.Algorithm.Synthesis (
 import Control.Applicative((<|>))
 
 import Data.Char.Small(asSub')
+import Data.List.NonEmpty(NonEmpty)
 import Data.Text(Text, cons)
 
-import Dep.Data.Three(Three(Leaf, Link, Split), ThreePath, applyTo, simplify)
+import Dep.Data.Three(Three(Leaf, Link, Split), ThreePath, allnstep, applyTo, simplify)
 import Dep.Data.ThreeValue(ThreeValue(DontCare, Zero, One))
 
 type Product = ThreePath
@@ -49,12 +50,20 @@ extractProduct _ = go
 wipeout :: Product -> Three ThreeValue -> Three ThreeValue
 wipeout path = simplify . applyTo (const DontCare) path
 
+_incStep :: ThreeValue -> Int -> Int
+_incStep DontCare = id
+_incStep _ = (1+)
+
+minimizeProduct' :: Product -> Three Bool -> (Int, Product)
+minimizeProduct' = undefined
+
 minimizeProduct :: Product -> Three Bool -> Product
-minimizeProduct = const
+minimizeProduct = undefined
 
 synthesis :: Three ThreeValue -> SumOfProducts
-synthesis th = _synthesis (simplify th)
-  where _upper = upperbound th
+synthesis th = _synthesis _simp
+  where _upper = upperbound _simp
+        _simp = simplify th
         _takeProduct = extractProduct _upper
         _synthesis thr
           | Just j <- _takeProduct thr = let j' = minimizeProduct j _upper in j' : _synthesis (wipeout j' thr)
