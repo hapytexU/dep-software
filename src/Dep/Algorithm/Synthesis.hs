@@ -9,8 +9,9 @@ module Dep.Algorithm.Synthesis (
 
 import Control.Applicative((<|>))
 
+import Dep.Core(NonDeterministicWalkable(allnstep))
 import Dep.Data.Product(Product', SumOfProducts')
-import Dep.Data.Three(Three(Leaf, Link, Split), allnstep, applyTo, simplify)
+import Dep.Data.Three(Three(Leaf, Link, Split), applyTo, simplify)
 import Dep.Data.ThreeValue(ThreeValue(DontCare, Zero, One))
 
 upperbound :: Three ThreeValue -> Three Bool
@@ -36,7 +37,7 @@ extractProduct _ = go
   where go (Leaf One) = Just []
         go (Leaf _) = Nothing
         go (Link l) = (DontCare :) <$> go l
-        go ~(Split la lb) = _pushFalse (go la) <|> _pushTrue (go lb)
+        go ~(Split la lb) = _pushZero (go la) <|> _pushOne (go lb)
 
 wipeout :: Product' -> Three ThreeValue -> Three ThreeValue
 wipeout path = simplify . applyTo (const DontCare) path

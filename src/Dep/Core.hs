@@ -14,7 +14,7 @@ defines a 'Mergeable' typeclass that is used to optionally merge two values into
 module Dep.Core (
     BFunc, BFunc1, BFunc2, BFunc3, BFunc4
   , Mergeable(merge)
-  , Walkable(step, walk), NonDeterministicWalk(nstep', nstep, allnstep', allnstep)
+  , Walkable(step, walk), NonDeterministicWalkable(nstep', nstep, allnstep', allnstep)
   ) where
 
 -- | A function that maps a list of 'Bool's to a single 'Bool'.
@@ -63,7 +63,7 @@ class Walkable f step | f -> step where
   walk = foldl step
   {-# MINIMAL step | walk #-}
 
-class NonDeterministicWalk f step | f -> step where
+class NonDeterministicWalkable f step | f -> step where
   -- | Take a non-deterministic step that can result in multiple outcomes.
   -- One can specify a tail to make concatenating of lists more efficient.
   nstep'
@@ -98,8 +98,8 @@ class NonDeterministicWalk f step | f -> step where
     -> [f a]  -- ^ The list of the possible states with the new step.
   allnstep xs dx = allnstep' xs dx []
 
-  nwalk' :: Foldable g => f a -> g step -> [f a] -> [f a]
-  nwalk' x dxs tl = foldr (`nstep'` dxs) tl x
+  -- nwalk' :: Foldable g => f a -> g step -> [f a] -> [f a]
+  -- nwalk' x dxs tl = foldr (nstep' x) tl dxs
   {-# MINIMAL nstep' | nstep #-}
 
 instance Mergeable (Maybe a) where

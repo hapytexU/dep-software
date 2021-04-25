@@ -19,7 +19,7 @@ module Dep.Data.Three (
     -- * Catamorphisms
   , three, depth
     -- * Lookups and constructions
-  , nstep', allnstep, nstep, apply, applyTo
+  , nstep, apply, applyTo
   --  -- * Check elements for a given path
   --, allElementsAt, allElementsAt', elementsAt, elementsAt'
     -- * Simplifying
@@ -34,7 +34,7 @@ import Data.Binary(Binary(put, get), getWord8, putWord8)
 import Data.Bool(bool)
 
 -- import Dep.Utils(toList') TODO: remove
-import Dep.Core(Walkable(step, walk))
+import Dep.Core(Walkable(step, walk), NonDeterministicWalkable(nstep, nstep'))
 import Dep.Data.ThreeValue(ThreeValue(DontCare, Zero, One))
 
 import Test.QuickCheck(frequency)
@@ -131,7 +131,7 @@ instance Walkable Three Bool where
   step (Link t) = const t
   step ~(Split la lb) = bool la lb
 
-instance NonDeterministicWalkable Three ThreeStep where
+instance NonDeterministicWalkable Three ThreeValue where
   nstep' l@(Leaf _) = const (l:)
   nstep' (Link t) = const (t:)
   nstep' (Split la lb) = go
@@ -227,6 +227,10 @@ instance Applicative Three where
 
 instance Monad Three where
   return = Leaf
+  xs >>= f = go xs
+    where go (Leaf x) = f x
+          go (Link x) = go x
+          go ~(Split la lb) = Split (go la) (go lb)
 
 instance Semigroup a => Semigroup (Three a) where
   (<>) = liftA2 (<>)
