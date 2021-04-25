@@ -19,11 +19,11 @@ upperbound = simplify . fmap (Zero /=)
 lowerbound :: Three ThreeValue -> Three Bool
 lowerbound = simplify . fmap (One ==)
 
-_pushFalse :: Functor f => f Product' -> f Product'
-_pushFalse = fmap (Zero:)
+_pushZero :: Functor f => f Product' -> f Product'
+_pushZero = fmap (Zero:)
 
-_pushTrue :: Functor f => f Product' -> f Product'
-_pushTrue = fmap (One:)
+_pushOne :: Functor f => f Product' -> f Product'
+_pushOne = fmap (One:)
 
 {-guessProduct :: Three Bool -> Three ThreeValue -> Maybe ThreePath
 guessProduct (Leaf True) thr = [] <$ extractProduct thr

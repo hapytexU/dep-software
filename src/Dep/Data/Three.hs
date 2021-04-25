@@ -225,6 +225,9 @@ instance Applicative Three where
             go (Split xa xb) y = Split (go xa y') (go xb y')
               where y' = _linkLeaf y
 
+instance Monad Three where
+  return = Leaf
+
 instance Semigroup a => Semigroup (Three a) where
   (<>) = liftA2 (<>)
 

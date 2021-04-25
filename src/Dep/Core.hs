@@ -98,9 +98,8 @@ class NonDeterministicWalk f step | f -> step where
     -> [f a]  -- ^ The list of the possible states with the new step.
   allnstep xs dx = allnstep' xs dx []
 
-
   nwalk' :: Foldable g => f a -> g step -> [f a] -> [f a]
-  nwalk' = foldr
+  nwalk' x dxs tl = foldr (`nstep'` dxs) tl x
   {-# MINIMAL nstep' | nstep #-}
 
 instance Mergeable (Maybe a) where
