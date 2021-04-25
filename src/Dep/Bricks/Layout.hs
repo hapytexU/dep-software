@@ -1,3 +1,5 @@
+{-# LANGUAGE Safe #-}
+
 {-|
 Module      : Dep.Bricks.Layout
 Description : A module to specify how a circuit is rendered.

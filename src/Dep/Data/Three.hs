@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveFoldable, DeriveFunctor #-}
+{-# LANGUAGE DeriveFoldable, DeriveFunctor, DeriveTraversable, MultiParamTypeClasses, Safe #-}
 
 {-|
 Module      : Dep.Data.ThreeValue
@@ -19,21 +19,26 @@ module Dep.Data.Three (
     -- * Catamorphisms
   , three, depth
     -- * Lookups and constructions
-  , step, nstep', nstep, allnstep, walk, apply, applyTo
+  , nstep', allnstep, nstep, apply, applyTo
+  --  -- * Check elements for a given path
+  --, allElementsAt, allElementsAt', elementsAt, elementsAt'
     -- * Simplifying
   , simplify
     -- * Retrieve children according to a path
-  , children, children'
+  , children, children', allChildren, allChildren'
   ) where
 
 import Control.Applicative(Applicative(liftA2))
 
+import Data.Binary(Binary(put, get), getWord8, putWord8)
 import Data.Bool(bool)
 
+-- import Dep.Utils(toList') TODO: remove
+import Dep.Core(Walkable(step, walk))
 import Dep.Data.ThreeValue(ThreeValue(DontCare, Zero, One))
 
 import Test.QuickCheck(frequency)
-import Test.QuickCheck.Arbitrary(Arbitrary(arbitrary), Arbitrary1(liftArbitrary), arbitrary1)
+import Test.QuickCheck.Arbitrary(Arbitrary(arbitrary, shrink), Arbitrary1(liftArbitrary), arbitrary1)
 
 -- | A data structure used to specify a mapping from a list of booleans
 -- to a value in a more compact way. This datastructure can effectively
@@ -42,7 +47,7 @@ data Three a
   = Leaf a  -- ^ A /leaf/ that contains a single value.
   | Link (Three a)  -- ^ A /link/ where it means that this variable does not matter but the next one(s) will.
   | Split (Three a) (Three a)  -- ^ A /split/ where this variable determines the outcome.
-  deriving (Eq, Foldable, Functor, Ord, Read, Show)
+  deriving (Eq, Foldable, Functor, Ord, Read, Show, Traversable)
 
 type ThreeStep = ThreeValue
 type ThreePath = [ThreeStep]
@@ -120,51 +125,64 @@ simplify (Split la lb)
   where sa = simplify la
         sb = simplify lb
 
--- | Take one step with the given 'Bool' that determines whether
--- to take the left or the right subtree.
-step
-  :: Three a  -- ^ The 'Three' object where we take a single step.
-  -> Bool  -- ^ A 'Bool' that determines if we take the left of right subthree.
-  -> Three a  -- ^ The corresponding subthree. For a 'Leaf' this is the same three.
-step l@(Leaf _) = const l
-step (Link t) = const t
-step ~(Split la lb) = bool la lb
 
--- | Take a non-deterministic step where a 'DontCare' means we work with both 'Zero'
--- and 'One'.
-nstep'
-  :: Three a  -- ^ The given 'Three' where we make a non-determinstic step.
-  -> ThreeStep  -- ^ The step that we make, this can be 'DontCare' if we want to query both 'Zero' and 'One'.
-  -> [Three a]  -- ^ The list of tail elements added to the result.
-  -> [Three a]  -- ^ The list of the possible 'Three's with the step.
-nstep' l@(Leaf _) = const (l:)
-nstep' (Link t) = const (t:)
-nstep' (Split la lb) = go
+instance Walkable Three Bool where
+  step l@(Leaf _) = const l
+  step (Link t) = const t
+  step ~(Split la lb) = bool la lb
+
+instance NonDeterministicWalkable Three ThreeStep where
+  nstep' l@(Leaf _) = const (l:)
+  nstep' (Link t) = const (t:)
+  nstep' (Split la lb) = go
     where go Zero = (la:)
           go One = (lb:)
           go ~DontCare = (la:) . (lb:)
 
--- | Perform the same non-deterministic step on all the given 'Three's.
-allnstep
-  :: [Three a]  -- ^ The list of 'Three's to apply the same step on.
-  -> ThreeStep  -- ^ The given non-deterministic step that we make, this can be 'DontCare' if we want to query both 'Zero' and 'One'.
-  -> [Three a]  -- ^ The corresponding list of 'Three's.
-allnstep thr stp = foldr (`nstep'` stp) [] thr
 
--- | Take a non-deterministic step where a 'DontCare' means we work with both 'Zero'
--- and 'One'.
-nstep
-  :: Three a  -- ^ The given 'Three' where we make a non-determinstic step.
-  -> ThreeStep  -- ^ The given non-deterministic step that we make, this can be 'DontCare' if we want to query both 'Zero' and 'One'.
-  -> [Three a]  -- ^ The list of the possible 'Three's with the step.
-nstep thr pth = nstep' thr pth []
+  {-
+allstep'
+  :: ThreeStep
+  -> [Three a]
+  -> [a]
+  -> [a]
+allstep' s = flip (foldr (`nstep'` s))
+-}
 
--- | Take a sequence of steps with the given list of 'Bool's.
-walk
-  :: Three a  -- ^ The given 'Three' object where we make a walk.
-  -> [Bool]  -- ^ A list of 'Bool's that determine for each step if we take the left or right subthree.
-  -> Three a  -- ^ The corresponding subthree. For a 'Leaf' we will each time keep returning the same leaf.
-walk = foldl step
+  {-
+allElementsAt'
+  :: [Three a]
+  -> ThreeStep
+  -> [a]
+  -> [a]
+allElementsAt' ts s = flip (foldr (`elementsAt'` s)) ts
+
+elementsAt'
+  :: Three a
+  -> ThreeStep
+  -> [a]
+  -> [a]
+elementsAt' (Leaf a) = const (a:)
+elementsAt' (Link l) = const (toList' l)
+elementsAt' (Split la lb) = go
+    where go DontCare = toList' la . toList' lb
+          go Zero = toList' la
+          go One = toList' lb
+-}
+
+allChildren
+  :: ThreePath
+  -> [Three a]
+  -> [a]
+allChildren pth = flip (allChildren' pth) []
+
+allChildren'
+  :: ThreePath
+  -> [Three a]
+  -> [a]
+  -> [a]
+allChildren' pth = flip (foldr (children' pth))
+--allChildren = flip . foldr . children'
 
 -- | Obtain the children that satisfy a given 'ThreePath'.
 children
@@ -180,8 +198,10 @@ children'
   -> [a]  -- ^ The list of tail elements.
   -> [a]  -- ^ The list of /children/ followed by the given list of tail elements.
 children' _ (Leaf x) = (x :)
+children' [] (Link x) = children' [] x
+children' [] (Split la lb) = children' [] la . children' [] lb
 children' (_:ys) (Link x) = children' ys x
-children' (DontCare:ys) (Split la lb) = go lb . go la
+children' (DontCare:ys) (Split la lb) = go la . go lb
   where go = children' ys
 children' (Zero:ys) ~(Split la _) = children' ys la
 children' ~(~One:ys) ~(Split _ lb) = children' ys lb
@@ -205,9 +225,30 @@ instance Applicative Three where
             go (Split xa xb) y = Split (go xa y') (go xb y')
               where y' = _linkLeaf y
 
+instance Semigroup a => Semigroup (Three a) where
+  (<>) = liftA2 (<>)
+
+instance Monoid a => Monoid (Three a) where
+  mempty = Leaf mempty
+
 instance Arbitrary1 Three where
     liftArbitrary arb = go
       where go = frequency [(5, Leaf <$> arb), (2, Link <$> go), (1, Split <$> go <*> go)]
 
 instance Arbitrary a => Arbitrary (Three a) where
     arbitrary = arbitrary1
+    shrink (Leaf _) = []
+    shrink (Link x) = [x]
+    shrink (Split xa xb) = [xa, xb]
+
+instance Binary a => Binary (Three a) where
+    put (Leaf x) = putWord8 0 >> put x
+    put (Link x) = putWord8 1 >> put x
+    put (Split xa xb) = putWord8 2 >> put xa >> put xb
+    get = do
+        tp <- getWord8
+        case tp of
+          0 -> Leaf <$> get
+          1 -> Link <$> get
+          2 -> Split <$> get <*> get
+          _ -> error ("The numer " ++ show tp ++ " is not a valid Three item.")

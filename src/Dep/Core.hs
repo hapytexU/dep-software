@@ -1,3 +1,5 @@
+{-# LANGUAGE FunctionalDependencies, MultiParamTypeClasses, Safe #-}
+
 {-|
 Module      : Dep.Core
 Description : A module that defines utility data structures, typeclasses and type aliasses.
@@ -12,6 +14,7 @@ defines a 'Mergeable' typeclass that is used to optionally merge two values into
 module Dep.Core (
     BFunc, BFunc1, BFunc2, BFunc3, BFunc4
   , Mergeable(merge)
+  , Walkable(step, walk), NonDeterministicWalk(nstep', nstep, allnstep', allnstep)
   ) where
 
 -- | A function that maps a list of 'Bool's to a single 'Bool'.
@@ -42,6 +45,63 @@ class Mergeable a where
       -> a  -- ^ The second item to merge.
       -> Maybe a  -- ^ The result of the merge wrapped in a 'Just';
                   -- 'Nothing' if it is not possible to merge the two.
+
+class Walkable f step | f -> step where
+  -- | Take one step with the given step parameter, and return an object with the same
+  -- type.
+  step
+    :: f a  -- ^ The original object where we will make a step.
+    -> step  -- ^ The given step we take on the given data structure.
+    -> f a  -- ^ The result of an object when we take one step.
+  step item stp = walk item [stp]
+
+  -- | Take a sequence of steps with the given list of steps.
+  walk :: Foldable g
+    => f a  -- ^ The original object where we will make a step.
+    -> g step  -- ^ The given foldable of steps we take on the given data structure.
+    -> f a  -- ^ The result of an object when we take one step.
+  walk = foldl step
+  {-# MINIMAL step | walk #-}
+
+class NonDeterministicWalk f step | f -> step where
+  -- | Take a non-deterministic step that can result in multiple outcomes.
+  -- One can specify a tail to make concatenating of lists more efficient.
+  nstep'
+    :: f a  -- ^ The given initial state where we make a non-determinstic step.
+    -> step  -- ^ The step that we make, such step can result in zero, one or more new states.
+    -> [f a]  -- ^ The list of tail elements added to the result.
+    -> [f a]  -- ^ The list of the possible states with the new step.
+  nstep' x dx = (nstep x dx ++)
+
+  -- | Take a non-deterministic step that can result in multiple outcomes.
+  nstep
+    :: f a  -- ^ The given initial state where we make a non-determinstic step.
+    -> step  -- ^ The step that we make, such step can result in zero, one or more new states.
+    -> [f a]  -- ^ The list of the possible states with the new step.
+  nstep x dx = nstep' x dx []
+
+  -- | Take the same non-deterministic step for all initial states.
+  -- This can result in multiple outcomes. One can specify a tail to
+  -- make concatenating of lists more efficient.
+  allnstep' :: Foldable g
+    => g (f a)  -- ^ The given initial state where we make a non-determinstic step.
+    -> step  -- ^ The step that we make, such step can result in zero, one or more new states.
+    -> [f a]  -- ^ The list of tail elements added to the result.
+    -> [f a]  -- ^ The list of the possible states with the new step.
+  allnstep' xs dx tl = foldr (`nstep'` dx) tl xs
+
+  -- | Take the same non-deterministic step for all initial states.
+  -- This can result in multiple outcomes.
+  allnstep :: Foldable g
+    => g (f a)  -- ^ The given initial state where we make a non-determinstic step.
+    -> step  -- ^ The step that we make, such step can result in zero, one or more new states.
+    -> [f a]  -- ^ The list of the possible states with the new step.
+  allnstep xs dx = allnstep' xs dx []
+
+
+  nwalk' :: Foldable g => f a -> g step -> [f a] -> [f a]
+  nwalk' = foldr
+  {-# MINIMAL nstep' | nstep #-}
 
 instance Mergeable (Maybe a) where
     merge x@(Just _) Nothing = Just x

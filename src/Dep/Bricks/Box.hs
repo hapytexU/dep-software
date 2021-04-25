@@ -1,3 +1,5 @@
+{-# LANGUAGE Safe #-}
+
 {-|
 Module      : Dep.Bricks.Box
 Description : A module to define characters that are used in the other modules for the /bricks/.

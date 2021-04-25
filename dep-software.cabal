@@ -24,13 +24,16 @@ library
    , Dep.Bricks.Karnaugh
    , Dep.Bricks.Layout
    , Dep.Bricks.Negation
+   , Dep.Data.Product
    , Dep.Data.Three
    , Dep.Data.ThreeValue
+   , Dep.Utils
   default-language: Haskell2010
   build-depends:
       base >= 4.7 && < 5
+    , binary >= 0.2
     , brick >= 0.50
-    , lens >=4.0
+    , lens >= 4.0
     , QuickCheck
     , text >=0.1
     , unicode-tricks >=0.1
