@@ -1,7 +1,7 @@
-{-# LANGUAGE DeriveFoldable, DeriveFunctor, DeriveTraversable, MultiParamTypeClasses, Safe #-}
+{-# LANGUAGE DeriveTraversable, MultiParamTypeClasses, Safe #-}
 
 {-|
-Module      : Dep.Data.ThreeValue
+Module      : Dep.Data.Three
 Description : A module that defines a /three/ data structure, used for lookup tables with don't cares.
 Maintainer  : hapytexeu+gh@gmail.com
 Stability   : experimental
@@ -33,8 +33,7 @@ import Control.Applicative(Applicative(liftA2))
 import Data.Binary(Binary(put, get), getWord8, putWord8)
 import Data.Bool(bool)
 
--- import Dep.Utils(toList') TODO: remove
-import Dep.Core(Walkable(step, walk), NonDeterministicWalkable(nstep, nstep'))
+import Dep.Core(Walkable(step), NonDeterministicWalkable(nstep, nstep'))
 import Dep.Data.ThreeValue(ThreeValue(DontCare, Zero, One))
 
 import Test.QuickCheck(frequency)
