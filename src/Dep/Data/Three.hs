@@ -67,7 +67,7 @@ instance Eq1 Three where
           go _ _ = False
 
 instance Ord1 Three where
-  liftCompare cmp= go
+  liftCompare cmp = go
     where go (Leaf a) (Leaf b) = cmp a b
           go (Leaf _) _ = LT
           go (Link _) (Leaf _) = GT

@@ -17,6 +17,7 @@ module Dep.Core (
   , Walkable(step, walk, allwalk, allstep), NonDeterministicWalkable(nstep', nstep, allnstep, allnstep', nwalk, allnwalk)
   ) where
 
+import Data.Foldable(toList)
 import Control.Monad(foldM)
 
 -- | A function that maps a list of 'Bool's to a single 'Bool'.
@@ -114,16 +115,18 @@ class NonDeterministicWalkable f step | f -> step where
     -> [f a]  -- ^ The list of the possible states with the new step.
   allnstep xs dx = allnstep' xs dx []
 
+  -- Make a walk with non-deterministic steps that can result in multiple paths.
   nwalk :: Foldable g
-    => f a
-    -> g step
-    -> [f a]
+    => f a -- ^ The initial state of the walk.
+    -> g step -- ^ A 'Foldable' of steps that we take.
+    -> [f a] -- ^ The resulting (possible) states after taking the walk.
   nwalk = foldM nstep
 
+  -- Make a non-deterministic walk with a collection of states that can result in multiple paths.
   allnwalk :: Foldable g
-    => [f a]
-    -> g step
-    -> [f a]
+    => [f a] -- ^ The initial states for te walk.
+    -> g step -- ^ A 'Foldable' of steps that we will take.
+    -> [f a] -- The resulting list of possible states.
   allnwalk = (. flip nwalk) . (>>=)
   {-# MINIMAL nstep' | nstep #-}
 
