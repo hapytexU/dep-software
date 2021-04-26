@@ -14,8 +14,10 @@ defines a 'Mergeable' typeclass that is used to optionally merge two values into
 module Dep.Core (
     BFunc, BFunc1, BFunc2, BFunc3, BFunc4
   , Mergeable(merge)
-  , Walkable(step, walk), NonDeterministicWalkable(nstep', nstep, allnstep', allnstep)
+  , Walkable(step, walk, allwalk, allstep), NonDeterministicWalkable(nstep', nstep, allnstep, allnstep', nwalk, allnwalk)
   ) where
+
+import Control.Monad(foldM)
 
 -- | A function that maps a list of 'Bool's to a single 'Bool'.
 type BFunc = [Bool] -> Bool
@@ -55,12 +57,26 @@ class Walkable f step | f -> step where
     -> f a  -- ^ The result of an object when we take one step.
   step item stp = walk item [stp]
 
+  -- | Apply the same step for all the items in the given collection (functor) of items.
+  allstep :: Functor g
+     => g (f a)  -- ^ The collection of items on which we apply a step.
+     -> step  -- ^ The given step that will be applied.
+     -> g (f a) -- ^ A collection of items that are the result of making a step for each input item.
+  allstep = flip (fmap . flip step)
+
   -- | Take a sequence of steps with the given list of steps.
   walk :: Foldable g
     => f a  -- ^ The original object where we will make a step.
     -> g step  -- ^ The given foldable of steps we take on the given data structure.
     -> f a  -- ^ The result of an object when we take one step.
   walk = foldl step
+
+  -- Apply the same walk to all elements in the collection (functor).
+  allwalk :: (Functor g, Foldable h)
+    => g (f a) -- ^ The given collection of initial objects.
+    -> h step -- ^ The given foldable of steps that we take.
+    -> g (f a) -- ^ The result collection of items after applying the steps.
+  allwalk = foldl allstep
   {-# MINIMAL step | walk #-}
 
 class NonDeterministicWalkable f step | f -> step where
@@ -98,8 +114,17 @@ class NonDeterministicWalkable f step | f -> step where
     -> [f a]  -- ^ The list of the possible states with the new step.
   allnstep xs dx = allnstep' xs dx []
 
-  -- nwalk' :: Foldable g => f a -> g step -> [f a] -> [f a]
-  -- nwalk' x dxs tl = foldr (nstep' x) tl dxs
+  nwalk :: Foldable g
+    => f a
+    -> g step
+    -> [f a]
+  nwalk = foldM nstep
+
+  allnwalk :: Foldable g
+    => [f a]
+    -> g step
+    -> [f a]
+  allnwalk = (. flip nwalk) . (>>=)
   {-# MINIMAL nstep' | nstep #-}
 
 instance Mergeable (Maybe a) where
