@@ -35,6 +35,7 @@ library
     , brick >= 0.50
     , lens >= 4.0
     , QuickCheck
+    , template-haskell >=2.16.0.0
     , text >=0.1
     , unicode-tricks >=0.1
     , vty >= 5.32
@@ -60,6 +61,7 @@ test-suite             deep-software
     , Dep.Data.ThreeValueSpec
   build-depends:
       base
+    , binary >= 0.2
     , dep-software
     , hspec ==2.*
     , QuickCheck >=2.13 && <2.14

@@ -1,4 +1,4 @@
-{-# LANGUAGE Safe #-}
+{-# LANGUAGE DeriveDataTypeable, Safe, TemplateHaskellQuotes #-}
 
 {-|
 Module      : Dep.Data.ThreeValue
@@ -25,9 +25,13 @@ module Dep.Data.ThreeValue (
 
 import Data.Bool(bool)
 import Data.Binary(Binary(put, get), getWord8, putWord8)
+import Data.Data(Data)
 import Data.List(find)
 
 import Dep.Core(Mergeable(merge))
+
+import Language.Haskell.TH.Lib(conE)
+import Language.Haskell.TH.Syntax(Lift(lift, liftTyped), TExp(TExp))
 
 import Test.QuickCheck.Arbitrary(Arbitrary(arbitrary), arbitraryBoundedEnum)
 
@@ -37,7 +41,13 @@ data ThreeValue
   = Zero  -- ^ The value is /zero/ or /false/.
   | One  -- ^ The value is /one/ or /true/.
   | DontCare  -- ^ We do not care or do not know the value.
-  deriving (Bounded, Enum, Eq, Ord, Read, Show)
+  deriving (Bounded, Data, Enum, Eq, Ord, Read, Show)
+
+instance Lift ThreeValue where
+  liftTyped = fmap TExp . lift
+  lift Zero = conE 'Zero
+  lift One = conE 'One
+  lift ~DontCare = conE 'DontCare
 
 opposite :: ThreeValue -> ThreeValue
 opposite Zero = One

@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveTraversable, MultiParamTypeClasses, Safe #-}
+{-# LANGUAGE DeriveDataTypeable, DeriveTraversable, MultiParamTypeClasses, Safe, TemplateHaskellQuotes #-}
 
 {-|
 Module      : Dep.Data.Three
@@ -32,9 +32,14 @@ import Control.Applicative(Applicative(liftA2))
 
 import Data.Binary(Binary(put, get), getWord8, putWord8)
 import Data.Bool(bool)
+import Data.Data(Data)
+import Data.Functor.Classes(Eq1(liftEq), Ord1(liftCompare))
 
 import Dep.Core(Walkable(step), NonDeterministicWalkable(nstep, nstep'))
 import Dep.Data.ThreeValue(ThreeValue(DontCare, Zero, One))
+import Dep.Utils(applyExp')
+
+import Language.Haskell.TH.Syntax(Lift(lift, liftTyped), TExp(TExp))
 
 import Test.QuickCheck(frequency)
 import Test.QuickCheck.Arbitrary(Arbitrary(arbitrary, shrink), Arbitrary1(liftArbitrary), arbitrary1)
@@ -46,7 +51,30 @@ data Three a
   = Leaf a  -- ^ A /leaf/ that contains a single value.
   | Link (Three a)  -- ^ A /link/ where it means that this variable does not matter but the next one(s) will.
   | Split (Three a) (Three a)  -- ^ A /split/ where this variable determines the outcome.
-  deriving (Eq, Foldable, Functor, Ord, Read, Show, Traversable)
+  deriving (Data, Eq, Foldable, Functor, Ord, Read, Show, Traversable)
+
+instance Lift a => Lift (Three a) where
+  liftTyped = fmap TExp . lift
+  lift (Leaf a) = applyExp' 'Leaf [a]
+  lift (Split a b) = applyExp' 'Split [a, b]
+  lift ~(Split a b) = applyExp' 'Split [a, b]
+
+instance Eq1 Three where
+  liftEq eq = go
+    where go (Leaf a) (Leaf b) = eq a b
+          go (Link a) (Link b) = go a b
+          go (Split la lb) (Split ma mb) = go la ma && go lb mb
+          go _ _ = False
+
+instance Ord1 Three where
+  liftCompare cmp= go
+    where go (Leaf a) (Leaf b) = cmp a b
+          go (Leaf _) _ = LT
+          go (Link _) (Leaf _) = GT
+          go (Link la) (Link lb) = go la lb
+          go (Link _) _ = LT
+          go (Split la lb) (Split ma mb) = go la ma <> go lb mb
+          go (Split _ _) _ = GT
 
 type ThreeStep = ThreeValue
 type ThreePath = [ThreeStep]
