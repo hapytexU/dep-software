@@ -25,6 +25,7 @@ module Dep.Data.ThreeValue (
 
 import Data.Bool(bool)
 import Data.Binary(Binary(put, get), getWord8, putWord8)
+import Data.List(find)
 
 import Dep.Core(Mergeable(merge))
 
@@ -49,6 +50,9 @@ instance Semigroup ThreeValue where
 
 instance Monoid ThreeValue where
   mempty = DontCare
+  mconcat xs
+    | Just x <- find (DontCare /=) xs = x
+    | otherwise = DontCare
 
 instance Arbitrary ThreeValue where
   arbitrary = arbitraryBoundedEnum

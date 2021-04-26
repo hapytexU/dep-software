@@ -228,8 +228,12 @@ instance Monad Three where
   return = Leaf
   xs >>= f = go xs
     where go (Leaf x) = f x
-          go (Link x) = go x
+          go (Link x) = Link (go x)
           go ~(Split la lb) = Split (go la) (go lb)
+  xs >> ys = go xs
+    where go (Leaf _) = ys
+          go (Link x) = Link (go x)
+          go (Split la lb) = Split (go la) (go lb)
 
 instance Semigroup a => Semigroup (Three a) where
   (<>) = liftA2 (<>)
@@ -243,7 +247,7 @@ instance Arbitrary1 Three where
 
 instance Arbitrary a => Arbitrary (Three a) where
     arbitrary = arbitrary1
-    shrink (Leaf _) = []
+    shrink (Leaf x) = Leaf <$> shrink x
     shrink (Link x) = [x]
     shrink (Split xa xb) = [xa, xb]
 

@@ -2,13 +2,15 @@
 
 module Dep.Data.ThreeSpec where
 
-import Dep.CoreTest(testFunctor)
+import Dep.CoreTest(testFunctorLaws, testApplicativeLaws, testMonadLaws)
 import Dep.Data.Three(Three)
 
 import Test.Hspec
-import Test.QuickCheck
+-- import Test.QuickCheck
 
 
 spec :: Spec
 spec = do
-    testFunctor @ Three @ Char @ Int @ String
+    testFunctorLaws @ Three @ Char @ Int @ String
+    testApplicativeLaws @ Three @ Char @ Int @ String
+    testMonadLaws @ Three @ Char @ Int @ String
