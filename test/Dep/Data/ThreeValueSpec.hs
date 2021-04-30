@@ -6,8 +6,6 @@ import Dep.CoreTest(testSemigroupLaws, testMonoidLaws)
 import Dep.Data.ThreeValue(ThreeValue)
 
 import Test.Hspec
--- import Test.QuickCheck
-
 
 spec :: Spec
 spec = do

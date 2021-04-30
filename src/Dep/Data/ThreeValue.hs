@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, Safe, TemplateHaskellQuotes #-}
+{-# LANGUAGE DeriveDataTypeable, DeriveGeneric, Safe, TemplateHaskellQuotes #-}
 
 {-|
 Module      : Dep.Data.ThreeValue
@@ -30,6 +30,8 @@ import Data.List(find)
 
 import Dep.Core(Mergeable(merge))
 
+import GHC.Generics(Generic)
+
 import Language.Haskell.TH.Lib(conE)
 import Language.Haskell.TH.Syntax(Lift(lift, liftTyped), TExp(TExp))
 
@@ -41,7 +43,7 @@ data ThreeValue
   = Zero  -- ^ The value is /zero/ or /false/.
   | One  -- ^ The value is /one/ or /true/.
   | DontCare  -- ^ We do not care or do not know the value.
-  deriving (Bounded, Data, Enum, Eq, Ord, Read, Show)
+  deriving (Bounded, Data, Enum, Eq, Generic, Ord, Read, Show)
 
 instance Lift ThreeValue where
   liftTyped = fmap TExp . lift

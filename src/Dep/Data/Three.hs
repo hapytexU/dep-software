@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, DeriveTraversable, MultiParamTypeClasses, Safe, TemplateHaskellQuotes #-}
+{-# LANGUAGE DeriveDataTypeable, DeriveGeneric, DeriveTraversable, MultiParamTypeClasses, Safe, TemplateHaskellQuotes #-}
 
 {-|
 Module      : Dep.Data.Three
@@ -39,6 +39,8 @@ import Dep.Core(Walkable(step), NonDeterministicWalkable(nstep, nstep'))
 import Dep.Data.ThreeValue(ThreeValue(DontCare, Zero, One))
 import Dep.Utils(applyExp')
 
+import GHC.Generics(Generic)
+
 import Language.Haskell.TH.Syntax(Lift(lift, liftTyped), TExp(TExp))
 
 import Test.QuickCheck(frequency)
@@ -51,7 +53,7 @@ data Three a
   = Leaf a  -- ^ A /leaf/ that contains a single value.
   | Link (Three a)  -- ^ A /link/ where it means that this variable does not matter but the next one(s) will.
   | Split (Three a) (Three a)  -- ^ A /split/ where this variable determines the outcome.
-  deriving (Data, Eq, Foldable, Functor, Ord, Read, Show, Traversable)
+  deriving (Data, Eq, Foldable, Functor, Generic, Ord, Read, Show, Traversable)
 
 instance Lift a => Lift (Three a) where
   liftTyped = fmap TExp . lift
@@ -165,37 +167,6 @@ instance NonDeterministicWalkable Three ThreeValue where
     where go Zero = (la:)
           go One = (lb:)
           go ~DontCare = (la:) . (lb:)
-
-
-  {-
-allstep'
-  :: ThreeStep
-  -> [Three a]
-  -> [a]
-  -> [a]
-allstep' s = flip (foldr (`nstep'` s))
--}
-
-  {-
-allElementsAt'
-  :: [Three a]
-  -> ThreeStep
-  -> [a]
-  -> [a]
-allElementsAt' ts s = flip (foldr (`elementsAt'` s)) ts
-
-elementsAt'
-  :: Three a
-  -> ThreeStep
-  -> [a]
-  -> [a]
-elementsAt' (Leaf a) = const (a:)
-elementsAt' (Link l) = const (toList' l)
-elementsAt' (Split la lb) = go
-    where go DontCare = toList' la . toList' lb
-          go Zero = toList' la
-          go One = toList' lb
--}
 
 allChildren
   :: ThreePath
