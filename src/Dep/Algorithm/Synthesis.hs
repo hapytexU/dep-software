@@ -55,6 +55,7 @@ minimizeProduct' (x:xs) ts = (x:) <$> minimizeProduct' xs (allnstep ts DontCare)
 minimizeProduct :: Product' -> Three Bool -> Product'
 minimizeProduct p = snd . minimizeProduct' p . pure
 
+-- | Create a sum-of-products for the given function of 'ThreeValue'.
 synthesis :: Three ThreeValue -> SumOfProducts'
 synthesis th = _synthesis _simp
   where _upper = upperbound _simp

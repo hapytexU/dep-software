@@ -1,4 +1,4 @@
-{-# LANGUAGE FunctionalDependencies, Safe #-}
+{-# LANGUAGE DefaultSignatures, FunctionalDependencies, Safe #-}
 
 {-|
 Module      : Dep.Core
@@ -24,6 +24,7 @@ module Dep.Core (
   ) where
 
 import Control.Monad(foldM)
+
 import Dep.Utils(toList')
 
 -- | A function that maps a list of 'Bool's to a single 'Bool'.
@@ -49,6 +50,9 @@ class Opposite a where
   opposite
     :: a  -- ^ The given item to determine the opposite from.
     -> a  -- ^ The opposite of the given value.
+
+instance Opposite b => Opposite ((->) a b) where
+  opposite = fmap opposite
 
 -- | A typeclass that specifies that it is /sometimes/
 -- possible to merge two values together into a new value.

@@ -1,15 +1,14 @@
-{-# LANGUAGE AllowAmbiguousTypes, KindSignatures, ScopedTypeVariables, TypeApplications #-}
+{-# LANGUAGE AllowAmbiguousTypes, ScopedTypeVariables, TypeApplications #-}
 
 module Dep.CoreTest where
 
 import Control.Applicative(liftA2)
 
 import Data.Binary(Binary, decode, encode)
-import Data.Kind(Constraint)
 import Data.Proxy(Proxy(Proxy))
 import Data.Typeable(Typeable, typeRep)
 
-import Test.Hspec(Spec, SpecWith, describe, it)
+import Test.Hspec
 import Test.QuickCheck(Arbitrary, CoArbitrary, Fun, Function, Testable, applyFun, applyFun2, property)
 
 toParen :: String -> String
@@ -17,14 +16,10 @@ toParen s
   | ' ' `elem` s = '(' : s ++ ")"
   | otherwise = s
 
-instanceDesc :: forall a b . Typeable a => String -> SpecWith b -> SpecWith b
+instanceDesc :: forall a . Typeable a => String -> SpecWith () -> SpecWith ()
 instanceDesc cls = describe ("\ESC[1;34minstance\ESC[0m \ESC[1m" ++ cls ++ "\ESC[0m " ++ toParen (show (typeRep (Proxy :: Proxy a))))
 
-instanceDesc1 :: forall (a :: * -> Constraint) b . Typeable a => String -> SpecWith b -> SpecWith b
-instanceDesc1 cls = istanceDesc @a @b
-
-
-itproperty :: Testable prop => String -> prop -> Spec
+itproperty :: Testable prop => String -> prop -> SpecWith ()
 itproperty s t = it s (property t)
 
 testFunctorLaws :: forall f a b c . (Functor f, Typeable f
@@ -35,22 +30,22 @@ testFunctorLaws :: forall f a b c . (Functor f, Typeable f
   , Arbitrary (f b), Eq (f b), Show (f b)
   , Arbitrary (f c), Eq (f c), Show (f c)) => SpecWith ()
 testFunctorLaws = describe "Functor laws" do
-  instanceDesc1 @f "Functor" do
-    it "Identity of the functor 1" (property (testFunctorIdentity @f @a))
-    it "Composition of the functor 1" (property (testFunctorComposition @f @a @b @c))
-    it "Composition of the functor 2" (property (testFunctorComposition @f @a @c @b))
+  instanceDesc @ (f a) "Functor" do
+    itproperty "Identity of the functor 1" (testFunctorIdentity @f @a)
+    itproperty "Composition of the functor 1" (testFunctorComposition @f @a @b @c)
+    itproperty "Composition of the functor 2" (testFunctorComposition @f @a @c @b)
     itproperty "Test the left fmap 1" (testFunctorLeftMap @f @a @b)
     itproperty "Test the left fmap 2" (testFunctorLeftMap @f @a @c)
-  instanceDesc1 @f "Functor" do
-    it "Identity of the functor 2" (property (testFunctorIdentity @f @b))
-    it "Composition of the functor 3" (property (testFunctorComposition @f @b @a @c))
-    it "Composition of the functor 4" (property (testFunctorComposition @f @b @c @a))
+  instanceDesc @ (f b) "Functor" do
+    itproperty "Identity of the functor 2" (testFunctorIdentity @f @b)
+    itproperty "Composition of the functor 3" (testFunctorComposition @f @b @a @c)
+    itproperty "Composition of the functor 4" (testFunctorComposition @f @b @c @a)
     itproperty "Test the left fmap 3" (testFunctorLeftMap @f @b @a)
     itproperty "Test the left fmap 4" (testFunctorLeftMap @f @b @c)
-  instanceDesc1 @f "Functor" do
-    it "Identity of the functor 3" (property (testFunctorIdentity @f @c))
-    it "Composition of the functor 5" (property (testFunctorComposition @f @c @a @b))
-    it "Composition of the functor 6" (property (testFunctorComposition @f @c @b @a))
+  instanceDesc @ (f c) "Functor" do
+    itproperty "Identity of the functor 3" (testFunctorIdentity @f @c)
+    itproperty "Composition of the functor 5" (testFunctorComposition @f @c @a @b)
+    itproperty "Composition of the functor 6" (testFunctorComposition @f @c @b @a)
     itproperty "Test the left fmap 5" (testFunctorLeftMap @f @c @a)
     itproperty "Test the left fmap 6" (testFunctorLeftMap @f @c @a)
 
@@ -69,54 +64,54 @@ testApplicativeLaws :: forall f a b c . (
   , Arbitrary (f (Fun c a)), Show (f (Fun c a))
   , Arbitrary (f (Fun c b)), Show (f (Fun c b))) => SpecWith ()
 testApplicativeLaws = describe "Applicative laws" do
-  instanceDesc1 @f "Applicative" $ do
-    it "Equivalence of (<*>) = liftA2 id 1" (property (testApplicativeSequentialApplication @f @a @b))
-    it "Equivalence of (<*>) = liftA2 id 2" (property (testApplicativeSequentialApplication @f @a @c))
-    it "Equivalence of LiftA2 f x y = f <$> x <*> y 1" (property (testApplicativeLiftA2 @f @a @b @c))
-    it "Equivalence of LiftA2 f x y = f <$> x <*> y 2" (property (testApplicativeLiftA2 @f @a @c @b))
-    it "Identity of the applicative 1" (property (testApplicativeIdentity @f @a))
-    it "Composition of the applicative 1" (property (testApplicativeComposition @f @a @b @c))
-    it "Composition of the applicative 2" (property (testApplicativeComposition @f @a @c @b))
-    it "Homomorphism of the applicative 1" (property (testApplicativeHomomorphism @f @a @b))
-    it "Homomorphism of the applicative 2" (property (testApplicativeHomomorphism @f @a @c))
-    it "Interchange of the applicative 1" (property (testApplicativeInterchange @f @a @b))
-    it "Interchange of the applicative 2" (property (testApplicativeInterchange @f @a @c))
-    it "Correct left sequence 1" (property (testApplicativeLeftSequence @f @a @b))
-    it "Correct left sequence 2" (property (testApplicativeLeftSequence @f @a @c))
-    it "Correct right sequence 1" (property (testApplicativeRightSequence @f @a @b))
-    it "Correct right sequence 2" (property (testApplicativeRightSequence @f @a @c))
-  instanceDesc1 @f "Applicative" $ do
-    it "Equivalence of (<*>) = liftA2 id 3" (property (testApplicativeSequentialApplication @f @b @a))
-    it "Equivalence of (<*>) = liftA2 id 4" (property (testApplicativeSequentialApplication @f @b @c))
-    it "Equivalence of LiftA2 f x y = f <$> x <*> y 3" (property (testApplicativeLiftA2 @f @b @a @c))
-    it "Equivalence of LiftA2 f x y = f <$> x <*> y 4" (property (testApplicativeLiftA2 @f @b @c @a))
-    it "Identity of the applicative 2" (property (testApplicativeIdentity @f @b))
-    it "Composition of the applicative 3" (property (testApplicativeComposition @f @b @a @c))
-    it "Composition of the applicative 4" (property (testApplicativeComposition @f @b @c @a))
-    it "Homomorphism of the applicative 3" (property (testApplicativeHomomorphism @f @b @a))
-    it "Homomorphism of the applicative 4" (property (testApplicativeHomomorphism @f @b @c))
-    it "Interchange of the applicative 3" (property (testApplicativeInterchange @f @b @a))
-    it "Interchange of the applicative 4" (property (testApplicativeInterchange @f @b @c))
-    it "Correct left sequence 5" (property (testApplicativeLeftSequence @f @b @a))
-    it "Correct left sequence 6" (property (testApplicativeLeftSequence @f @b @c))
-    it "Correct right sequence 5" (property (testApplicativeRightSequence @f @b @a))
-    it "Correct right sequence 6" (property (testApplicativeRightSequence @f @b @c))
-  instanceDesc1 @f "Applicative" $ do
-    it "Equivalence of (<*>) = liftA2 id 5" (property (testApplicativeSequentialApplication @f @c @a))
-    it "Equivalence of (<*>) = liftA2 id 6" (property (testApplicativeSequentialApplication @f @c @b))
-    it "Equivalence of LiftA2 f x y = f <$> x <*> y 5" (property (testApplicativeLiftA2 @f @c @a @b))
-    it "Equivalence of LiftA2 f x y = f <$> x <*> y 6" (property (testApplicativeLiftA2 @f @c @b @a))
-    it "Identity of the applicative 3" (property (testApplicativeIdentity @f @c))
-    it "Composition of the applicative 5" (property (testApplicativeComposition @f @c @a @b))
-    it "Composition of the applicative 6" (property (testApplicativeComposition @f @c @b @a))
-    it "Homomorphism of the applicative 5" (property (testApplicativeHomomorphism @f @c @a))
-    it "Homomorphism of the applicative 6" (property (testApplicativeHomomorphism @f @c @b))
-    it "Interchange of the applicative 5" (property (testApplicativeInterchange @f @c @a))
-    it "Interchange of the applicative 6" (property (testApplicativeInterchange @f @c @b))
-    it "Correct left sequence 5" (property (testApplicativeLeftSequence @f @c @a))
-    it "Correct left sequence 5" (property (testApplicativeLeftSequence @f @c @a))
-    it "Correct right sequence 6" (property (testApplicativeRightSequence @f @c @b))
-    it "Correct right sequence 6" (property (testApplicativeRightSequence @f @c @b))
+  instanceDesc @ (f a) "Applicative" do
+    itproperty "Equivalence of (<*>) = liftA2 id 1" (testApplicativeSequentialApplication @f @a @b)
+    itproperty "Equivalence of (<*>) = liftA2 id 2" (testApplicativeSequentialApplication @f @a @c)
+    itproperty "Equivalence of LiftA2 f x y = f <$> x <*> y 1" (testApplicativeLiftA2 @f @a @b @c)
+    itproperty "Equivalence of LiftA2 f x y = f <$> x <*> y 2" (testApplicativeLiftA2 @f @a @c @b)
+    itproperty "Identity of the applicative 1" (testApplicativeIdentity @f @a)
+    itproperty "Composition of the applicative 1" (testApplicativeComposition @f @a @b @c)
+    itproperty "Composition of the applicative 2" (testApplicativeComposition @f @a @c @b)
+    itproperty "Homomorphism of the applicative 1" (testApplicativeHomomorphism @f @a @b)
+    itproperty "Homomorphism of the applicative 2" (testApplicativeHomomorphism @f @a @c)
+    itproperty "Interchange of the applicative 1" (testApplicativeInterchange @f @a @b)
+    itproperty "Interchange of the applicative 2" (testApplicativeInterchange @f @a @c)
+    itproperty "Correct left sequence 1" (testApplicativeLeftSequence @f @a @b)
+    itproperty "Correct left sequence 2" (testApplicativeLeftSequence @f @a @c)
+    itproperty "Correct right sequence 1" (testApplicativeRightSequence @f @a @b)
+    itproperty "Correct right sequence 2" (testApplicativeRightSequence @f @a @c)
+  instanceDesc @ (f b) "Applicative" do
+    itproperty "Equivalence of (<*>) = liftA2 id 3" (testApplicativeSequentialApplication @f @b @a)
+    itproperty "Equivalence of (<*>) = liftA2 id 4" (testApplicativeSequentialApplication @f @b @c)
+    itproperty "Equivalence of LiftA2 f x y = f <$> x <*> y 3" (testApplicativeLiftA2 @f @b @a @c)
+    itproperty "Equivalence of LiftA2 f x y = f <$> x <*> y 4" (testApplicativeLiftA2 @f @b @c @a)
+    itproperty "Identity of the applicative 2" (testApplicativeIdentity @f @b)
+    itproperty "Composition of the applicative 3" (testApplicativeComposition @f @b @a @c)
+    itproperty "Composition of the applicative 4" (testApplicativeComposition @f @b @c @a)
+    itproperty "Homomorphism of the applicative 3" (testApplicativeHomomorphism @f @b @a)
+    itproperty "Homomorphism of the applicative 4" (testApplicativeHomomorphism @f @b @c)
+    itproperty "Interchange of the applicative 3" (testApplicativeInterchange @f @b @a)
+    itproperty "Interchange of the applicative 4" (testApplicativeInterchange @f @b @c)
+    itproperty "Correct left sequence 5" (testApplicativeLeftSequence @f @b @a)
+    itproperty "Correct left sequence 6" (testApplicativeLeftSequence @f @b @c)
+    itproperty "Correct right sequence 5" (testApplicativeRightSequence @f @b @a)
+    itproperty "Correct right sequence 6" (testApplicativeRightSequence @f @b @c)
+  instanceDesc @ (f c) "Applicative" do
+    itproperty "Equivalence of (<*>) = liftA2 id 5" (testApplicativeSequentialApplication @f @c @a)
+    itproperty "Equivalence of (<*>) = liftA2 id 6" (testApplicativeSequentialApplication @f @c @b)
+    itproperty "Equivalence of LiftA2 f x y = f <$> x <*> y 5" (testApplicativeLiftA2 @f @c @a @b)
+    itproperty "Equivalence of LiftA2 f x y = f <$> x <*> y 6" (testApplicativeLiftA2 @f @c @b @a)
+    itproperty "Identity of the applicative 3" (testApplicativeIdentity @f @c)
+    itproperty "Composition of the applicative 5" (testApplicativeComposition @f @c @a @b)
+    itproperty "Composition of the applicative 6" (testApplicativeComposition @f @c @b @a)
+    itproperty "Homomorphism of the applicative 5" (testApplicativeHomomorphism @f @c @a)
+    itproperty "Homomorphism of the applicative 6" (testApplicativeHomomorphism @f @c @b)
+    itproperty "Interchange of the applicative 5" (testApplicativeInterchange @f @c @a)
+    itproperty "Interchange of the applicative 6" (testApplicativeInterchange @f @c @b)
+    itproperty "Correct left sequence 5" (testApplicativeLeftSequence @f @c @a)
+    itproperty "Correct left sequence 5" (testApplicativeLeftSequence @f @c @a)
+    itproperty "Correct right sequence 6" (testApplicativeRightSequence @f @c @b)
+    itproperty "Correct right sequence 6" (testApplicativeRightSequence @f @c @b)
 
 testMonadLaws :: forall f a b c . (
     Monad f, Typeable f
@@ -132,69 +127,69 @@ testMonadLaws :: forall f a b c . (
   , Arbitrary (f (Fun b c)), Show (f (Fun b c))
   , Arbitrary (f (Fun c a)), Show (f (Fun c a))
   , Arbitrary (f (Fun c b)), Show (f (Fun c b))) => SpecWith ()
-testMonadLaws = describe "Monad laws" $ do
-  instanceDesc1 @f "Monad" $ do
-    it "Left identity for monads 1" (property (testMonadLeftIdentity @f @a @b))
-    it "Left identity for monads 2" (property (testMonadLeftIdentity @f @a @c))
-    it "Right identity for monads 1" (property (testMonadRightIdentity @f @a))
-    it "Associativity for monads 1" (property (testMonadAssociativity @f @a @b @c))
-    it "Associativity for monads 2" (property (testMonadAssociativity @f @a @c @b))
-    it "Right sequence is equivalent to the then operator 1" (property (testMonadEquivalentThen @f @a @b))
-    it "Right sequence is equivalent to the then operator 2" (property (testMonadEquivalentThen @f @a @c))
-    it "Test that pure has the same effect as return 1" (property (testMonadPureIsReturn @f @a))
-    it "Test that the bind operator is the same as sequential application 1" (property (testMonadOperatorEqualToSequentialApplication @f @a @b))
-    it "Test that the bind operator is the same as sequential application 2" (property (testMonadOperatorEqualToSequentialApplication @f @a @c))
-    it "Test that fmap is equivalent to using a bind with a function application and return 1" (property (testMonadFmapIsSequenceWithReturn @f @a @b))
-    it "Test that fmap is equivalent to using a bind with a function application and return 2" (property (testMonadFmapIsSequenceWithReturn @f @a @c))
-    it "Test monad bind equality 1" (property (testMonadBindEquality @f @a @b))
-    it "Test monad bind equality 2" (property (testMonadBindEquality @f @a @c))
-  instanceDesc1 @f "Monad" $ do
-    it "Left identity for monads 3" (property (testMonadLeftIdentity @f @b @a))
-    it "Left identity for monads 4" (property (testMonadLeftIdentity @f @b @c))
-    it "Right identity for monads 2" (property (testMonadRightIdentity @f @b))
-    it "Associativity for monads 3" (property (testMonadAssociativity @f @b @a @c))
-    it "Associativity for monads 4" (property (testMonadAssociativity @f @b @c @a))
-    it "Right sequence is equivalent to the then operator 3" (property (testMonadEquivalentThen @f @b @a))
-    it "Right sequence is equivalent to the then operator 4" (property (testMonadEquivalentThen @f @b @c))
-    it "Test that pure has the same effect as return 2" (property (testMonadPureIsReturn @f @b))
-    it "Test that the bind operator is the same as sequential application 3" (property (testMonadOperatorEqualToSequentialApplication @f @b @a))
-    it "Test that the bind operator is the same as sequential application 4" (property (testMonadOperatorEqualToSequentialApplication @f @b @c))
-    it "Test that fmap is equivalent to using a bind with a function application and return 3" (property (testMonadFmapIsSequenceWithReturn @f @b @a))
-    it "Test that fmap is equivalent to using a bind with a function application and return 4" (property (testMonadFmapIsSequenceWithReturn @f @b @c))
-    it "Test monad bind equality 3" (property (testMonadBindEquality @f @b @a))
-    it "Test monad bind equality 4" (property (testMonadBindEquality @f @b @c))
-  instanceDesc1 @f "Monad" $ do
-    it "Left identity for monads 5" (property (testMonadLeftIdentity @f @c @a))
-    it "Left identity for monads 6" (property (testMonadLeftIdentity @f @c @b))
-    it "Right identity for monads 3" (property (testMonadRightIdentity @f @c))
-    it "Associativity for monads 1" (property (testMonadAssociativity @f @c @a @b))
-    it "Associativity for monads 2" (property (testMonadAssociativity @f @c @b @a))
-    it "Right sequence is equivalent to the then operator 5" (property (testMonadEquivalentThen @f @c @a))
-    it "Right sequence is equivalent to the then operator 6" (property (testMonadEquivalentThen @f @c @b))
-    it "Test that pure has the same effect as return 3" (property (testMonadPureIsReturn @f @c))
-    it "Test that the bind operator is the same as sequential application 5" (property (testMonadOperatorEqualToSequentialApplication @f @c @a))
-    it "Test that the bind operator is the same as sequential application 6" (property (testMonadOperatorEqualToSequentialApplication @f @c @b))
-    it "Test that fmap is equivalent to using a bind with a function application and return 5" (property (testMonadFmapIsSequenceWithReturn @f @c @a))
-    it "Test that fmap is equivalent to using a bind with a function application and return 6" (property (testMonadFmapIsSequenceWithReturn @f @c @b))
-    it "Test monad bind equality 5" (property (testMonadBindEquality @f @c @a))
-    it "Test monad bind equality 6" (property (testMonadBindEquality @f @c @b))
-
-testSemigroupLaws :: forall s . (Arbitrary s, Eq s, Semigroup s, Show s, Typeable s) => SpecWith ()
-testSemigroupLaws = describe "Semigroup laws" do
-  instanceDesc @ s "Semigroup" $
-    it "Associativity of the semigroup 1" (property (testSemigroupAssociativity @s))
-
-testMonoidLaws :: forall m . (Arbitrary m, Eq m, Monoid m, Show m, Typeable m) => SpecWith ()
-testMonoidLaws = describe "Monoid laws" do
-  instanceDesc @ m "Monoid" $ do
-    it "Right identity of a monoid 1" (property (testMonoidRightIdentity @m))
-    it "Left identity of a monoid 1" (property (testMonoidLeftIdentity @m))
-    it "Concatenation of the monoid 1" (property (testMonoidConcatenation @m))
+testMonadLaws = describe "Monad laws" do
+  instanceDesc @ (f a) "Monad" do
+    itproperty "Left identity for monads 1" (testMonadLeftIdentity @f @a @b)
+    itproperty "Left identity for monads 2" (testMonadLeftIdentity @f @a @c)
+    itproperty "Right identity for monads 1" (testMonadRightIdentity @f @a)
+    itproperty "Associativity for monads 1" (testMonadAssociativity @f @a @b @c)
+    itproperty "Associativity for monads 2" (testMonadAssociativity @f @a @c @b)
+    itproperty "Right sequence is equivalent to the then operator 1" (testMonadEquivalentThen @f @a @b)
+    itproperty "Right sequence is equivalent to the then operator 2" (testMonadEquivalentThen @f @a @c)
+    itproperty "Test that pure has the same effect as return 1" (testMonadPureIsReturn @f @a)
+    itproperty "Test that the bind operator is the same as sequential application 1" (testMonadOperatorEqualToSequentialApplication @f @a @b)
+    itproperty "Test that the bind operator is the same as sequential application 2" (testMonadOperatorEqualToSequentialApplication @f @a @c)
+    itproperty "Test that fmap is equivalent to using a bind with a function application and return 1" (testMonadFmapIsSequenceWithReturn @f @a @b)
+    itproperty "Test that fmap is equivalent to using a bind with a function application and return 2" (testMonadFmapIsSequenceWithReturn @f @a @c)
+    itproperty "Test monad bind equality 1" (testMonadBindEquality @f @a @b)
+    itproperty "Test monad bind equality 2" (testMonadBindEquality @f @a @c)
+  instanceDesc @ (f b) "Monad" do
+    itproperty "Left identity for monads 3" (testMonadLeftIdentity @f @b @a)
+    itproperty "Left identity for monads 4" (testMonadLeftIdentity @f @b @c)
+    itproperty "Right identity for monads 2" (testMonadRightIdentity @f @b)
+    itproperty "Associativity for monads 3" (testMonadAssociativity @f @b @a @c)
+    itproperty "Associativity for monads 4" (testMonadAssociativity @f @b @c @a)
+    itproperty "Right sequence is equivalent to the then operator 3" (testMonadEquivalentThen @f @b @a)
+    itproperty "Right sequence is equivalent to the then operator 4" (testMonadEquivalentThen @f @b @c)
+    itproperty "Test that pure has the same effect as return 2" (testMonadPureIsReturn @f @b)
+    itproperty "Test that the bind operator is the same as sequential application 3" (testMonadOperatorEqualToSequentialApplication @f @b @a)
+    itproperty "Test that the bind operator is the same as sequential application 4" (testMonadOperatorEqualToSequentialApplication @f @b @c)
+    itproperty "Test that fmap is equivalent to using a bind with a function application and return 3" (testMonadFmapIsSequenceWithReturn @f @b @a)
+    itproperty "Test that fmap is equivalent to using a bind with a function application and return 4" (testMonadFmapIsSequenceWithReturn @f @b @c)
+    itproperty "Test monad bind equality 3" (testMonadBindEquality @f @b @a)
+    itproperty "Test monad bind equality 4" (testMonadBindEquality @f @b @c)
+  instanceDesc @ (f c) "Monad" do
+    itproperty "Left identity for monads 5" (testMonadLeftIdentity @f @c @a)
+    itproperty "Left identity for monads 6" (testMonadLeftIdentity @f @c @b)
+    itproperty "Right identity for monads 3" (testMonadRightIdentity @f @c)
+    itproperty "Associativity for monads 1" (testMonadAssociativity @f @c @a @b)
+    itproperty "Associativity for monads 2" (testMonadAssociativity @f @c @b @a)
+    itproperty "Right sequence is equivalent to the then operator 5" (testMonadEquivalentThen @f @c @a)
+    itproperty "Right sequence is equivalent to the then operator 6" (testMonadEquivalentThen @f @c @b)
+    itproperty "Test that pure has the same effect as return 3" (testMonadPureIsReturn @f @c)
+    itproperty "Test that the bind operator is the same as sequential application 5" (testMonadOperatorEqualToSequentialApplication @f @c @a)
+    itproperty "Test that the bind operator is the same as sequential application 6" (testMonadOperatorEqualToSequentialApplication @f @c @b)
+    itproperty "Test that fmap is equivalent to using a bind with a function application and return 5" (testMonadFmapIsSequenceWithReturn @f @c @a)
+    itproperty "Test that fmap is equivalent to using a bind with a function application and return 6" (testMonadFmapIsSequenceWithReturn @f @c @b)
+    itproperty "Test monad bind equality 5" (testMonadBindEquality @f @c @a)
+    itproperty "Test monad bind equality 6" (testMonadBindEquality @f @c @b)
 
 testBinaryLaws :: forall a . (Arbitrary a, Binary a, Eq a, Show a, Typeable a) => SpecWith ()
 testBinaryLaws = describe "Binary laws" $
   instanceDesc @a "" $
     itproperty "Check if decoding an encoded object will yield the same object" (testBinaryIdentity @a)
+
+testSemigroupLaws :: forall s . (Arbitrary s, Eq s, Semigroup s, Show s, Typeable s) => SpecWith ()
+testSemigroupLaws = describe "Semigroup laws" do
+  instanceDesc @ s "Semigroup" $
+    itproperty "Associativity of the semigroup 1" (testSemigroupAssociativity @s)
+
+testMonoidLaws :: forall m . (Arbitrary m, Eq m, Monoid m, Show m, Typeable m) => SpecWith ()
+testMonoidLaws = describe "Monoid laws" do
+  instanceDesc @ m "Monoid" $ do
+    itproperty "Right identity of a monoid 1" (testMonoidRightIdentity @m)
+    itproperty "Left identity of a monoid 1" (testMonoidLeftIdentity @m)
+    itproperty "Concatenation of the monoid 1" (testMonoidConcatenation @m)
 
 
 _unFun :: Functor f => Fun a b -> f a -> f b

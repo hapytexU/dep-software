@@ -33,9 +33,10 @@ import Control.Applicative(Applicative(liftA2))
 import Data.Binary(Binary(put, get), getWord8, putWord8)
 import Data.Bool(bool)
 import Data.Data(Data)
+import Data.Default(Default(def))
 import Data.Functor.Classes(Eq1(liftEq), Ord1(liftCompare))
 
-import Dep.Core(Walkable(step), NonDeterministicWalkable(nstep, nstep'))
+import Dep.Core(Opposite(opposite), Walkable(step), NonDeterministicWalkable(nstep, nstep'))
 import Dep.Data.ThreeValue(ThreeValue(DontCare, Zero, One))
 import Dep.Utils(applyExp')
 
@@ -167,6 +168,12 @@ instance NonDeterministicWalkable Three ThreeValue where
     where go Zero = (la:)
           go One = (lb:)
           go ~DontCare = (la:) . (lb:)
+
+instance Opposite a => Opposite (Three a) where
+  opposite = fmap opposite
+
+instance Default a => Default (Three a) where
+  def = Leaf def
 
 allChildren
   :: ThreePath

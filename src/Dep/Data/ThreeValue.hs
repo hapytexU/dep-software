@@ -28,7 +28,8 @@ import Data.Binary(Binary(put, get), getWord8, putWord8)
 import Data.Data(Data)
 import Data.List(find)
 
-import Dep.Core(Mergeable(merge))
+import Dep.Core(Opposite(opposite), Mergeable(merge))
+import Data.Default(Default(def))
 
 import GHC.Generics(Generic)
 
@@ -51,10 +52,13 @@ instance Lift ThreeValue where
   lift One = conE 'One
   lift ~DontCare = conE 'DontCare
 
-opposite :: ThreeValue -> ThreeValue
-opposite Zero = One
-opposite One = Zero
-opposite x = x
+instance Opposite ThreeValue where
+  opposite Zero = One
+  opposite One = Zero
+  opposite x = x
+
+instance Default ThreeValue where
+  def = DontCare
 
 instance Semigroup ThreeValue where
   (<>) DontCare = id

@@ -35,6 +35,7 @@ library
       base >= 4.7 && < 5
     , binary >= 0.2
     , brick >= 0.50
+    , data-default >=0.2
     , Diff >= 0.3 && < 0.4
     , lens >= 4.0
     , QuickCheck
