@@ -1,5 +1,16 @@
 {-# LANGUAGE Safe #-}
 
+{-|
+Module      : Dep.Algorithm.Synthesis
+Description : A module to convert a 'Three' of 'ThreeValue's into a sum-of-products of a product-of-sums.
+Maintainer  : hapytexeu+gh@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+This module defines functions to generate a /sum-of-products/ or a /product-of-sums/ with the given
+function specified by a 'Three'.
+-}
+
 module Dep.Algorithm.Synthesis (
     -- * Synthesize a 'Three'
     synthesis
@@ -14,10 +25,18 @@ import Dep.Data.Product(Product', SumOfProducts')
 import Dep.Data.Three(Three(Leaf, Link, Split), applyTo, simplify)
 import Dep.Data.ThreeValue(ThreeValue(DontCare, Zero, One))
 
-upperbound :: Three ThreeValue -> Three Bool
+-- | Create a /simplified/ 'Three' where the 'DontCare' and 'One' map to 'True';
+-- and 'Zero' maps to 'False'.
+upperbound
+  :: Three ThreeValue -- ^ The given 'Three' of 'ThreeValue's where we calculate the /upperbound/ from.
+  -> Three Bool -- ^ The corresponding /upperbound/.
 upperbound = simplify . fmap (Zero /=)
 
-lowerbound :: Three ThreeValue -> Three Bool
+-- | Create a /simplified/ 'Three' where the 'DontCare' and 'Zero' map to 'False';
+-- and 'One' maps to 'True'.
+lowerbound
+  :: Three ThreeValue -- ^ The given 'Three' of 'ThreeValue's where we calculate the /lowerbound/ from.
+  -> Three Bool -- ^ The corresponding /lowerbound/.
 lowerbound = simplify . fmap (One ==)
 
 _pushZero :: Functor f => f Product' -> f Product'
