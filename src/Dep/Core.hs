@@ -14,7 +14,7 @@ defines a 'Mergeable' typeclass that is used to optionally merge two values into
 module Dep.Core (
     BFunc, BFunc1, BFunc2, BFunc3, BFunc4
   , Mergeable(merge)
-  , Walkable(step, walk, allWalk, allStep, stepValues, stepValues')
+  , Walkable(step, walk, allWalk, allStep, stepValues, allStepValues, stepValues', walkValues')
   , NonDeterministicWalkable(nstep', nstep, allnstep, allnstep', nwalk, allnwalk)
   ) where
 
