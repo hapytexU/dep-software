@@ -1,4 +1,4 @@
-{-# LANGUAGE DefaultSignatures, FunctionalDependencies, Safe #-}
+{-# LANGUAGE FunctionalDependencies, Safe #-}
 
 {-|
 Module      : Dep.Core
