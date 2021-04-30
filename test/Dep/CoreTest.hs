@@ -5,6 +5,7 @@ module Dep.CoreTest where
 import Control.Applicative(liftA2)
 
 import Data.Binary(Binary, decode, encode)
+import Data.Kind(Constraint)
 import Data.Proxy(Proxy(Proxy))
 import Data.Typeable(Typeable, typeRep)
 

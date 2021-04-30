@@ -12,8 +12,13 @@ defines a 'Mergeable' typeclass that is used to optionally merge two values into
 -}
 
 module Dep.Core (
+    -- * Boolean functions
     BFunc, BFunc1, BFunc2, BFunc3, BFunc4
+    -- * Merging two items
   , Mergeable(merge)
+    -- * Determine the opposite value
+  , Opposite(opposite)
+    -- * Deterministic and non-deterministic walks.
   , Walkable(step, walk, allWalk, allStep, stepValues, allStepValues, stepValues', walkValues')
   , NonDeterministicWalkable(nstep', nstep, allnstep, allnstep', nwalk, allnwalk)
   ) where
@@ -37,6 +42,13 @@ type BFunc3 = BoolFunc BFunc2
 
 -- | The type alias for a function that maps four 'Bool's to another 'Bool', 65536 functions are possible.
 type BFunc4 = BoolFunc BFunc3
+
+-- | A typeclass where the values of its members have an opposite element from the same type.
+class Opposite a where
+  -- | A function that determines the opposite value.
+  opposite
+    :: a  -- ^ The given item to determine the opposite from.
+    -> a  -- ^ The opposite of the given value.
 
 -- | A typeclass that specifies that it is /sometimes/
 -- possible to merge two values together into a new value.
@@ -121,7 +133,7 @@ class Walkable f step | f -> step where
   {-# MINIMAL step | walk #-}
 
 -- | A typeclass that specifies that we can walk through the given datastructure
---
+-- where steps can be non-deterministic and thus result in /multiple/ possible states.
 class NonDeterministicWalkable f step | f -> step where
   -- | Take a non-deterministic step that can result in multiple outcomes.
   -- One can specify a tail to make concatenating of lists more efficient.
