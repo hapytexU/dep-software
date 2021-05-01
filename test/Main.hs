@@ -2,8 +2,8 @@
 -- cabal v2-test --test-show-details=direct
 -- cabal v2-test --test-show-details=direct --test-options="--color --format=progress"
 
-main :: IO ExitCode
-main = runAllLiquid
+-- main :: IO ExitCode
+-- main = runAllLiquid
 
-runAllLiquid :: IO ExitCode
-runAllLiquid = mconcat <$> mapM runLiquid orderedSrcFiles
+-- runAllLiquid :: IO ExitCode
+-- runAllLiquid = mconcat <$> mapM runLiquid orderedSrcFiles
