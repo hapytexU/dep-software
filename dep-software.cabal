@@ -70,7 +70,9 @@ test-suite             deep-software
     , dep-software
     , hspec ==2.*
     , QuickCheck >=2.13 && <2.14
-  build-tool-depends: hspec-discover:hspec-discover == 2.*
+  build-tool-depends:
+      hspec-discover:hspec-discover == 2.*
+    , liquidhaskell:liquidhaskell >=0.8.10
   default-language:    Haskell2010
   default-extensions:
       BlockArguments
