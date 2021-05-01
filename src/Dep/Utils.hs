@@ -7,8 +7,7 @@ Maintainer  : hapytexeu+gh@gmail.com
 Stability   : experimental
 Portability : POSIX
 
-This module defines some aliasses for boolean functions with one, two, three, and four parameters, and
-defines a 'Mergeable' typeclass that is used to optionally merge two values into a new value.
+This module defines utility functions that are used elsewhere in the software package.
 -}
 
 module Dep.Utils (
@@ -44,4 +43,3 @@ applyExp' :: (Lift a, Foldable f)
   -> f a -- ^ The 'Foldable' of items that will be lifted, and used in the function call.
   -> Q Exp -- ^ An expression where a function with the given name is applied to the given 'Foldable' of the parameter.
 applyExp' = foldl ((. lift) . appE) . conE
-

@@ -61,6 +61,7 @@ test-suite             deep-software
   hs-source-dirs:      test
   other-modules:
       Dep.CoreTest
+    , Dep.Data.ProductSpec
     , Dep.Data.ThreeSpec
     , Dep.Data.ThreeValueSpec
   build-depends:

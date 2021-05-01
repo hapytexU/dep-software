@@ -19,7 +19,7 @@ module Dep.Core (
     -- * Determine the opposite value
   , Opposite(opposite)
     -- * Deterministic and non-deterministic walks.
-  , Walkable(step, walk, allWalk, allStep, stepValues, allStepValues, stepValues', walkValues')
+  , Walkable(step, walk, allWalk, allStep, stepValues, stepValues', allStepValues, allStepValues', walkValues')
   , NonDeterministicWalkable(nstep', nstep, allnstep, allnstep', nwalk, allnwalk)
   ) where
 
@@ -30,19 +30,17 @@ import Dep.Utils(toList')
 -- | A function that maps a list of 'Bool's to a single 'Bool'.
 type BFunc = [Bool] -> Bool
 
-type BoolFunc a = Bool -> a
-
 -- | The type alias for a function that maps a 'Bool' to another 'Bool', only four functions are possible.
-type BFunc1 = BoolFunc Bool
+type BFunc1 = Bool -> Bool
 
 -- | The type alias for a function that maps two 'Bool's to another 'Bool', sixteen functions are possible.
-type BFunc2 = BoolFunc BFunc1
+type BFunc2 = Bool -> Bool -> Bool
 
 -- | The type alias for a function that maps three 'Bool's to another 'Bool', 256 functions are possible.
-type BFunc3 = BoolFunc BFunc2
+type BFunc3 = Bool -> Bool -> Bool -> Bool
 
 -- | The type alias for a function that maps four 'Bool's to another 'Bool', 65536 functions are possible.
-type BFunc4 = BoolFunc BFunc3
+type BFunc4 = Bool -> Bool -> Bool -> Bool -> Bool
 
 -- | A typeclass where the values of its members have an opposite element from the same type.
 class Opposite a where
@@ -124,8 +122,8 @@ class Walkable f step | f -> step where
   walkValues' :: (Foldable f, Foldable g)
     => f a  -- ^ The initial state for which we will make a walk.
     -> g step -- ^ A sequene of steps that describe the walk.
-    -> [a] -- ^ A list of tail elements that can
-    -> [a]
+    -> [a] -- ^ A list of tail elements that can be added at the end of the list.
+    -> [a] -- ^ The values found after making the a walk with the given 'Walkable' in the 'Foldable'.
   walkValues' x = toList' . walk x
 
   -- Apply the same walk to all elements in the collection (functor).

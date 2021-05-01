@@ -1,3 +1,5 @@
+{-# LANGUAGE Safe #-}
+
 {-|
 Module      : Dep.Bricks.Karnaugh
 Description : A module to define three-value logic.

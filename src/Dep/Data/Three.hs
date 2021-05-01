@@ -15,7 +15,7 @@ module Dep.Data.Three (
     -- * Defining a three
     Three(Leaf, Link, Split)
     -- * Paths in a three
-  , ThreePath
+  , ThreePath, ThreeStep
     -- * Catamorphisms
   , three, depth
     -- * Lookups and constructions
@@ -25,7 +25,7 @@ module Dep.Data.Three (
     -- * Simplifying
   , simplify
     -- * Retrieve children according to a path
-  , children, children', allChildren, allChildren'
+  , children, children'
   ) where
 
 import Control.Applicative(Applicative(liftA2))
@@ -79,7 +79,10 @@ instance Ord1 Three where
           go (Split la lb) (Split ma mb) = go la ma <> go lb mb
           go (Split _ _) _ = GT
 
+-- | A type alias for (non-deterministic) steps in a 'Three' structure.
 type ThreeStep = ThreeValue
+
+-- | A type of a list (non-deterministic) steps in a 'Three' structure.
 type ThreePath = [ThreeStep]
 
 _linkLeaf :: Three a -> Three a
@@ -174,20 +177,6 @@ instance Opposite a => Opposite (Three a) where
 
 instance Default a => Default (Three a) where
   def = Leaf def
-
-allChildren
-  :: ThreePath
-  -> [Three a]
-  -> [a]
-allChildren pth = flip (allChildren' pth) []
-
-allChildren'
-  :: ThreePath
-  -> [Three a]
-  -> [a]
-  -> [a]
-allChildren' pth = flip (foldr (children' pth))
---allChildren = flip . foldr . children'
 
 -- | Obtain the children that satisfy a given 'ThreePath'.
 children
