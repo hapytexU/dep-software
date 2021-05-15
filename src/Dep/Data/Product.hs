@@ -7,7 +7,8 @@ Maintainer  : hapytexeu+gh@gmail.com
 Stability   : experimental
 Portability : POSIX
 
-This
+This module provides utility functions to compress/decompress products, and render these 'Product''s to
+a unicode string.
 -}
 
 module Dep.Data.Product (
@@ -16,12 +17,13 @@ module Dep.Data.Product (
     -- * Convert from compact to normal products
   , toCompact, fromCompact
     -- * Print products and sums-of-products
-  , showSumOfProducts, showProduct, showProduct'
+  , showSumOfProducts, showProduct, showProduct', subscriptVariable
   ) where
 
-import Data.Char.Small(asSub')
+import Data.Binary(Binary(get, put), putList)
 import Data.Text(Text, cons)
 
+import Dep.Data.LogicItem(getThreeList, putThreeList, subscriptVariable)
 import Dep.Data.Three(ThreePath)
 import Dep.Data.ThreeValue(ThreeValue(Zero, One, DontCare))
 
@@ -80,11 +82,22 @@ showSumOfProducts
   :: Char  -- ^ The name of the root variable that will be used with subscripts.
   -> SumOfProducts' -- ^ The given sum of products to convert to a 'Text'.
   -> Text -- ^ The corresponding 'Text' object that presents the given 'SumOfProducts''.
-showSumOfProducts _ [] = mempty
-showSumOfProducts ci (x:xs) = go x xs
+showSumOfProducts = showSumOfProducts' . subscriptVariable
+
+-- | Convert the given sum of products to a 'Text' object that presents
+-- the 'SumOfProducts'' as a 'Text' object with variables as subscript.
+--
+-- >>> showSumOfProducts' (subscriptVariable 'y') [[One, One], [DontCare, Zero, One]]
+-- "y₀y₁ + y₁'y₂"
+showSumOfProducts'
+  :: (Int -> Text) -- ^ A function that maps the given index to the variable name.
+  -> SumOfProducts' -- ^ The given sum of products to convert to a 'Text'.
+  -> Text -- ^ The corresponding 'Text' object that presents the given 'SumOfProducts''.
+showSumOfProducts' _ [] = mempty
+showSumOfProducts' f (x:xs) = go x xs
   where go z [] = go' mempty z
         go z ~(y:ys) = go' (" + " <> go y ys) z
-        go' = showProduct' ci
+        go' = showProduct'' f
 
 -- | Print a given product as a sequence of variables that can be negated.
 -- for example:
@@ -107,9 +120,29 @@ showProduct'
   -> Text  -- ^ The text that will be added as tail, this is useful if we combine products.
   -> Product' -- ^ The given product to convert to a 'Text'.
   -> Text -- ^ The corresponding 'Text' object that presents the given 'Product''.
-showProduct' ci tl = go (0 :: Int)
+showProduct' = showProduct'' . subscriptVariable
+
+-- | Print a given product as a sequence of variables that can be negated.
+-- for example:
+--
+-- >>> showProduct' (subscriptVariable 'y') mempty [One, DontCare, Zero, One]
+-- "y₀y₂'y₃"
+showProduct''
+  :: (Int -> Text) -- ^ A function that maps the given index to the variable name.
+  -> Text  -- ^ The text that will be added as tail, this is useful if we combine products.
+  -> Product' -- ^ The given product to convert to a 'Text'.
+  -> Text -- ^ The corresponding 'Text' object that presents the given 'Product''.
+showProduct'' ci tl = go (0 :: Int)
     where go _ [] = tl
           go n (DontCare:xs) = go (n+1) xs
           go n (One:xs) = _printvar id n xs
           go n ~(Zero:xs) = _printvar (cons '\'') n xs
-          _printvar f n xs = cons ci (asSub' n) <> f (go (n+1) xs)
+          _printvar f n xs = ci n <> f (go (n+1) xs)
+
+instance Binary Product where
+  get  = Product <$> getThreeList
+  put (Product p) = putThreeList p
+
+instance Binary SumOfProducts where
+  get = SumOfProducts <$> get
+  put (SumOfProducts sp) = putList sp

@@ -24,7 +24,9 @@ library
    , Dep.Bricks.Karnaugh
    , Dep.Bricks.Layout
    , Dep.Bricks.Negation
+   , Dep.Data.LogicItem
    , Dep.Data.Product
+   , Dep.Data.Sum
    , Dep.Data.Three
    , Dep.Data.ThreeValue
    , Dep.Utils
@@ -38,6 +40,7 @@ library
     , data-default >=0.2
     , Diff >= 0.3 && < 0.4
     , lens >= 4.0
+    , parsec >=3.0
     , QuickCheck
     , template-haskell >=2.16.0.0
     , text >=0.1

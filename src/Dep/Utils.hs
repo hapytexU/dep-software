@@ -15,6 +15,8 @@ module Dep.Utils (
     toList'
     -- * Lifting objects
   , applyExp, applyExp'
+    -- * 'Maybe' utils
+  , unionMaybeWith
   ) where
 
 import Language.Haskell.TH.Lib(appE, conE)
@@ -43,3 +45,17 @@ applyExp' :: (Lift a, Foldable f)
   -> f a -- ^ The 'Foldable' of items that will be lifted, and used in the function call.
   -> Q Exp -- ^ An expression where a function with the given name is applied to the given 'Foldable' of the parameter.
 applyExp' = foldl ((. lift) . appE) . conE
+
+-- | Using the merge function if the two given 'Maybe's
+-- use the 'Just' data constructor. If one of the two is 'Nothing',
+-- then the item with the 'Just' compiler is used. If the
+-- two are both 'Nothing', 'Nothing' is returned.
+unionMaybeWith
+  :: (a -> a -> a) -- ^ The function to merge two 'Just' objects.
+  -> Maybe a -- ^ The first given 'Maybe'
+  -> Maybe a -- ^ The second given 'Maybe'
+  -> Maybe a -- ^ The result of merging two 'Just' objects, or the 'Just' object if there is only one given.
+unionMaybeWith f = go
+  where go (Just x) (Just y) = Just (f x y)
+        go x@(Just _) ~Nothing = x
+        go ~Nothing j = j

@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, DeriveGeneric, Safe, TemplateHaskellQuotes #-}
+{-# LANGUAGE DeriveDataTypeable, DeriveGeneric, FlexibleContexts, Safe, TemplateHaskellQuotes #-}
 
 {-|
 Module      : Dep.Data.ThreeValue
@@ -15,18 +15,23 @@ module Dep.Data.ThreeValue (
     ThreeValue(DontCare, Zero, One)
     -- * Catamorphisms
   , threeValue, toMaybeBool, toChar
-    -- * Convert to a 'ThreeValue'
-  , fromBool, fromMaybeBool
+    -- * Convert to and from a 'ThreeValue'
+  , fromBool, fromMaybeBool, toUpper, toLower
     -- * Operators on 'ThreeValue'
   , opposite
     -- * Type aliasses
   , ThreeValues
+    -- Parsing a ThreeValue and ThreeValues
+  , parseThreeValue, parseThreeValues, parseThreeValues1
   ) where
+
+import Control.Applicative((<|>))
 
 import Data.Bool(bool)
 import Data.Binary(Binary(put, get), getWord8, putWord8)
 import Data.Data(Data)
 import Data.List(find)
+import Data.List.NonEmpty(NonEmpty((:|)))
 
 import Dep.Core(Opposite(opposite), Mergeable(merge))
 import Data.Default(Default(def))
@@ -38,6 +43,9 @@ import Language.Haskell.TH.Syntax(Lift(lift, liftTyped), TExp(TExp))
 
 import Test.QuickCheck.Arbitrary(Arbitrary(arbitrary), arbitraryBoundedEnum)
 
+import Text.Parsec(ParsecT, Stream, many)
+import Text.Parsec.Char(oneOf)
+
 -- | A data type that is used if a value can present three logical values: /don't care/ (or don't know);
 -- /zero/; and /one/.
 data ThreeValue
@@ -45,6 +53,20 @@ data ThreeValue
   | One  -- ^ The value is /one/ or /true/.
   | DontCare  -- ^ We do not care or do not know the value.
   deriving (Bounded, Data, Enum, Eq, Generic, Ord, Read, Show)
+
+-- | A function that maps 'One's and 'DontCare's to 'True's; and 'Zero's to 'False'.
+toUpper
+  :: ThreeValue -- The given 'ThreeValue' to convert to a 'Bool'.
+  -> Bool  -- A 'Bool' that is 'True' for 'One' and 'DontCare', and 'False' for 'Zero'.
+toUpper Zero = False
+toUpper _ = True
+
+-- | A function that maps 'Zero's and 'DontCare's to 'False's; and 'One's to 'True'.
+toLower
+  :: ThreeValue -- The given 'ThreeValue' to convert to a 'Bool'.
+  -> Bool  -- A 'Bool' that is 'True' for 'One', and 'False' for 'Zero' and 'DontCare'.
+toLower One = True
+toLower _ = False
 
 instance Lift ThreeValue where
   liftTyped = fmap TExp . lift
@@ -124,3 +146,24 @@ type ThreeValues = [ThreeValue]
 instance Binary ThreeValue where
   put = putWord8 . fromIntegral . fromEnum
   get = toEnum . fromIntegral <$> getWord8
+
+-- | A parser that can parse a single 'ThreeValue' from a 'Char'acter.
+-- The characters for 'Zero' are @0@, @f@ or @F@;
+-- the characters for 'Zero' are @1@, @t@ or @T@; and
+-- the characters for 'DontCare' are @-@, @d@ or @D@,
+parseThreeValue :: Stream s m Char => ParsecT s u m ThreeValue
+parseThreeValue = (Zero <$ oneOf "0fF") <|> (One <$ oneOf "1tT") <|> (DontCare <$ oneOf "-dD")
+
+-- | A parser that can parse a (possibly empty) list of 'ThreeValue'
+-- from a 'Char'acter. The characters for 'Zero' are @0@, @f@ or @F@;
+-- the characters for 'Zero' are @1@, @t@ or @T@; and
+-- the characters for 'DontCare' are @-@, @d@ or @D@,
+parseThreeValues :: Stream s m Char => ParsecT s u m ThreeValues
+parseThreeValues = many parseThreeValue
+
+-- | A parser that can parse a 'NonEmpty' list of 'ThreeValue'
+-- from a 'Char'acter. The characters for 'Zero' are @0@, @f@ or @F@;
+-- the characters for 'Zero' are @1@, @t@ or @T@; and
+-- the characters for 'DontCare' are @-@, @d@ or @D@,
+parseThreeValues1 :: Stream s m Char => ParsecT s u m (NonEmpty ThreeValue)
+parseThreeValues1 = (:|) <$> parseThreeValue <*> parseThreeValues

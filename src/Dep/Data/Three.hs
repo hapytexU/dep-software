@@ -40,7 +40,7 @@ import Dep.Core(Opposite(opposite), Walkable(step), NonDeterministicWalkable(nst
 import Dep.Data.ThreeValue(ThreeValue(DontCare, Zero, One))
 import Dep.Utils(applyExp')
 
-import GHC.Generics(Generic)
+import GHC.Generics(Generic, Generic1)
 
 import Language.Haskell.TH.Syntax(Lift(lift, liftTyped), TExp(TExp))
 
@@ -54,7 +54,7 @@ data Three a
   = Leaf a  -- ^ A /leaf/ that contains a single value.
   | Link (Three a)  -- ^ A /link/ where it means that this variable does not matter but the next one(s) will.
   | Split (Three a) (Three a)  -- ^ A /split/ where this variable determines the outcome.
-  deriving (Data, Eq, Foldable, Functor, Generic, Ord, Read, Show, Traversable)
+  deriving (Data, Eq, Foldable, Functor, Generic, Generic1, Ord, Read, Show, Traversable)
 
 instance Lift a => Lift (Three a) where
   liftTyped = fmap TExp . lift
