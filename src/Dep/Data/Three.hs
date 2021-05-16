@@ -229,7 +229,7 @@ instance Monoid a => Monoid (Three a) where
 
 instance Arbitrary1 Three where
     liftArbitrary arb = go
-      where go = frequency [(5, Leaf <$> arb), (2, Link <$> go), (1, Split <$> go <*> go)]
+      where go = frequency [(1, Leaf <$> arb), (1, Link <$> go), (1, Split <$> go <*> go)]
 
 instance Arbitrary a => Arbitrary (Three a) where
     arbitrary = arbitrary1

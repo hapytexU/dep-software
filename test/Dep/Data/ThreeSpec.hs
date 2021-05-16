@@ -5,8 +5,7 @@ module Dep.Data.ThreeSpec where
 import Dep.CoreTest(testFunctorLaws, testApplicativeLaws, testSemigroupLaws, testMonoidLaws, testBinaryLaws)
 import Dep.Data.Three(Three)
 
-import Test.Hspec
--- import Test.QuickCheck
+import Test.Hspec(Spec)
 
 
 spec :: Spec

@@ -13,7 +13,7 @@ function specified by a 'Three'.
 
 module Dep.Algorithm.Synthesis (
     -- * Synthesize a 'Three'
-    synthesis
+    synthesis, synthesis'
     -- * Create an upper and lowerbound Three
   , upperbound, lowerbound
     -- * Extract products and sums
@@ -27,7 +27,7 @@ module Dep.Algorithm.Synthesis (
 import Control.Applicative((<|>))
 
 import Dep.Core(Walkable(allStep, allWalkValues), NonDeterministicWalkable(allNstep))
-import Dep.Data.Product(Product', SumOfProducts')
+import Dep.Data.Product(Product(Product), Product', SumOfProducts(SumOfProducts), SumOfProducts')
 import Dep.Data.Sum(Sum', ProductOfSums')
 import Dep.Data.Three(Three(Leaf, Link, Split), applyTo, depth, simplify)
 import Dep.Data.ThreeValue(ThreeValue(DontCare, Zero, One), ThreeValues, toLower, toUpper)
@@ -155,7 +155,7 @@ minimizeMin' l h (x:xs) w | not $ validMin l (h++(x:xs)) = (h,w+9999999)
 -}
 
 minimizeProduct :: Int -> Int -> Product' -> Three Bool -> Product'
-minimizeProduct dpth mw prd tr = maybe prd snd (minimizeProduct' dpth mw (expandProduct prd) [tr])
+minimizeProduct dpth mw prd tr = prd -- maybe prd snd (minimizeProduct' dpth mw (expandProduct prd) [tr])
 
 -- first parameter: maximum cost (if <= 0, STOP)
 -- second parameter: the current path we are tracing (moves to go)
@@ -163,12 +163,17 @@ minimizeProduct dpth mw prd tr = maybe prd snd (minimizeProduct' dpth mw (expand
 -- return type: a possible product that is weighed
 -- *second parameter: depth to go (if depth <= cost, STOP)
 
+{-
 minimizeProduct' :: Int -> [Bool] -> [Three Bool] -> Maybe (Int, Product')
-minimizeProduct' cst | cst <= 0 = Nothing
-minimizeProduct' cst = go
+minimizeProduct' cst _
+  | cst <= 0 = Nothing  -- We used too many 'One's and 'Zero's, and this is thus not optimal
+minimizeProduct' cst [] = Just (0, [])
+minimizeProduct' cst itms = go itms
   where go (False:xs) ts | _allTrue (allstep ts True) = minimizeProduct cst xs (allNstep ts DontCare)
-                         | otherwise = ()
-          where nextStep = allNstep ts DontCare -- potential to be nothing
+                         | otherwise = minimizeProduct (cst-1) xs nextStep
+  where nextStep = allNstep ts DontCare -- potential to be nothing
+-}
+
   {-
 minimizeProduct' _ _ [] ts
   | _allTrue ts = Just (0, [])
@@ -212,9 +217,12 @@ expandProduct = map f
   where f One = True
         f _ = False
 
+synthesis :: Three ThreeValue -> SumOfProducts
+synthesis = SumOfProducts . map Product . synthesis'
+
 -- | Create a sum-of-products for the given function of 'ThreeValue'.
-synthesis :: Three ThreeValue -> SumOfProducts'
-synthesis th = _synthesis _simp
+synthesis' :: Three ThreeValue -> SumOfProducts'
+synthesis' th = _synthesis _simp
   where _upper = upperbound _simp
         n = depth _simp
         _simp = simplify th

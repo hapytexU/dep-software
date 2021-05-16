@@ -65,6 +65,7 @@ test-suite             deep-software
   hs-source-dirs:      test
   other-modules:
       Dep.CoreTest
+    , Dep.Algorithm.SynthesisSpec
     , Dep.Data.ProductSpec
     , Dep.Data.ThreeSpec
     , Dep.Data.ThreeValueSpec

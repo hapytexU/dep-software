@@ -13,7 +13,7 @@ a unicode string.
 
 module Dep.Data.Sum (
     -- * Type synonyms to represent synthesis
-    Sum, Sum', CompactSum, CompactSum', ProductOfSums, ProductOfSums'
+    Sum(Sum), Sum', CompactSum(CompactSum), CompactSum', ProductOfSums(ProductOfSums), ProductOfSums'
     -- * Convert from compact to normal products
   , toCompact, fromCompact
     -- * Print sums and product of sums
