@@ -16,7 +16,7 @@ import Test.QuickCheck(maxSuccess, property, quickCheckWith, stdArgs)
 spec :: Spec
 spec = do
   it "depth check" (property depthCheck)
-  it "synthesis check" (quickCheckWith stdArgs {maxSuccess = 500000 } (property synthesisCheck))
+  it "synthesis check" (quickCheckWith stdArgs {maxSuccess = 50000000 } (property synthesisCheck))
 
 depthCheck :: Three ThreeValue -> Bool
 depthCheck thr = depth thr >= 0
