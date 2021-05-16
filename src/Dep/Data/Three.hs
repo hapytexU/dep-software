@@ -26,6 +26,8 @@ module Dep.Data.Three (
   , simplify
     -- * Retrieve children according to a path
   , children, children'
+    -- * Convert the 'Three' to an key-value list
+  , toTraces, toTraces', toTraces''
   ) where
 
 import Control.Applicative(Applicative(liftA2))
@@ -37,7 +39,7 @@ import Data.Default(Default(def))
 import Data.Functor.Classes(Eq1(liftEq), Ord1(liftCompare))
 
 import Dep.Core(Opposite(opposite), Walkable(step), NonDeterministicWalkable(nstep, nstep'))
-import Dep.Data.ThreeValue(ThreeValue(DontCare, Zero, One))
+import Dep.Data.ThreeValue(ThreeValue(DontCare, Zero, One), ThreeValues)
 import Dep.Utils(applyExp')
 
 import GHC.Generics(Generic, Generic1)
@@ -245,4 +247,30 @@ instance Binary a => Binary (Three a) where
           0 -> Leaf <$> get
           1 -> Link <$> get
           2 -> Split <$> get <*> get
-          _ -> error ("The numer " ++ show tp ++ " is not a valid Three item.")
+          _ -> fail ("The numer " ++ show tp ++ " is not a valid Three item.")
+
+-- | Convert the given 'Three' to a list of 2-tuples with as first item the "address" in __reverse__,
+-- and as second item the value associated with this.
+toTraces
+  :: Three a  -- The given 'Three' where we want to derive the traces from.
+  -> [(ThreeValues, a)]  -- ^ The list of /addresses/ in *reverse* with the corresponding value.
+toTraces = (`toTraces'` [])
+
+-- | Convert the given 'Three' to a list of 2-tuples with as first item the "address" in __reverse__,
+-- and as second item the value associated with this.
+toTraces'
+  :: Three a  -- The given 'Three' where we want to derive the traces from.
+  -> [(ThreeValues, a)]  -- ^ The list of /trailing/ items that can be added at the end.
+  -> [(ThreeValues, a)]  -- ^ The list of /addresses/ in __reverse__ with the corresponding value.
+toTraces' = (`toTraces''` [])
+
+-- | Convert the given 'Three' to a list of 2-tuples with as first item the "address" in __reverse__,
+-- and as second item the value associated with this.
+toTraces''
+  :: Three a  -- The given 'Three' where we want to derive the traces from.
+  -> ThreeValues  -- ^ The current address that will be manipulated as we walk through the 'Three' in __reverse__ order.
+  -> [(ThreeValues, a)]  -- ^ The list of /trailing/ items that can be added at the end.
+  -> [(ThreeValues, a)]  -- ^ The list of /addresses/ in __reverse__ with the corresponding value.
+toTraces'' (Leaf x) adr = ((adr, x) :)
+toTraces'' (Link x) adr = toTraces'' x (DontCare: adr)
+toTraces'' ~(Split xa xb) adr = toTraces'' xa (Zero: adr) . toTraces'' xb (One: adr)
