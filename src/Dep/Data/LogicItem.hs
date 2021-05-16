@@ -85,11 +85,11 @@ putThreeList :: ThreeValues -> Put
 putThreeList = go
   where go [] = putWord8 0xff
         go ~(x:xs) = go' (fromIntegral (fromEnum x)) xs
-        go' n [] = putWord8 (n .|. 0x3f)
+        go' n [] = putWord8 (shiftL n 6 .|. 0x3f)
         go' n ~(x:xs) = go'' (mv n x) xs
-        go'' n [] = putWord8 (n .|. 0xf)
+        go'' n [] = putWord8 (shiftL n 4 .|. 0xf)
         go'' n ~(x:xs) = go''' (mv n x) xs
-        go''' n [] = putWord8 (n .|. 0x3)
+        go''' n [] = putWord8 (shiftL n 2 .|. 0x3)
         go''' n ~(x:xs) = putWord8 (mv n x) >> go xs
         mv n x = shiftL n 2 .|. fromIntegral (fromEnum x)
 

@@ -67,6 +67,7 @@ test-suite             deep-software
       Dep.CoreTest
     , Dep.Algorithm.SynthesisSpec
     , Dep.Data.ProductSpec
+    , Dep.Data.SumSpec
     , Dep.Data.ThreeSpec
     , Dep.Data.ThreeValueSpec
   build-depends:

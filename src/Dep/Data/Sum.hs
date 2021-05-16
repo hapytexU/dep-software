@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, MultiParamTypeClasses, OverloadedStrings, Safe #-}
+{-# LANGUAGE BangPatterns, MultiParamTypeClasses, OverloadedStrings, Safe, TypeApplications #-}
 
 {-|
 Module      : Dep.Data.Sum
@@ -14,8 +14,6 @@ a unicode string.
 module Dep.Data.Sum (
     -- * Type synonyms to represent synthesis
     Sum(Sum), Sum', CompactSum(CompactSum), CompactSum', ProductOfSums(ProductOfSums), ProductOfSums'
-    -- * Convert from compact to normal products
-  , toCompact, fromCompact
     -- * Print sums and product of sums
   , showProductOfSums, showSum, showSum'
   ) where
@@ -27,12 +25,22 @@ import Dep.Data.Three(ThreePath)
 import Dep.Data.ThreeValue(ThreeValue(Zero, One, DontCare))
 import Data.Binary(Binary(get, put, putList))
 
+import Test.QuickCheck.Arbitrary(Arbitrary(arbitrary, shrink))
+
 -- | A type alias for a sum that is a 'ThreePath'.
 type Sum' = ThreePath
 
 -- | A data type that can be used to specify a sum. By using a newtype,
 -- we can add special instance to the 'Sum'.
 newtype Sum = Sum Sum' deriving (Eq, Ord, Read, Show)
+
+instance Arbitrary Sum where
+  arbitrary = Sum <$> arbitrary
+  shrink (Sum s) = Sum <$> shrink s
+
+instance Binary Sum where
+  get  = Sum <$> getThreeList
+  put (Sum s) = putThreeList s
 
 instance EvaluateItem Sum where
   evaluateItem f ~(Sum s) = go 1 s
@@ -49,6 +57,15 @@ type CompactSum' = [Int]
 -- type, this means that we can define other instances than these for a list of 'Int'.
 newtype CompactSum = CompactSum CompactSum' deriving (Eq, Ord, Read, Show)
 
+instance Arbitrary CompactSum where
+  arbitrary = toCompact @Sum <$> arbitrary
+  shrink cs = toCompact @Sum <$> shrink (fromCompact cs)
+
+instance Binary CompactSum where
+  put (CompactSum cs) = put cs
+  get = CompactSum <$> get
+
+
 instance EvaluateItem CompactSum where
   evaluateItem f ~(CompactSum s) = any go s
     where go n
@@ -62,9 +79,16 @@ type ProductOfSums' = [Sum']
 -- to specify new instance other than these of a list of lists of 'Int's.
 newtype ProductOfSums = ProductOfSums [Sum] deriving (Eq, Ord, Read, Show)
 
+instance Arbitrary ProductOfSums where
+  arbitrary = ProductOfSums <$> arbitrary
+  shrink (ProductOfSums sop) = ProductOfSums <$> shrink sop
+
+instance Binary ProductOfSums where
+  get = ProductOfSums <$> get
+  put (ProductOfSums ps) = putList ps
+
 instance EvaluateItem ProductOfSums where
   evaluateItem f ~(ProductOfSums p) = all (evaluateItem f) p
-
 
 instance ToCompact Sum CompactSum where
   toCompact (Sum s) = CompactSum (toCompact s)
@@ -135,11 +159,3 @@ showSum'' ci tl = go (0 :: Int)
           go n (One:xs) = _printvar id n xs
           go n ~(Zero:xs) = _printvar (cons '\'') n xs
           _printvar f n xs = ci n <> f (go (n+1) xs)
-
-instance Binary Sum where
-  get  = Sum <$> getThreeList
-  put (Sum s) = putThreeList s
-
-instance Binary ProductOfSums where
-  get = ProductOfSums <$> get
-  put (ProductOfSums ps) = putList ps
