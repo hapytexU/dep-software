@@ -51,11 +51,10 @@ type CompactProduct' = [Int]
 newtype CompactProduct = CompactProduct CompactProduct' deriving (Eq, Ord, Read, Show)
 
 instance EvaluateItem CompactProduct where
-  evaluateItem f ~(CompactProduct p) = go p
-    where go [] = True
-          go (n:ns)
-            | n < 0 = not (f (-n)) && go ns
-            | otherwise = f n && go ns
+  evaluateItem f ~(CompactProduct p) = all go p
+    where go n
+            | n < 0 = not (f (-n))
+            | otherwise = f n
 
 
 -- | A type synonym to present a sum of products where each item of the list is a 'Product''.

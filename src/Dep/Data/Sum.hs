@@ -50,11 +50,10 @@ type CompactSum' = [Int]
 newtype CompactSum = CompactSum CompactSum' deriving (Eq, Ord, Read, Show)
 
 instance EvaluateItem CompactSum where
-  evaluateItem f ~(CompactSum s) = go s
-    where go [] = False
-          go (n:ns)
-            | n < 0 = not (f (-n)) || go ns
-            | otherwise = f n || go ns
+  evaluateItem f ~(CompactSum s) = any go s
+    where go n
+            | n < 0 = not (f (-n))
+            | otherwise = f n
 
 -- | A type synonym to present a product of sums where each item of the list is a 'Sum''.
 type ProductOfSums' = [Sum']
