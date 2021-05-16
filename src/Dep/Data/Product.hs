@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, Safe #-}
+{-# LANGUAGE BangPatterns, OverloadedStrings, Safe #-}
 
 {-|
 Module      : Dep.Data.Product
@@ -23,7 +23,7 @@ module Dep.Data.Product (
 import Data.Binary(Binary(get, put), putList)
 import Data.Text(Text, cons)
 
-import Dep.Data.LogicItem(getThreeList, putThreeList, subscriptVariable)
+import Dep.Data.LogicItem(EvaluateItem(evaluateItem), getThreeList, putThreeList, subscriptVariable)
 import Dep.Data.Three(ThreePath)
 import Dep.Data.ThreeValue(ThreeValue(Zero, One, DontCare))
 
@@ -34,6 +34,14 @@ type Product' = ThreePath
 -- we can add special instance to the 'Product'.
 newtype Product = Product Product' deriving (Eq, Ord, Read, Show)
 
+instance EvaluateItem Product where
+  evaluateItem f ~(Product p) = go 1 p
+    where go _ [] = True
+          go !n (Zero:xs) = not (f n) && go (n+1) xs
+          go !n (One:xs) = f n && go (n+1) xs
+          go !n (~DontCare:xs) = go (n+1) xs
+
+
 -- | A more compact representation of a product where the indexes that have 'Zero'
 -- or 'One' are listed by the /positive/ or /negative/ index respectively.
 type CompactProduct' = [Int]
@@ -42,12 +50,24 @@ type CompactProduct' = [Int]
 -- type, this means that we can define other instances than these for a list of 'Int'.
 newtype CompactProduct = CompactProduct CompactProduct' deriving (Eq, Ord, Read, Show)
 
+instance EvaluateItem CompactProduct where
+  evaluateItem f ~(CompactProduct p) = go p
+    where go [] = True
+          go (n:ns)
+            | n < 0 = not (f (-n)) && go ns
+            | otherwise = f n && go ns
+
+
 -- | A type synonym to present a sum of products where each item of the list is a 'Product''.
 type SumOfProducts' = [Product']
 
 -- | A data type that is used to specify a sum of products. This type can be used
 -- to specify new instance other than these of a list of lists of 'Int's.
 newtype SumOfProducts = SumOfProducts [Product] deriving (Eq, Ord, Read, Show)
+
+instance EvaluateItem SumOfProducts where
+  evaluateItem f ~(SumOfProducts s) = any (evaluateItem f) s
+
 
 -- | Convert the given 'Product'' to a compact representation as a 'CompactProduct''.
 toCompact

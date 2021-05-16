@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, OverloadedStrings, Safe #-}
+{-# LANGUAGE BangPatterns, MultiParamTypeClasses, OverloadedStrings, Safe #-}
 
 {-|
 Module      : Dep.Data.Sum
@@ -22,7 +22,7 @@ module Dep.Data.Sum (
 
 import Data.Text(Text, cons)
 
-import Dep.Data.LogicItem(ToCompact(fromCompact, toCompact), getThreeList, putThreeList, subscriptVariable)
+import Dep.Data.LogicItem(EvaluateItem(evaluateItem), ToCompact(fromCompact, toCompact), getThreeList, putThreeList, subscriptVariable)
 import Dep.Data.Three(ThreePath)
 import Dep.Data.ThreeValue(ThreeValue(Zero, One, DontCare))
 import Data.Binary(Binary(get, put, putList))
@@ -34,6 +34,13 @@ type Sum' = ThreePath
 -- we can add special instance to the 'Sum'.
 newtype Sum = Sum Sum' deriving (Eq, Ord, Read, Show)
 
+instance EvaluateItem Sum where
+  evaluateItem f ~(Sum s) = go 1 s
+    where go _ [] = False
+          go !n (Zero:xs) = not (f n) || go (n+1) xs
+          go !n (One:xs) = f n || go (n+1) xs
+          go !n (~DontCare:xs) = go (n+1) xs
+
 -- | A more compact representation of a sum where the indexes that have 'Zero'
 -- or 'One' are listed by the /positive/ or /negative/ index respectively.
 type CompactSum' = [Int]
@@ -42,12 +49,23 @@ type CompactSum' = [Int]
 -- type, this means that we can define other instances than these for a list of 'Int'.
 newtype CompactSum = CompactSum CompactSum' deriving (Eq, Ord, Read, Show)
 
+instance EvaluateItem CompactSum where
+  evaluateItem f ~(CompactSum s) = go s
+    where go [] = False
+          go (n:ns)
+            | n < 0 = not (f (-n)) || go ns
+            | otherwise = f n || go ns
+
 -- | A type synonym to present a product of sums where each item of the list is a 'Sum''.
 type ProductOfSums' = [Sum']
 
 -- | A data type that is used to specify a product of sums. This type can be used
 -- to specify new instance other than these of a list of lists of 'Int's.
 newtype ProductOfSums = ProductOfSums [Sum] deriving (Eq, Ord, Read, Show)
+
+instance EvaluateItem ProductOfSums where
+  evaluateItem f ~(ProductOfSums p) = all (evaluateItem f) p
+
 
 instance ToCompact Sum CompactSum where
   toCompact (Sum s) = CompactSum (toCompact s)

@@ -45,7 +45,6 @@ _incStep :: ThreeValue -> Int -> Int
 _incStep DontCare = id
 _incStep _ = (1+)
 
-
 -- | Create a /simplified/ 'Three' where the 'DontCare' and 'One' map to 'True';
 -- and 'Zero' maps to 'False'.
 upperbound
@@ -168,6 +167,7 @@ minimizeProduct' :: Int -> [Bool] -> [Three Bool] -> Maybe (Int, Product')
 minimizeProduct' cst | cst <= 0 = Nothing
 minimizeProduct' cst = go
   where go (False:xs) ts | _allTrue (allstep ts True) = minimizeProduct cst xs (allNstep ts DontCare)
+                         | otherwise = ()
           where nextStep = allNstep ts DontCare -- potential to be nothing
   {-
 minimizeProduct' _ _ [] ts

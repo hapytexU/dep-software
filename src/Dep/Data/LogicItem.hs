@@ -11,21 +11,46 @@ This module provides utility functions to compress/decompress sums, products, su
 -}
 
 module Dep.Data.LogicItem (
+  -- * Evaluating logical items
+    EvaluateItem(evaluateItem, evaluateWithBits)
   -- * Convert from and to a compact format
-    ToCompact(toCompact, fromCompact)
+  , ToCompact(toCompact, fromCompact)
   -- * Binary encode/decode 'ThreeValues' in an efficient way.
   , getThreeList, putThreeList
     -- * Typesetting variables
   , subscriptVariable, subscriptNegatedVariable, subscriptConditionVariable
   ) where
 
-import Data.Bits((.|.), (.&.), shiftL, shiftR)
+import Data.Bits(Bits, (.|.), (.&.), shiftL, shiftR, testBit)
 import Data.Binary(Get, Put, getWord8, putWord8)
 import Data.Char.Small(asSub')
 import Data.Text(Text, cons, snoc)
 import Data.Word(Word8)
 
 import Dep.Data.ThreeValue(ThreeValue(Zero, One, DontCare), ThreeValues)
+
+-- | A typeclass for objects that can be evaluated to a 'Bool'
+-- based on multiple variables. Numbering of the bits starts by
+-- __one__ because a 'CompactSum' and 'CompactProduct' start
+-- indexes by one, due to the fact that @0@ and @-0@ are equal.
+class EvaluateItem a where
+  -- | Evaluate the given item with a function that derives the value
+  -- for the given /i/-th 'Bool'.
+  evaluateItem
+    :: (Int -> Bool)  -- ^ A function to determine the value of the /i/-th 'Bool'.
+    -> a  -- ^ The given binary function to evaluate.
+    -> Bool  -- ^ The result after evaluating the object.
+
+  -- | Determine the outcome of the given 'EvaluateItem' based on the values
+  -- specified in a 'Bits' object where the /i/-th 'Bool' is the /i-1/-th bit
+  -- of the data.
+  evaluateWithBits :: Bits b
+    => b  -- ^ The given 'Bits' object that holds the values for the 'Bool's.
+    -> a  -- ^ The given binary function to evaluate.
+    -> Bool  -- ^ The result after evluating the given object.
+  evaluateWithBits d = evaluateItem go
+    where go = (`testBit` 0) . shiftR d . pred
+  {-# MINIMAL evaluateItem #-}
 
 -- | A class that specifies that a given logic item can be made more compact, or from a compact form to
 -- its original form. The two functions are not per se fully each others inverse.
