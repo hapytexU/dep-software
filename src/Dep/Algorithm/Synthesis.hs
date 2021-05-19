@@ -14,6 +14,8 @@ function specified by a 'Three'.
 module Dep.Algorithm.Synthesis (
     -- * Synthesize a 'Three'
     synthesis, synthesis'
+    -- * Weigthed variants of the product and sum
+  , WeightedProduct, WeightedSum
     -- * Create an upper and lowerbound Three
   , upperbound, lowerbound
     -- * Extract products and sums
@@ -34,7 +36,11 @@ import Dep.Data.Three(Three(Leaf, Link, Split), applyTo, depth, simplify)
 import Dep.Data.ThreeValue(ThreeValue(DontCare, Zero, One), ThreeValues, toLower, toUpper)
 
 type WeightedItem = (Int, ThreeValues)
+
+-- | A 2-tuple where the first item is the "weight" of the product, and the second one the corresponding 'Product''.
 type WeightedProduct = (Int, Product')
+
+-- | A 2-tuple where the first item is the "weight" of the sum, and the second one the corresponding 'Sum''.
 type WeightedSum = (Int, Sum')
 
 _minWeightedItems :: (Int, a) -> (Int, a) -> (Int, a)
@@ -230,7 +236,10 @@ expandProduct = map f
   where f One = True
         f _ = False
 
-synthesis :: Three ThreeValue -> SumOfProducts
+-- | Create a 'SumOfProducts' object based on the given 'Three' of 'ThreeValue's.
+synthesis
+  :: Three ThreeValue  -- ^ The 'Three' of 'ThreeValue's for which we want to make a logical formula.
+  -> SumOfProducts  -- ^ The sum of products that work with the function defined in the 'Three'.
 synthesis = SumOfProducts . map Product . synthesis'
 
 -- | Create a sum-of-products for the given function of 'ThreeValue'.

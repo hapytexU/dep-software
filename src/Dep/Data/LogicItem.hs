@@ -31,8 +31,8 @@ import Dep.Data.ThreeValue(ThreeValue(Zero, One, DontCare), ThreeValues)
 
 -- | A typeclass for objects that can be evaluated to a 'Bool'
 -- based on multiple variables. Numbering of the bits starts by
--- __one__ because a 'CompactSum' and 'CompactProduct' start
--- indexes by one, due to the fact that @0@ and @-0@ are equal.
+-- __one__ because a 'Dep.Data.Sum.CompactSum' and 'Dep.Data.Product.CompactProduct'
+-- start indexes by one, due to the fact that @0@ and @-0@ are equal.
 class EvaluateItem a where
   -- | Evaluate the given item with a function that derives the value
   -- for the given /i/-th 'Bool'.

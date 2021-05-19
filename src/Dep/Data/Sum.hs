@@ -7,7 +7,7 @@ Maintainer  : hapytexeu+gh@gmail.com
 Stability   : experimental
 Portability : POSIX
 
-This module provides utility functions to compress/decompress sums, and render these 'Product''s to
+This module provides utility functions to compress/decompress sums, and render these 'Dep.Data.Product.Product''s to
 a unicode string.
 -}
 
@@ -102,7 +102,7 @@ instance ToCompact Sum CompactSum where
 showProductOfSums
   :: Char  -- ^ The name of the root variable that will be used with subscripts.
   -> ProductOfSums' -- ^ The given sum of products to convert to a 'Text'.
-  -> Text -- ^ The corresponding 'Text' object that presents the given 'SumOfProducts''.
+  -> Text -- ^ The corresponding 'Text' object that presents the given 'ProductOfSums''.
 showProductOfSums = showProductOfSums' . subscriptVariable
 
 -- | Convert the given product of sums to a 'Text' object that presents
@@ -113,7 +113,7 @@ showProductOfSums = showProductOfSums' . subscriptVariable
 showProductOfSums'
   :: (Int -> Text) -- ^ A function that maps the given index to the variable name.
   -> ProductOfSums' -- ^ The given sum of products to convert to a 'Text'.
-  -> Text -- ^ The corresponding 'Text' object that presents the given 'SumOfProducts''.
+  -> Text -- ^ The corresponding 'Text' object that presents the given 'Dep.ProductOfSums''.
 showProductOfSums' _ [] = mempty
 showProductOfSums' f (x:xs) = go x xs
   where go z [] = go' mempty z
@@ -128,7 +128,7 @@ showProductOfSums' f (x:xs) = go x xs
 showSum
   :: Char  -- ^ The name of the root variable that will be used with subscripts.
   -> Sum' -- ^ The given sum to convert to a 'Text'.
-  -> Text -- ^ The corresponding 'Text' object that presents the given 'Product''.
+  -> Text -- ^ The corresponding 'Text' object that presents the given 'Dep.Data.Product.Product''.
 showSum = (`showSum'` mempty)
 
 -- | Print a given sum as a sequence of variables that can be negated.

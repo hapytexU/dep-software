@@ -33,8 +33,8 @@ import Data.Data(Data)
 import Data.List(find)
 import Data.List.NonEmpty(NonEmpty((:|)))
 
+import Dep.Class.Mergeable(Mergeable(merge))
 import Dep.Class.Opposite(Opposite(opposite))
-import Dep.Core(Mergeable(merge))
 import Data.Default(Default(def))
 
 import GHC.Generics(Generic)

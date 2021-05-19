@@ -7,7 +7,7 @@ Maintainer  : hapytexeu+gh@gmail.com
 Stability   : experimental
 Portability : POSIX
 
-This module defines a typeclass 'NonDeterminsticWalkable' that specifies that one can walk through a non-deterministic
+This module defines a typeclass 'NonDeterministicWalkable' that specifies that one can walk through a non-deterministic
 data structure where a certain step can result in zero, one, or more new states.
 -}
 
