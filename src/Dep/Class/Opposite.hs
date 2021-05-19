@@ -12,10 +12,9 @@ a specific type has an opposite value of the same type.
 -}
 
 module Dep.Class.Opposite (
-    -- * A typeclass to determine the opposite.
+    -- * A typeclass to determine the opposite value.
     Opposite(opposite)
   ) where
-
 
 -- | A typeclass where the values of its members have an opposite element from the same type.
 class Opposite a where

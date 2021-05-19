@@ -16,7 +16,6 @@ module Dep.Core (
     BFunc, BFunc1, BFunc2, BFunc3, BFunc4
     -- * Merging two items
   , Mergeable(merge)
-    -- * Determine the opposite value
   ) where
 
 -- | A function that maps a list of 'Bool's to a single 'Bool'.
@@ -33,21 +32,3 @@ type BFunc3 = Bool -> Bool -> Bool -> Bool
 
 -- | The type alias for a function that maps four 'Bool's to another 'Bool', 65536 functions are possible.
 type BFunc4 = Bool -> Bool -> Bool -> Bool -> Bool
-
--- | A typeclass that specifies that it is /sometimes/
--- possible to merge two values together into a new value.
-class Mergeable a where
-    -- | Try to merge two values into a new value. The result
-    -- is wrapped in a 'Just' if it is possible; otherwise 'Nothing'
-    -- is returned.
-    merge
-      :: a  -- ^ The first item to merge.
-      -> a  -- ^ The second item to merge.
-      -> Maybe a  -- ^ The result of the merge wrapped in a 'Just';
-                  -- 'Nothing' if it is not possible to merge the two.
-
-instance Mergeable (Maybe a) where
-    merge x@(Just _) Nothing = Just x
-    merge Nothing x@(Just _) = Just x
-    merge Nothing Nothing = Just Nothing
-    merge (Just _) (Just _) = Nothing

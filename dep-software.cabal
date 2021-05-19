@@ -25,6 +25,7 @@ library
    , Dep.Bricks.Layout
    , Dep.Bricks.Negation
    , Dep.Class.Opposite
+   , Dep.Class.Mergeable
    , Dep.Class.NonDeterministicWalkable
    , Dep.Class.Walkable
    , Dep.Data.LogicItem
