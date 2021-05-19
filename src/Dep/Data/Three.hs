@@ -39,8 +39,8 @@ import Data.Default(Default(def))
 import Data.Functor.Classes(Eq1(liftEq), Ord1(liftCompare))
 
 import Dep.Class.NonDeterministicWalkable(NonDeterministicWalkable(nstep, nstep'))
+import Dep.Class.Opposite(Opposite)
 import Dep.Class.Walkable(Walkable(step))
-import Dep.Core(Opposite(opposite))
 import Dep.Data.ThreeValue(ThreeValue(DontCare, Zero, One), ThreeValues)
 import Dep.Utils(applyExp')
 
@@ -176,8 +176,7 @@ instance NonDeterministicWalkable Three ThreeValue where
           go One = (lb:)
           go ~DontCare = (la:) . (lb:)
 
-instance Opposite a => Opposite (Three a) where
-  opposite = fmap opposite
+instance Opposite a => Opposite (Three a)
 
 instance Default a => Default (Three a) where
   def = Leaf def

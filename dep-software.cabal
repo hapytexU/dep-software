@@ -24,8 +24,9 @@ library
    , Dep.Bricks.Karnaugh
    , Dep.Bricks.Layout
    , Dep.Bricks.Negation
-   , Dep.Class.Walkable
+   , Dep.Class.Opposite
    , Dep.Class.NonDeterministicWalkable
+   , Dep.Class.Walkable
    , Dep.Data.LogicItem
    , Dep.Data.Product
    , Dep.Data.Sum

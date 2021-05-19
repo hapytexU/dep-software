@@ -17,7 +17,6 @@ module Dep.Core (
     -- * Merging two items
   , Mergeable(merge)
     -- * Determine the opposite value
-  , Opposite(opposite)
   ) where
 
 -- | A function that maps a list of 'Bool's to a single 'Bool'.
@@ -34,16 +33,6 @@ type BFunc3 = Bool -> Bool -> Bool -> Bool
 
 -- | The type alias for a function that maps four 'Bool's to another 'Bool', 65536 functions are possible.
 type BFunc4 = Bool -> Bool -> Bool -> Bool -> Bool
-
--- | A typeclass where the values of its members have an opposite element from the same type.
-class Opposite a where
-  -- | A function that determines the opposite value.
-  opposite
-    :: a  -- ^ The given item to determine the opposite from.
-    -> a  -- ^ The opposite of the given value.
-
-instance Opposite b => Opposite ((->) a b) where
-  opposite = fmap opposite
 
 -- | A typeclass that specifies that it is /sometimes/
 -- possible to merge two values together into a new value.
