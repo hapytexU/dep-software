@@ -176,7 +176,7 @@ testMonadLaws = describe "Monad laws" do
 
 testBinaryLaws :: forall a . (Arbitrary a, Binary a, Eq a, Show a, Typeable a) => SpecWith ()
 testBinaryLaws = describe "Binary laws" $
-  instanceDesc @a "" $
+  instanceDesc @a "Binary" $
     itproperty "Check if decoding an encoded object will yield the same object" (testBinaryIdentity @a)
 
 testSemigroupLaws :: forall s . (Arbitrary s, Eq s, Semigroup s, Show s, Typeable s) => SpecWith ()

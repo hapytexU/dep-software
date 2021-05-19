@@ -26,7 +26,8 @@ module Dep.Algorithm.Synthesis (
 
 import Control.Applicative((<|>))
 
-import Dep.Core(Walkable(allStep, allWalkValues), NonDeterministicWalkable(allNstep))
+import Dep.Class.Walkable(Walkable(allStep, allWalkValues))
+import Dep.Class.NonDeterministicWalkable(NonDeterministicWalkable(allNstep))
 import Dep.Data.Product(Product(Product), Product', SumOfProducts(SumOfProducts), SumOfProducts')
 import Dep.Data.Sum(Sum', ProductOfSums')
 import Dep.Data.Three(Three(Leaf, Link, Split), applyTo, depth, simplify)
@@ -90,19 +91,19 @@ extractItem x' k _ = go k
 -- | Obtain a 'Product'' together with the number of inputs for the AND gate if the 'Three'
 -- contains at least one 'One'.
 extractProduct
-  :: Int  -- | The maximum depth of the 'Three'.
-  -> Three Bool -- | A 'Three' of 'Bool's that specifies if 'One' can be assigned to it (so either 'One' or 'DontCare').
-  -> Three ThreeValue -- | The 'Three' of 'ThreeValue's where we try to search for an item.
-  -> Maybe WeightedProduct -- A 2-tuple that contains the path to the leaf and the number of 'Zero's and 'One's in the path that measure the "weight" of the AND gate of the product.
+  :: Int  -- ^ The maximum depth of the 'Three'.
+  -> Three Bool -- ^ A 'Three' of 'Bool's that specifies if 'One' can be assigned to it (so either 'One' or 'DontCare').
+  -> Three ThreeValue -- ^ The 'Three' of 'ThreeValue's where we try to search for an item.
+  -> Maybe WeightedProduct -- ^ A 2-tuple that contains the path to the leaf and the number of 'Zero's and 'One's in the path that measure the "weight" of the AND gate of the product.
 extractProduct = extractItem One
 
 -- | Obtain a 'Sum'' together with the number of inputs for the OR gates if the 'Three'
 -- contains at least one 'Zero'.
 extractSum
-  :: Int  -- | The maximum depth of the 'Three'.
-  -> Three Bool -- | A 'Three' of 'Bool's that specifies if 'Zero' can be assigned to it (so either 'Zero' or 'DontCare').
-  -> Three ThreeValue -- | The 'Three' of 'ThreeValue's where we try to search for an item.
-  -> Maybe WeightedSum -- A 2-tuple that contains the path to the leaf and the number of 'Zero's and 'One's in the path that measure the "weight" of the OR gate of the product.
+  :: Int  -- ^ The maximum depth of the 'Three'.
+  -> Three Bool -- ^ A 'Three' of 'Bool's that specifies if 'Zero' can be assigned to it (so either 'Zero' or 'DontCare').
+  -> Three ThreeValue -- ^ The 'Three' of 'ThreeValue's where we try to search for an item.
+  -> Maybe WeightedSum -- ^ A 2-tuple that contains the path to the leaf and the number of 'Zero's and 'One's in the path that measure the "weight" of the OR gate of the product.
 extractSum = extractItem Zero
 
 
@@ -157,6 +158,18 @@ minimizeMin' l h (x:xs) w | not $ validMin l (h++(x:xs)) = (h,w+9999999)
 minimizeProduct :: Int -> Int -> Product' -> Three Bool -> Product'
 minimizeProduct dpth mw prd tr = prd -- maybe prd snd (minimizeProduct' dpth mw (expandProduct prd) [tr])
 
+pushProduct :: ThreeValue -> (Int, Product') -> (Int, Product')
+pushProduct DontCare ~(w, xs) = (w, DontCare : xs)
+pushProduct x ~(w, xs) = (w+1, x : xs)
+
+{- minimizeProduct' :: Int -> [Bool] -> [Three a] -> Maybe WeightedProduct
+minimizeProduct' cst _
+  | cst <= 0 = Nothing
+minimizeProduct' _ [] = Just (0, [])
+minimizeProduct' cst (x:xs)
+  | True <- x = <$>
+  | False <- x
+  | otherise = <$> -}
 -- first parameter: maximum cost (if <= 0, STOP)
 -- second parameter: the current path we are tracing (moves to go)
 -- third parameter: the nodes we are currently located (per move, update the list)
