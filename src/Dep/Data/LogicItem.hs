@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, FlexibleInstances, FunctionalDependencies, MultiParamTypeClasses, Safe #-}
+{-# LANGUAGE BangPatterns, FlexibleInstances, FunctionalDependencies, Safe #-}
 
 {-|
 Module      : Dep.Data.LogicItem
@@ -102,7 +102,7 @@ getThreeList = getWord8 >>= go
         go n | shr n 0 /= 3 = prcs n <$> (getWord8 >>= go)
              | otherwise = pure (prcs n [])
         prcs n = tk n 6 . tk n 4 . tk n 2 . tk n 0
-        shr n k = (0x03 .&. shiftR n k)
+        shr n k = 0x03 .&. shiftR n k
         tk n k = prc (shr n k)
         prc n | n < 3 = (toEnum (fromIntegral n) :)
               | otherwise = id

@@ -4,14 +4,14 @@ import Data.Bits(shiftL, testBit)
 import Data.Foldable(toList)
 import Data.Word(Word64)
 
-import Dep.Core(walk)
+import Dep.Class.Walkable(walk)
 import Dep.Algorithm.Synthesis(synthesis)
 import Dep.Data.LogicItem(evaluateWithBits)
 import Dep.Data.Three(Three, depth)
 import Dep.Data.ThreeValue(ThreeValue, fromBool)
 
 import Test.Hspec(Spec, it)
-import Test.QuickCheck(maxSuccess, property, quickCheckWith, stdArgs)
+import Test.QuickCheck(property)
 
 spec :: Spec
 spec = do
