@@ -29,9 +29,9 @@ module Dep.Algorithm.Synthesis (
 import Control.Applicative((<|>))
 
 import Dep.Class.Walkable(Walkable(allStep, allWalkValues))
-import Dep.Class.NonDeterministicWalkable(NonDeterministicWalkable(allNstep))
+-- import Dep.Class.NonDeterministicWalkable(NonDeterministicWalkable(allNstep))
 import Dep.Data.Product(Product(Product), Product', SumOfProducts(SumOfProducts), SumOfProducts')
-import Dep.Data.Sum(Sum', ProductOfSums')
+import Dep.Data.Sum(Sum')
 import Dep.Data.Three(Three(Leaf, Link, Split), applyTo, depth, simplify)
 import Dep.Data.ThreeValue(ThreeValue(DontCare, Zero, One), ThreeValues, toLower, toUpper)
 
@@ -160,13 +160,19 @@ minimizeMin' l h (x:xs) w | not $ validMin l (h++(x:xs)) = (h,w+9999999)
                                 (hb,wb) = minimizeMin' l (h++[x]) xs w
 
 -}
-
+{-
 minimizeProduct :: Int -> Int -> Product' -> Three Bool -> Product'
 minimizeProduct dpth mw prd tr = prd -- maybe prd snd (minimizeProduct' dpth mw (expandProduct prd) [tr])
+-}
 
+minimizeProduct :: Int -> Int -> Product' -> Three Bool -> Product'
+minimizeProduct _ _ prd _ = prd
+
+{-
 pushProduct :: ThreeValue -> (Int, Product') -> (Int, Product')
 pushProduct DontCare ~(w, xs) = (w, DontCare : xs)
 pushProduct x ~(w, xs) = (w+1, x : xs)
+-}
 
 {- minimizeProduct' :: Int -> [Bool] -> [Three a] -> Maybe WeightedProduct
 minimizeProduct' cst _
@@ -231,10 +237,12 @@ minimizeMin' l h (x:xs) w | not $ validMin l (h++(x:xs)) = (h,w+9999999)
                                 (hb,wb) = minimizeMin' l (h++[x]) xs w
 -}
 
+  {-
 expandProduct :: Product' -> [Bool]
 expandProduct = map f
   where f One = True
         f _ = False
+-}
 
 -- | Create a 'SumOfProducts' object based on the given 'Three' of 'ThreeValue's.
 synthesis
