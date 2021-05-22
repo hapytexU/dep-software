@@ -14,6 +14,8 @@ function specified by a 'Three'.
 module Dep.Algorithm.Synthesis (
     -- * Synthesize a 'Three'
     synthesis, synthesis'
+  , synthesisSOP, synthesisSOP'
+  , synthesisPOS, synthesisPOS'
     -- * Weigthed variants of the product and sum
   , WeightedProduct, WeightedSum
     -- * Create an upper and lowerbound Three
@@ -21,19 +23,22 @@ module Dep.Algorithm.Synthesis (
     -- * Extract products and sums
   , extractProduct, extractSum
     -- * Processing a 'Three'
-  , wipeout
+  , wipeout, wipeout'
     -- * Check minimizations
   , validMinimize
   ) where
 
 import Control.Applicative((<|>))
 
+import Data.Maybe(fromMaybe)
+
+import Dep.Class.Opposite(opposite)
 import Dep.Class.Walkable(Walkable(allStep, allWalkValues))
--- import Dep.Class.NonDeterministicWalkable(NonDeterministicWalkable(allNstep))
+import Dep.Class.NonDeterministicWalkable(NonDeterministicWalkable(allNstep))
 import Dep.Data.Product(Product(Product), Product', SumOfProducts(SumOfProducts), SumOfProducts')
-import Dep.Data.Sum(Sum')
-import Dep.Data.Three(Three(Leaf, Link, Split), applyTo, depth, simplify)
-import Dep.Data.ThreeValue(ThreeValue(DontCare, Zero, One), ThreeValues, toLower, toUpper)
+import Dep.Data.Sum(ProductOfSums(ProductOfSums), ProductOfSums', Sum', Sum(Sum))
+import Dep.Data.Three(Three(Leaf, Link, Split), depth, simplify, wipe)
+import Dep.Data.ThreeValue(ThreeValue(DontCare, Zero, One), ThreeValues, fromBool, toLower, toUpper)
 
 type WeightedItem = (Int, ThreeValues)
 
@@ -71,7 +76,7 @@ _pushVal f x = go
     where go ~(!n, xs) = (f n, x:xs)
 
 _pushVal' :: ThreeValue -> (Int, Product') -> (Int, Product')
-_pushVal' = _pushVal (1+)
+_pushVal' = _pushVal succ
 
 _pushVal'' :: (Int, Product') -> (Int, Product')
 _pushVal'' = _pushVal id DontCare
@@ -112,12 +117,6 @@ extractSum
   -> Maybe WeightedSum -- ^ A 2-tuple that contains the path to the leaf and the number of 'Zero's and 'One's in the path that measure the "weight" of the OR gate of the product.
 extractSum = extractItem Zero
 
-
-{- specializeProduct :: ThreeValue -> Product' -> (Int, Product')
-specializeProduct x = foldr f (0, [])
-  where f DontCare ~(!i, xs) = (i+1, x:xs)
-        f tv ~(!i, xs) = (i, x:xs) -}
-
 -- | Convert the items that are accessed by the 'Product''
 -- to a 'DontCare', and simplify the 'Three'. After wiping
 -- out values, the 'Three' is simplified.
@@ -133,7 +132,7 @@ wipeout'
   :: Product' -- ^ The product that specifies the path of the element(s) to set to 'DontCare'.
   -> Three ThreeValue  -- ^ The original 'Three' of 'ThreeValue's where we want to convert parts to 'DontCare'.
   -> Three ThreeValue  -- ^ The resulting 'Three' of 'ThreeValue's where items that match the path are wiped out.
-wipeout' = applyTo (const DontCare)
+wipeout' = wipe DontCare
 
 _checkMinimize :: [Three Bool] -> Bool -> [Bool] -> Bool
 _checkMinimize sts stp stps = and (allWalkValues (allStep sts stp) stps)
@@ -149,181 +148,91 @@ validMinimize tbs stps = and (allWalkValues tbs stps)
 _allTrue :: (Foldable f, Functor f, Foldable g) => f (g Bool) -> Bool
 _allTrue = and . fmap and
 
-{-
-minimizeMin' :: ([Int] -> BitThSeq) -> [Int] -> [Int] -> Int -> ([Int],Int)
-minimizeMin' l h [] w | validMin l h = (h,w)
-                      | otherwise = (h,w+9999999)
-minimizeMin' l h (x:xs) w | not $ validMin l (h++(x:xs)) = (h,w+9999999)
-                          | wa <= wb = (ha,wa)
-                          | otherwise = (hb,wb)
-                          where (ha,wa) = minimizeMin' l h xs (w-1)
-                                (hb,wb) = minimizeMin' l (h++[x]) xs w
+_allFalse :: (Foldable f, Functor f, Foldable g) => f (g Bool) -> Bool
+_allFalse = and . fmap (all not)
 
--}
-{-
-minimizeProduct :: Int -> Int -> Product' -> Three Bool -> Product'
-minimizeProduct dpth mw prd tr = prd -- maybe prd snd (minimizeProduct' dpth mw (expandProduct prd) [tr])
--}
+mergeSide :: (Int -> Maybe WeightedItem) -> Int -> Maybe (Int, Product') -> Maybe WeightedItem
+mergeSide f n = go
+    where go Nothing = f n
+          go j@(~(Just ~(k, _))) = f k <|> j
 
-minimizeProduct :: Int -> Int -> Product' -> Three Bool -> Product'
-minimizeProduct _ _ prd _ = prd
-
-{-
-pushProduct :: ThreeValue -> (Int, Product') -> (Int, Product')
-pushProduct DontCare ~(w, xs) = (w, DontCare : xs)
-pushProduct x ~(w, xs) = (w+1, x : xs)
--}
-
-{- minimizeProduct' :: Int -> [Bool] -> [Three a] -> Maybe WeightedProduct
-minimizeProduct' cst _
-  | cst <= 0 = Nothing
-minimizeProduct' _ [] = Just (0, [])
-minimizeProduct' cst (x:xs)
-  | True <- x = <$>
-  | False <- x
-  | otherise = <$> -}
--- first parameter: maximum cost (if <= 0, STOP)
--- second parameter: the current path we are tracing (moves to go)
--- third parameter: the nodes we are currently located (per move, update the list)
--- return type: a possible product that is weighed
--- *second parameter: depth to go (if depth <= cost, STOP)
-
-{-
 minimizeProduct' :: Int -> [Bool] -> [Three Bool] -> Maybe (Int, Product')
-minimizeProduct' cst _
-  | cst <= 0 = Nothing  -- We used too many 'One's and 'Zero's, and this is thus not optimal
-minimizeProduct' cst [] = Just (0, [])
-minimizeProduct' cst itms = go itms
-  where go (False:xs) ts | _allTrue (allstep ts True) = minimizeProduct cst xs (allNstep ts DontCare)
-                         | otherwise = minimizeProduct (cst-1) xs nextStep
-  where nextStep = allNstep ts DontCare -- potential to be nothing
--}
+minimizeProduct' n _ _ | n <= 0 = Nothing
+minimizeProduct' _ [] _ = Just (0, [])
+minimizeProduct' n ~(x:xs) thr
+  | and (allWalkValues stepdc xs) = mergeSide (\i -> pshVal <$> minimizeProduct' (i-1) xs (allStep thr x)) n (_pushVal'' <$> minimizeProduct' n xs stepdc)
+  | otherwise = pshVal <$> minimizeProduct' (n-1) xs stepx
+  where stepdc = allNstep thr DontCare
+        stepx = allStep thr x
+        pshVal = _pushVal' (fromBool x)
 
-  {-
-minimizeProduct' _ _ [] ts
-  | _allTrue ts = Just (0, [])
-  | otherwise = Nothing
-minimizeProduct' cst depth _ _
-  | cst >= depth = Nothing
-minimizeProduct' cst dpt ~(x:xs) ts
-  | False <- x = minimizeProduct' cst (dpt-1) (allNstep ts DontCare) xs
-  | True <- x = _pushVal'' <$> minimizeProduct' cst (dpt-1) (allNstep ts DontCare) xs
-  | otherwise = Nothing  -- one
-  where toNothing = minimizeProduct' (cst-1) (dpt-1) -- the cost remains the same
--}
--- expand :: ThreeValue -> [Three Bool] -> Maybe (Int, Product')
+minimizeProduct :: Int -> Product' -> Three Bool -> Product'
+minimizeProduct wght prd thr = fromMaybe prd (snd <$> minimizeProduct' wght (map toUpper prd) [thr])
 
+minimizeSum :: Int -> Product' -> Three Bool -> Product'
+minimizeSum _ prd _ = prd
 
-  {-
-minimizeMin' :: ([Int] -> BitThSeq) -> [Int] -> [Int] -> Int -> ([Int],Int)
-minimizeMin' l h [] w | validMin l h = (h,w)
-                      | otherwise = (h,w+9999999)
-minimizeMin' l h (x:xs) w | not $ validMin l (h++(x:xs)) = (h,w+9999999)
-                          | wa <= wb = (ha,wa)
-                          | otherwise = (hb,wb)
-                          where (ha,wa) = minimizeMin' l h xs (w-1)
-                                (hb,wb) = minimizeMin' l (h++[x]) xs w
-
-validMin :: ([Int] -> BitThSeq) -> [Int] -> Bool
-validMin f = all (canAssign T) . f
-
-minimizeMin' :: [Three Bool] -> [Int] -> [Int] -> Int -> (Int, [Int])
-minimizeMin' l h [] w | validMin l h = (h,w)
-                      | otherwise = (h,w+9999999)
-minimizeMin' l h (x:xs) w | not $ validMin l (h++(x:xs)) = (h,w+9999999)
-                          | wa <= wb = (ha,wa)
-                          | otherwise = (hb,wb)
-                          where (ha,wa) = minimizeMin' l h xs (w-1)
-                                (hb,wb) = minimizeMin' l (h++[x]) xs w
--}
-
-  {-
-expandProduct :: Product' -> [Bool]
-expandProduct = map f
-  where f One = True
-        f _ = False
--}
-
--- | Create a 'SumOfProducts' object based on the given 'Three' of 'ThreeValue's.
+-- | Create a 'SumOfProducts' object based on the given 'Three' of 'ThreeValue's. This function acts
+-- as an alias for the 'synthesisSOP' function.
 synthesis
   :: Three ThreeValue  -- ^ The 'Three' of 'ThreeValue's for which we want to make a logical formula.
   -> SumOfProducts  -- ^ The sum of products that work with the function defined in the 'Three'.
-synthesis = SumOfProducts . map Product . synthesis'
+synthesis = synthesisSOP
+
+-- | Create a 'SumOfProducts' object based on the given 'Three' of 'ThreeValue's.
+synthesisSOP
+  :: Three ThreeValue  -- ^ The 'Three' of 'ThreeValue's for which we want to make a logical formula.
+  -> SumOfProducts  -- ^ The sum of products that work with the function defined in the 'Three'.
+synthesisSOP = SumOfProducts . map Product . synthesisSOP'
+
+-- | Create a 'ProductOfSums' object based on the given 'Three' of 'ThreeValue's.
+synthesisPOS
+  :: Three ThreeValue  -- ^ The 'Three' of 'ThreeValue's for which we want to make a logical formula.
+  -> ProductOfSums  -- ^ The product of sums that work with the function defined in the 'Three'.
+synthesisPOS = ProductOfSums . map Sum . synthesisPOS'
+
+-- | Create a sum-of-products for the given function of 'ThreeValue'. This function is an alias of
+-- the 'synthesisSOP' function.
+synthesis'
+  :: Three ThreeValue  -- ^ The 'Three' of 'ThreeValue's for which we want to make a logical formula.
+  -> SumOfProducts'  -- ^ The sum of products that work with the function defined in the 'Three'.
+synthesis' = synthesisSOP'
 
 -- | Create a sum-of-products for the given function of 'ThreeValue'.
-synthesis' :: Three ThreeValue -> SumOfProducts'
-synthesis' th = _synthesis _simp
+synthesisSOP'
+  :: Three ThreeValue  -- ^ The 'Three' of 'ThreeValue's for which we want to make a logical formula.
+  -> SumOfProducts'  -- ^ The sum of products that work with the function defined in the 'Three'.
+synthesisSOP' th = _synthesis _simp
   where _upper = upperbound _simp
         n = depth _simp
         _simp = simplify th
         _takeProduct = extractProduct n _upper
         _synthesis thr
-          | Just (~(k, j)) <- _takeProduct thr = let j' = minimizeProduct k n j _upper in j' : _synthesis (wipeout j' thr)
+          | Just (~(k, j)) <- _takeProduct thr = let j' = minimizeProduct k j _upper in j' : _synthesis (wipeout j' thr)
           | otherwise = []
 
-{-- synthetize
-synthetize :: CombTable -> [CombElem]
-synthetize ct = map (synthetizeFun . extractFi ct) [1..(ysize ct)]
-
-specialize :: Int -> Int -> [Int] -> [Int]
-specialize i n [] = map negate [i..n]
-specialize i n (x:xs) | i > n = []
-                      | i == ax = x : sin xs
-                      | otherwise = -i : sin (x:xs)
-                      where ax = abs x
-                            sin = specialize (i+1) n
-
-synthetizeFun :: CombFunc -> CombElem
-synthetizeFun (CFS n tr _) = sop $ synth tr
-    where synth t | Just _ <- smt = so : synth tb
-                  | otherwise = []
-                  where smt = scrapeMin 1 t
-                        sm = fromJust smt
-                        lb = length sm
-                        ss = specialize 1 n sm
-                        (so,_) = maximizeMin t ss
-                        tb = blankout so t
-synthetizeFun l = synthetizeFun $ cacheCF l
-
-scrapeMin :: Int -> Three BitTh -> Maybe [Int]
-scrapeMin _ (ThLeaf T) = Just []
-scrapeMin _ (ThLeaf _) = Nothing
-scrapeMin n (ThDirect d) = scrapeMin (n+1) d
-scrapeMin n (ThNode la lb) | Just ra <- smn1 la = Just (-n:ra)
-                           | otherwise = smn1 lb >>= Just . (n:)
-                           where smn1 = scrapeMin (n+1)
-
-blankout :: [Int] -> Three BitTh -> Three BitTh
-blankout a = reduce . rabl 1 a
-
-rabl :: Int -> [Int] -> Three BitTh -> Three BitTh
-rabl i xl@(x:xs) (ThNode tl tr) | i /= xa = ThNode (rabli xl tl) $ rabli xl tr
-                                | x < 0 = ThNode (rabli xs tl) tr
-                                | otherwise = ThNode tl $ rabli xs tr
-    where xa = abs x
-          rabli = rabl (i+1)
-rabl i xl@(x:xs) (ThDirect d) | i /= xa = ThDirect $ rabli xl d
-                              | x < 0 = ThNode (rax d) d
-                              | otherwise = ThNode d $ rax d
-
-    where xa = abs x
-          rabli = rabl (i+1)
-          rax = rabli xs
-rabl i xl@(x:xs) vl@(ThLeaf v) | i /= xa = ThDirect $ rabli xl vl
-                               | x < 0 = ThNode (rabli xs vl) vl
-                               | otherwise = ThNode vl $ rabli xs vl
-    where xa = abs x
-          rabli = rabl (i+1)
-rabl _ [] _ = ThLeaf D
-
-maximizeMin :: Three BitTh -> [Int] -> ([Int],Int)
-maximizeMin t x = minimizeMin' (pathSeq t) [] x (length x)
-
--}
+-- | Create a sum-of-products for the given function of 'ThreeValue'.
+synthesisPOS'
+  :: Three ThreeValue  -- ^ The 'Three' of 'ThreeValue's for which we want to make a logical formula.
+  -> ProductOfSums'  -- ^ The sum of products that work with the function defined in the 'Three'.
+synthesisPOS' th = _synthesis _simp
+  where _lower = lowerbound _simp
+        n = depth _simp
+        _simp = simplify th
+        _takeSum = extractSum n _lower
+        _synthesis thr
+          | Just (~(k, j)) <- _takeSum thr = let j' = minimizeSum k j _lower in opposite j' : _synthesis (wipeout j' thr)
+          | otherwise = []
 {-
-minimizeProduct' :: Product' -> [Three Bool] -> (Int, Product')
-minimizeProduct' [] _ = (0, [])
-minimizeProduct' (DontCare:xs) ts = (DontCare:) <$> minimizeProduct' xs (allnstep ts DontCare)
-minimizeProduct' (x:xs) ts = (x:) <$> minimizeProduct' xs (allnstep ts DontCare)
---  | True <- c
+_genericSynthesis'
+  :: (Three ThreeValue -> Three Bool)
+  -> Three ThreeValue
+  -> ProductOfSums'
+_genericSynthesis' toBound th = undefined
+  where _simp = simplify th
+        _bound = toBound _simp
+        _n = depth _simp
+        _takeItem = extractItem n _bound
+        _synthesis thr
+          | Just (~(k, j)) <- takeProduct thr = minimize'
 -}

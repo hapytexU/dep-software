@@ -25,5 +25,11 @@ class Opposite a where
   default opposite :: (Functor f, Opposite b, a ~ f b) => a -> a
   opposite = fmap opposite
 
+instance Opposite Bool where
+  opposite = not
 
 instance Opposite b => Opposite ((->) a b)
+
+instance Opposite a => Opposite [a]
+
+instance Opposite a => Opposite (Maybe a)

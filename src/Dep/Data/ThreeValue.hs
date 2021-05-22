@@ -117,13 +117,17 @@ threeValue d z o = go
         go ~One = o
 
 -- | Convert 'True' and 'False' to 'Zero' and 'One' respectively.
-fromBool :: Bool -> ThreeValue
+fromBool
+  :: Bool  -- ^ The given 'Bool' to convert tot a 'ThreeValue'.
+  -> ThreeValue  -- ^ The corresponding 'ThreeValue' object.
 fromBool = bool Zero One
 
 -- | Convert a 'Maybe' 'Bool' to a 'ThreeValue', where 'Nothing' is
 -- mapped to 'DontCare', and 'Just' 'True' and 'Just' 'False' to 'One'
 -- and 'Zero'.
-fromMaybeBool :: Maybe Bool -> ThreeValue
+fromMaybeBool
+  :: Maybe Bool -- ^ The given 'Bool' object to convert.
+  -> ThreeValue  -- ^ The corresponding object where 'Nothing' is mapped to 'DontCare', and 'True' and 'False' are mapped to 'One' and 'Zero' respectively.
 fromMaybeBool = maybe DontCare fromBool
 
 -- | Convert the given 'ThreeValue' to a 'Maybe' 'Bool' object.

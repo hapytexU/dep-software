@@ -19,7 +19,7 @@ module Dep.Data.Three (
     -- * Catamorphisms
   , three, depth
     -- * Lookups and constructions
-  , nstep, apply, applyTo
+  , nstep, apply, applyTo, wipe
   --  -- * Check elements for a given path
   --, allElementsAt, allElementsAt', elementsAt, elementsAt'
     -- * Simplifying
@@ -120,6 +120,24 @@ _getChildren :: Three a -> (Three a, Three a)
 _getChildren l@(Leaf _) = (l, l)
 _getChildren (Link l) = (l, l)
 _getChildren (Split la lb) = (la, lb)
+
+-- | Convert the given items that match the given 'ThreePath' to the 'Leaf' with a given element.
+wipe
+  :: a  -- ^ The given value such that we replace parts of the three with the given 'ThreePath' to this value.
+  -> ThreePath  -- ^ The given path that specifies what for what parts of the 'Three' we will set the value.
+  -> Three a  -- ^ The given 'Three' where (part) of the 'Three' will be changed to a 'Leaf' with the given value.
+  -> Three a  -- ^ The resulting 'Three' after changing the items that match the given 'ThreePath' to the given value.
+wipe y = go
+  where lf = const (Leaf y)
+        go [] = lf
+        go (DontCare:xs) = go'
+          where go' (Split la lb) = Split (go xs la) (go xs lb)
+                go' l@(Leaf _) = Link (go xs l)
+                go' (Link l) = Link (go xs l)
+        go ~(sl:xs) = go' sl . _getChildren
+          where go' One ~(la, lb) = Split la (go xs lb)
+                go' ~Zero ~(la, lb) = Split (go xs la) lb
+
 
 -- | Apply the given function to the elements in the given 'Three' that satisfy the given path.
 applyTo
