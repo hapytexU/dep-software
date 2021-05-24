@@ -11,13 +11,13 @@ import Dep.Data.Three(Three, depth)
 import Dep.Data.ThreeValue(ThreeValue, fromBool)
 
 import Test.Hspec(Spec, it)
-import Test.QuickCheck(property)
+import Test.QuickCheck(maxSuccess, property, quickCheckWith, stdArgs)
 
 spec :: Spec
 spec = do
   it "depth check" (property depthCheck)
-  it "synthesis check SOP" (property synthesisCheckSop)
-  it "synthesis check POS" (property synthesisCheckPos)
+  it "synthesis check SOP" (quickCheckWith stdArgs { maxSuccess = 1000000 } (property synthesisCheckSop))
+  it "synthesis check POS" (quickCheckWith stdArgs { maxSuccess = 1000000 } (property synthesisCheckPos))
 
 depthCheck :: Three ThreeValue -> Bool
 depthCheck thr = depth thr >= 0

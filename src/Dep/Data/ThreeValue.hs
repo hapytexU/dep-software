@@ -30,6 +30,7 @@ import Control.Applicative((<|>))
 import Data.Bool(bool)
 import Data.Binary(Binary(put, get), getWord8, putWord8)
 import Data.Data(Data)
+import Data.Hashable(Hashable)
 import Data.List(find)
 import Data.List.NonEmpty(NonEmpty((:|)))
 
@@ -55,6 +56,42 @@ data ThreeValue
   | DontCare  -- ^ We do not care or do not know the value.
   deriving (Bounded, Data, Enum, Eq, Generic, Ord, Read, Show)
 
+instance Arbitrary ThreeValue where
+  arbitrary = arbitraryBoundedEnum
+
+instance Default ThreeValue where
+  def = DontCare
+
+instance Hashable ThreeValue
+
+instance Lift ThreeValue where
+  liftTyped = fmap TExp . lift
+  lift Zero = conE 'Zero
+  lift One = conE 'One
+  lift ~DontCare = conE 'DontCare
+
+instance Mergeable ThreeValue where
+  merge DontCare x = Just x
+  merge x DontCare = Just x
+  merge x y
+    | x == y = Just x
+    | otherwise = Nothing
+
+instance Monoid ThreeValue where
+  mempty = DontCare
+  mconcat xs
+    | Just x <- find (DontCare /=) xs = x
+    | otherwise = DontCare
+
+instance Opposite ThreeValue where
+  opposite Zero = One
+  opposite One = Zero
+  opposite x = x
+
+instance Semigroup ThreeValue where
+  (<>) DontCare = id
+  (<>) x = const x
+
 -- | A function that maps 'One's and 'DontCare's to 'True's; and 'Zero's to 'False'.
 toUpper
   :: ThreeValue -- The given 'ThreeValue' to convert to a 'Bool'.
@@ -68,40 +105,6 @@ toLower
   -> Bool  -- A 'Bool' that is 'True' for 'One', and 'False' for 'Zero' and 'DontCare'.
 toLower One = True
 toLower _ = False
-
-instance Lift ThreeValue where
-  liftTyped = fmap TExp . lift
-  lift Zero = conE 'Zero
-  lift One = conE 'One
-  lift ~DontCare = conE 'DontCare
-
-instance Opposite ThreeValue where
-  opposite Zero = One
-  opposite One = Zero
-  opposite x = x
-
-instance Default ThreeValue where
-  def = DontCare
-
-instance Semigroup ThreeValue where
-  (<>) DontCare = id
-  (<>) x = const x
-
-instance Monoid ThreeValue where
-  mempty = DontCare
-  mconcat xs
-    | Just x <- find (DontCare /=) xs = x
-    | otherwise = DontCare
-
-instance Arbitrary ThreeValue where
-  arbitrary = arbitraryBoundedEnum
-
-instance Mergeable ThreeValue where
-  merge DontCare x = Just x
-  merge x DontCare = Just x
-  merge x y
-    | x == y = Just x
-    | otherwise = Nothing
 
 -- | Convert the given 'ThreeValue' object to the corresponding value.
 -- This acts as a /catamorphism/ for the 'ThreeValue' type.

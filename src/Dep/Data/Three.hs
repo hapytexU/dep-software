@@ -37,6 +37,8 @@ import Data.Bool(bool)
 import Data.Data(Data)
 import Data.Default(Default(def))
 import Data.Functor.Classes(Eq1(liftEq), Ord1(liftCompare))
+import Data.Hashable(Hashable)
+import Data.Hashable.Lifted(Hashable1)
 
 import Dep.Class.NonDeterministicWalkable(NonDeterministicWalkable(nstep, nstep'))
 import Dep.Class.Opposite(Opposite)
@@ -72,6 +74,10 @@ instance Eq1 Three where
           go (Link a) (Link b) = go a b
           go (Split la lb) (Split ma mb) = go la ma && go lb mb
           go _ _ = False
+
+instance Hashable a => Hashable (Three a)
+
+instance Hashable1 Three
 
 instance Ord1 Three where
   liftCompare cmp = go

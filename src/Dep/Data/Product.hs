@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, MultiParamTypeClasses, OverloadedStrings, Safe, TypeApplications #-}
+{-# LANGUAGE BangPatterns, DeriveDataTypeable, DeriveGeneric, MultiParamTypeClasses, OverloadedStrings, Safe, TypeApplications #-}
 
 {-|
 Module      : Dep.Data.Product
@@ -19,11 +19,15 @@ module Dep.Data.Product (
   ) where
 
 import Data.Binary(Binary(get, put), putList)
+import Data.Data(Data)
+import Data.Hashable(Hashable)
 import Data.Text(Text, cons)
 
 import Dep.Data.LogicItem(EvaluateItem(evaluateItem), ToCompact(fromCompact, toCompact), getThreeList, putThreeList, subscriptVariable)
 import Dep.Data.Three(ThreePath)
 import Dep.Data.ThreeValue(ThreeValue(Zero, One, DontCare))
+
+import GHC.Generics(Generic)
 
 import Test.QuickCheck.Arbitrary(Arbitrary(arbitrary, shrink))
 
@@ -32,7 +36,7 @@ type Product' = ThreePath
 
 -- | A data type that can be used to specify a product. By using a newtype,
 -- we can add special instance to the 'Product'.
-newtype Product = Product Product' deriving (Eq, Ord, Read, Show)
+newtype Product = Product Product' deriving (Data, Eq, Generic, Ord, Read, Show)
 
 instance Arbitrary Product where
   arbitrary = Product <$> arbitrary
@@ -49,6 +53,11 @@ instance EvaluateItem Product where
           go !n (One:xs) = f n && go (n+1) xs
           go !n (~DontCare:xs) = go (n+1) xs
 
+instance Hashable Product
+
+instance ToCompact Product CompactProduct where
+  toCompact (Product s) = CompactProduct (toCompact s)
+  fromCompact (CompactProduct s) = Product (fromCompact s)
 
 -- | A more compact representation of a product where the indexes that have 'Zero'
 -- or 'One' are listed by the /positive/ or /negative/ index respectively.
@@ -56,7 +65,7 @@ type CompactProduct' = [Int]
 
 -- | A data type that can be used to specify a 'CompactProduct'. By using a new
 -- type, this means that we can define other instances than these for a list of 'Int'.
-newtype CompactProduct = CompactProduct CompactProduct' deriving (Eq, Ord, Read, Show)
+newtype CompactProduct = CompactProduct CompactProduct' deriving (Data, Eq, Generic, Ord, Read, Show)
 
 instance Arbitrary CompactProduct where
   arbitrary = toCompact @Product <$> arbitrary
@@ -72,13 +81,14 @@ instance EvaluateItem CompactProduct where
             | n < 0 = not (f (-n))
             | otherwise = f n
 
+instance Hashable CompactProduct
 
 -- | A type synonym to present a sum of products where each item of the list is a 'Product''.
 type SumOfProducts' = [Product']
 
 -- | A data type that is used to specify a sum of products. This type can be used
 -- to specify new instance other than these of a list of lists of 'Int's.
-newtype SumOfProducts = SumOfProducts [Product] deriving (Eq, Ord, Read, Show)
+newtype SumOfProducts = SumOfProducts [Product] deriving (Data, Eq, Generic, Ord, Read, Show)
 
 instance Arbitrary SumOfProducts where
   arbitrary = SumOfProducts <$> arbitrary
@@ -91,9 +101,7 @@ instance Binary SumOfProducts where
 instance EvaluateItem SumOfProducts where
   evaluateItem f ~(SumOfProducts s) = any (evaluateItem f) s
 
-instance ToCompact Product CompactProduct where
-  toCompact (Product s) = CompactProduct (toCompact s)
-  fromCompact (CompactProduct s) = Product (fromCompact s)
+instance Hashable SumOfProducts
 
 -- | Convert the given sum of products to a 'Text' object that presents
 -- the 'SumOfProducts'' as a 'Text' object with variables as subscript.

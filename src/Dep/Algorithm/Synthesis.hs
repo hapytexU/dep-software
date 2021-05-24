@@ -169,8 +169,8 @@ minimizeProduct' n ~(x:xs) thr
 minimizeProduct :: Int -> Product' -> Three Bool -> Product'
 minimizeProduct wght prd thr = fromMaybe prd (snd <$> minimizeProduct' wght (map toUpper prd) [thr])
 
-minimizeSum :: Int -> Product' -> Three Bool -> Product'
-minimizeSum _ prd _ = prd
+minimizeSum :: Int -> Sum' -> Three Bool -> Sum'
+minimizeSum _ sm _ = sm
 
 -- | Create a 'SumOfProducts' object based on the given 'Three' of 'ThreeValue's. This function acts
 -- as an alias for the 'synthesisSOP' function.

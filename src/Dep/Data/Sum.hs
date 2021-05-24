@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, MultiParamTypeClasses, OverloadedStrings, Safe, TypeApplications #-}
+{-# LANGUAGE BangPatterns, DeriveDataTypeable, DeriveGeneric, MultiParamTypeClasses, OverloadedStrings, Safe, TypeApplications #-}
 
 {-|
 Module      : Dep.Data.Sum
@@ -18,12 +18,16 @@ module Dep.Data.Sum (
   , showProductOfSums, showSum, showSum'
   ) where
 
+import Data.Data(Data)
+import Data.Hashable(Hashable)
 import Data.Text(Text, cons)
 
 import Dep.Data.LogicItem(EvaluateItem(evaluateItem), ToCompact(fromCompact, toCompact), getThreeList, putThreeList, subscriptVariable)
 import Dep.Data.Three(ThreePath)
 import Dep.Data.ThreeValue(ThreeValue(Zero, One, DontCare))
 import Data.Binary(Binary(get, put, putList))
+
+import GHC.Generics(Generic)
 
 import Test.QuickCheck.Arbitrary(Arbitrary(arbitrary, shrink))
 
@@ -32,7 +36,7 @@ type Sum' = ThreePath
 
 -- | A data type that can be used to specify a sum. By using a newtype,
 -- we can add special instance to the 'Sum'.
-newtype Sum = Sum Sum' deriving (Eq, Ord, Read, Show)
+newtype Sum = Sum Sum' deriving (Data, Eq, Generic, Ord, Read, Show)
 
 instance Arbitrary Sum where
   arbitrary = Sum <$> arbitrary
@@ -49,13 +53,15 @@ instance EvaluateItem Sum where
           go !n (One:xs) = f n || go (n+1) xs
           go !n (~DontCare:xs) = go (n+1) xs
 
+instance Hashable Sum
+
 -- | A more compact representation of a sum where the indexes that have 'Zero'
 -- or 'One' are listed by the /positive/ or /negative/ index respectively.
 type CompactSum' = [Int]
 
 -- | A data type that can be used to specify a 'CompactSum'. By using a new
 -- type, this means that we can define other instances than these for a list of 'Int'.
-newtype CompactSum = CompactSum CompactSum' deriving (Eq, Ord, Read, Show)
+newtype CompactSum = CompactSum CompactSum' deriving (Data, Eq, Generic, Ord, Read, Show)
 
 instance Arbitrary CompactSum where
   arbitrary = toCompact @Sum <$> arbitrary
@@ -65,6 +71,7 @@ instance Binary CompactSum where
   put (CompactSum cs) = put cs
   get = CompactSum <$> get
 
+instance Hashable CompactSum
 
 instance EvaluateItem CompactSum where
   evaluateItem f ~(CompactSum s) = any go s
@@ -77,7 +84,7 @@ type ProductOfSums' = [Sum']
 
 -- | A data type that is used to specify a product of sums. This type can be used
 -- to specify new instance other than these of a list of lists of 'Int's.
-newtype ProductOfSums = ProductOfSums [Sum] deriving (Eq, Ord, Read, Show)
+newtype ProductOfSums = ProductOfSums [Sum] deriving (Data, Eq, Generic, Ord, Read, Show)
 
 instance Arbitrary ProductOfSums where
   arbitrary = ProductOfSums <$> arbitrary
@@ -89,6 +96,8 @@ instance Binary ProductOfSums where
 
 instance EvaluateItem ProductOfSums where
   evaluateItem f ~(ProductOfSums p) = all (evaluateItem f) p
+
+instance Hashable ProductOfSums
 
 instance ToCompact Sum CompactSum where
   toCompact (Sum s) = CompactSum (toCompact s)
