@@ -19,6 +19,8 @@ module Dep.Data.LogicItem (
   , getThreeList, putThreeList
     -- * Typesetting variables
   , subscriptVariable, subscriptNegatedVariable, subscriptConditionVariable
+    -- * Alias for 'ThreeValues'
+  , Item'
   ) where
 
 import Data.Bits(Bits, (.|.), (.&.), shiftL, shiftR, testBit)
@@ -28,6 +30,8 @@ import Data.Text(Text, cons, snoc)
 import Data.Word(Word8)
 
 import Dep.Data.ThreeValue(ThreeValue(Zero, One, DontCare), ThreeValues)
+
+type Item' = ThreeValues
 
 -- | A typeclass for objects that can be evaluated to a 'Bool'
 -- based on multiple variables. Numbering of the bits starts by

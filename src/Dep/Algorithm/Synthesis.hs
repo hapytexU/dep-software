@@ -35,12 +35,13 @@ import Data.Maybe(fromMaybe)
 import Dep.Class.Opposite(opposite)
 import Dep.Class.Walkable(Walkable(allStep, allWalkValues))
 import Dep.Class.NonDeterministicWalkable(NonDeterministicWalkable(allNstep))
+import Dep.Data.LogicItem(Item')
 import Dep.Data.Product(Product(Product), Product', SumOfProducts(SumOfProducts), SumOfProducts')
 import Dep.Data.Sum(ProductOfSums(ProductOfSums), ProductOfSums', Sum', Sum(Sum))
 import Dep.Data.Three(Three(Leaf, Link, Split), depth, simplify, wipe)
 import Dep.Data.ThreeValue(ThreeValue(DontCare, Zero, One), ThreeValues, fromBool, toLower, toUpper)
 
-type WeightedItem = (Int, ThreeValues)
+type WeightedItem = (Int, Item')
 
 -- | A 2-tuple where the first item is the "weight" of the product, and the second one the corresponding 'Product''.
 type WeightedProduct = (Int, Product')
@@ -202,37 +203,26 @@ synthesis' = synthesisSOP'
 synthesisSOP'
   :: Three ThreeValue  -- ^ The 'Three' of 'ThreeValue's for which we want to make a logical formula.
   -> SumOfProducts'  -- ^ The sum of products that work with the function defined in the 'Three'.
-synthesisSOP' th = _synthesis _simp
-  where _upper = upperbound _simp
-        n = depth _simp
-        _simp = simplify th
-        _takeProduct = extractProduct n _upper
-        _synthesis thr
-          | Just (~(k, j)) <- _takeProduct thr = let j' = minimizeProduct k j _upper in j' : _synthesis (wipeout j' thr)
-          | otherwise = []
+synthesisSOP' = _genericSynthesis' upperbound extractProduct minimizeProduct id
 
 -- | Create a sum-of-products for the given function of 'ThreeValue'.
 synthesisPOS'
   :: Three ThreeValue  -- ^ The 'Three' of 'ThreeValue's for which we want to make a logical formula.
   -> ProductOfSums'  -- ^ The sum of products that work with the function defined in the 'Three'.
-synthesisPOS' th = _synthesis _simp
-  where _lower = lowerbound _simp
-        n = depth _simp
-        _simp = simplify th
-        _takeSum = extractSum n _lower
-        _synthesis thr
-          | Just (~(k, j)) <- _takeSum thr = let j' = minimizeSum k j _lower in opposite j' : _synthesis (wipeout j' thr)
-          | otherwise = []
-{-
+synthesisPOS' = _genericSynthesis' lowerbound extractSum minimizeSum opposite
+
 _genericSynthesis'
   :: (Three ThreeValue -> Three Bool)
+  -> (Int -> Three Bool -> Three ThreeValue -> Maybe WeightedItem)
+  -> (Int -> Item' -> Three Bool -> Item')
+  -> (Item' -> Item')
   -> Three ThreeValue
   -> ProductOfSums'
-_genericSynthesis' toBound th = undefined
-  where _simp = simplify th
-        _bound = toBound _simp
+_genericSynthesis' toBound extractItem minimize post th = _synthesis _simp
+  where _bound = toBound _simp
         _n = depth _simp
-        _takeItem = extractItem n _bound
+        _simp = simplify th
+        _takeItem = extractItem _n _bound
         _synthesis thr
-          | Just (~(k, j)) <- takeProduct thr = minimize'
--}
+          | Just (~(k, j)) <- _takeItem thr = let j' = minimize k j _bound in post j' : _synthesis (wipeout j' thr)
+          | otherwise = []

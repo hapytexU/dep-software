@@ -1,4 +1,4 @@
-{-# LANGUAGE Safe #-}
+{-# LANGUAGE DeriveDataTypeable, DeriveGeneric, Safe #-}
 
 {-|
 Module      : Dep.Bricks.Layout
@@ -15,8 +15,15 @@ module Dep.Bricks.Layout (
     CircuitLayout(Horizontal, Vertical)
   ) where
 
+import Data.Data(Data)
+import Data.Hashable(Hashable)
+
+import GHC.Generics(Generic)
+
 -- | A data type that specifies whether the circuit is render in a horizontal or vertical manner.
 data CircuitLayout
- = Horizontal  -- ^ The /horizontal/ orientation.
- | Vertical  -- ^ The /vertical/ orientation.
- deriving (Bounded, Enum, Eq, Ord, Read, Show)
+  = Horizontal  -- ^ The /horizontal/ orientation.
+  | Vertical  -- ^ The /vertical/ orientation.
+  deriving (Bounded, Data, Enum, Eq, Generic, Ord, Read, Show)
+
+instance Hashable CircuitLayout

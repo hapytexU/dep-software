@@ -62,12 +62,6 @@ data Three a
   | Split (Three a) (Three a)  -- ^ A /split/ where this variable determines the outcome.
   deriving (Data, Eq, Foldable, Functor, Generic, Generic1, Ord, Read, Show, Traversable)
 
-instance Lift a => Lift (Three a) where
-  liftTyped = fmap TExp . lift
-  lift (Leaf a) = applyExp' 'Leaf [a]
-  lift (Split a b) = applyExp' 'Split [a, b]
-  lift ~(Split a b) = applyExp' 'Split [a, b]
-
 instance Eq1 Three where
   liftEq eq = go
     where go (Leaf a) (Leaf b) = eq a b
@@ -78,6 +72,13 @@ instance Eq1 Three where
 instance Hashable a => Hashable (Three a)
 
 instance Hashable1 Three
+
+instance Lift a => Lift (Three a) where
+  liftTyped = fmap TExp . lift
+  lift (Leaf a) = applyExp' 'Leaf [a]
+  lift (Split a b) = applyExp' 'Split [a, b]
+  lift ~(Split a b) = applyExp' 'Split [a, b]
+
 
 instance Ord1 Three where
   liftCompare cmp = go
