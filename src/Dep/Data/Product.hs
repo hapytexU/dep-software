@@ -103,6 +103,10 @@ instance Binary SumOfProducts where
 
 instance EvaluateItem SumOfProducts where
   evaluateItem f ~(SumOfProducts s) = any (evaluateItem f) s
+  isTrivial (SumOfProducts []) = Zero
+  isTrivial (SumOfProducts sop)
+    | any isTrivial sop = One
+    | otherwise = DontCare
 
 instance Hashable SumOfProducts
 
