@@ -12,7 +12,7 @@ This module provides utility functions to compress/decompress sums, products, su
 
 module Dep.Data.LogicItem (
   -- * Evaluating logical items
-    EvaluateItem(evaluateItem, evaluateWithBits)
+    EvaluateItem(evaluateItem, evaluateWithBits, isTrivial)
   -- * Convert from and to a compact format
   , ToCompact(toCompact, fromCompact)
   -- * Binary encode/decode 'ThreeValues' in an efficient way.
@@ -54,7 +54,13 @@ class EvaluateItem a where
     -> Bool  -- ^ The result after evluating the given object.
   evaluateWithBits d = evaluateItem go
     where go = (`testBit` 0) . shiftR d . pred
-  {-# MINIMAL evaluateItem #-}
+
+  -- | Check if the given object is trivially 'True' ('One'); 'False' ('Zero'),
+  -- or a non-trivial function ('DontCare').
+  isTrivial
+    :: a  -- ^ The given logical item to test.
+    -> ThreeValue  -- ^ returns 'One' if the 'EvaluateItem' object always resolves to 'True'; 'Zero' if the object always resolves to 'False'; and 'DontCare' if the function is not trivial.
+  {-# MINIMAL evaluateItem, isTrivial #-}
 
 -- | A class that specifies that a given logic item can be made more compact, or from a compact form to
 -- its original form. The two functions are not per se fully each others inverse.

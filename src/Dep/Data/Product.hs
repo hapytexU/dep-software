@@ -19,11 +19,12 @@ module Dep.Data.Product (
   ) where
 
 import Data.Binary(Binary(get, put), putList)
+import Data.Bool(bool)
 import Data.Data(Data)
 import Data.Hashable(Hashable)
 import Data.Text(Text, cons)
 
-import Dep.Data.LogicItem(EvaluateItem(evaluateItem), ToCompact(fromCompact, toCompact), getThreeList, putThreeList, subscriptVariable)
+import Dep.Data.LogicItem(EvaluateItem(evaluateItem, isTrivial), ToCompact(fromCompact, toCompact), getThreeList, putThreeList, subscriptVariable)
 import Dep.Data.Three(ThreePath)
 import Dep.Data.ThreeValue(ThreeValue(Zero, One, DontCare))
 
@@ -52,6 +53,7 @@ instance EvaluateItem Product where
           go !n (Zero:xs) = not (f n) && go (n+1) xs
           go !n (One:xs) = f n && go (n+1) xs
           go !n (~DontCare:xs) = go (n+1) xs
+  isTrivial (Product p) = bool DontCare One (all (DontCare ==) p)
 
 instance Hashable Product
 
@@ -80,6 +82,7 @@ instance EvaluateItem CompactProduct where
     where go n
             | n < 0 = not (f (-n))
             | otherwise = f n
+  isTrivial (CompactProduct cp) = bool DontCare One (all (0 ==) cp)
 
 instance Hashable CompactProduct
 

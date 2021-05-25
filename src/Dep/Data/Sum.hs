@@ -18,11 +18,12 @@ module Dep.Data.Sum (
   , showProductOfSums, showSum, showSum'
   ) where
 
+import Data.Bool(bool)
 import Data.Data(Data)
 import Data.Hashable(Hashable)
 import Data.Text(Text, cons)
 
-import Dep.Data.LogicItem(EvaluateItem(evaluateItem), ToCompact(fromCompact, toCompact), getThreeList, putThreeList, subscriptVariable)
+import Dep.Data.LogicItem(EvaluateItem(evaluateItem, isTrivial), ToCompact(fromCompact, toCompact), getThreeList, putThreeList, subscriptVariable)
 import Dep.Data.Three(ThreePath)
 import Dep.Data.ThreeValue(ThreeValue(Zero, One, DontCare))
 import Data.Binary(Binary(get, put, putList))
@@ -52,6 +53,7 @@ instance EvaluateItem Sum where
           go !n (Zero:xs) = not (f n) || go (n+1) xs
           go !n (One:xs) = f n || go (n+1) xs
           go !n (~DontCare:xs) = go (n+1) xs
+  isTrivial ~(Sum s) = bool DontCare Zero (all (DontCare ==) s)
 
 instance Hashable Sum
 
@@ -78,6 +80,7 @@ instance EvaluateItem CompactSum where
     where go n
             | n < 0 = not (f (-n))
             | otherwise = f n
+  isTrivial ~(CompactSum cs) = bool DontCare Zero (all (0 ==) cs)
 
 -- | A type synonym to present a product of sums where each item of the list is a 'Sum''.
 type ProductOfSums' = [Sum']

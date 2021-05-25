@@ -39,7 +39,7 @@ import Dep.Data.LogicItem(Item')
 import Dep.Data.Product(Product(Product), Product', SumOfProducts(SumOfProducts), SumOfProducts')
 import Dep.Data.Sum(ProductOfSums(ProductOfSums), ProductOfSums', Sum', Sum(Sum))
 import Dep.Data.Three(Three(Leaf, Link, Split), depth, simplify, wipe)
-import Dep.Data.ThreeValue(ThreeValue(DontCare, Zero, One), ThreeValues, fromBool, toLower, toUpper)
+import Dep.Data.ThreeValue(ThreeValue(DontCare, Zero, One), fromBool, toLower, toUpper)
 
 type WeightedItem = (Int, Item')
 
@@ -224,11 +224,11 @@ _genericSynthesis'
   -> (Item' -> Item')
   -> Three ThreeValue
   -> ProductOfSums'
-_genericSynthesis' toBound extractItem minimize post th = _synthesis _simp
+_genericSynthesis' toBound _extractItem minimize post th = _synthesis _simp
   where _bound = toBound _simp
         _n = depth _simp
         _simp = simplify th
-        _takeItem = extractItem _n _bound
+        _takeItem = _extractItem _n _bound
         _synthesis thr
           | Just (~(k, j)) <- _takeItem thr = let j' = minimize k j _bound in post j' : _synthesis (wipeout j' thr)
           | otherwise = []
