@@ -157,21 +157,27 @@ mergeSide f n = go
     where go Nothing = f n
           go j@(~(Just ~(k, _))) = f k <|> j
 
-minimizeProduct' :: Int -> [Bool] -> [Three Bool] -> Maybe (Int, Product')
-minimizeProduct' n _ _ | n <= 0 = Nothing
-minimizeProduct' _ [] _ = Just (0, [])
-minimizeProduct' n ~(x:xs) thr
-  | and (allWalkValues stepdc xs) = mergeSide (\i -> pshVal <$> minimizeProduct' (i-1) xs (allStep thr x)) n (_pushVal'' <$> minimizeProduct' n xs stepdc)
-  | otherwise = pshVal <$> minimizeProduct' (n-1) xs stepx
+_minimizeItem' :: ([Bool] -> Bool) -> Int -> [Bool] -> [Three Bool] -> Maybe WeightedItem
+_minimizeItem' _ n _ _ | n <= 0 = Nothing
+_minimizeItem' _ _ [] _ = Just (0, [])
+_minimizeItem' mg n ~(x:xs) thr
+  | mg (allWalkValues stepdc xs) = mergeSide (\i -> pshVal <$> _minimizeItem' mg (i-1) xs (allStep thr x)) n (_pushVal'' <$> _minimizeItem' mg n xs stepdc)
+  | otherwise = pshVal <$> _minimizeItem' mg (n-1) xs stepx
   where stepdc = allNstep thr DontCare
         stepx = allStep thr x
         pshVal = _pushVal' (fromBool x)
+
+minimizeProduct' :: Int -> [Bool] -> [Three Bool] -> Maybe WeightedProduct
+minimizeProduct' = _minimizeItem' and
+
+minimizeSum' :: Int -> [Bool] -> [Three Bool] -> Maybe WeightedSum
+minimizeSum' = _minimizeItem' (not . or)
 
 minimizeProduct :: Int -> Product' -> Three Bool -> Product'
 minimizeProduct wght prd thr = fromMaybe prd (snd <$> minimizeProduct' wght (map toUpper prd) [thr])
 
 minimizeSum :: Int -> Sum' -> Three Bool -> Sum'
-minimizeSum _ sm _ = sm
+minimizeSum wght prd thr = fromMaybe prd (snd <$> minimizeSum' wght (map toUpper prd) [thr])
 
 -- | Create a 'SumOfProducts' object based on the given 'Three' of 'ThreeValue's. This function acts
 -- as an alias for the 'synthesisSOP' function.
