@@ -19,7 +19,7 @@ module Dep.Data.Three (
     -- * Catamorphisms
   , three, depth
     -- * Lookups and constructions
-  , nstep, apply, applyTo, wipe
+  , nstep, apply, applyTo, wipe, wipeAll
   --  -- * Check elements for a given path
   --, allElementsAt, allElementsAt', elementsAt, elementsAt'
     -- * Simplifying
@@ -145,6 +145,13 @@ wipe y = go
           where go' One ~(la, lb) = Split la (go xs lb)
                 go' ~Zero ~(la, lb) = Split (go xs la) lb
 
+-- | Wipe with the given value all the given 'ThreePath's.
+wipeAll
+  :: a  -- ^ The given element to use when we wipe.
+  -> Three a  -- ^ The original 'Three' where we will wipe items.
+  -> [ThreePath]  -- ^ The list of paths to wipe.
+  -> Three a  -- ^ The 'Three' object after wiping each element in the given list.
+wipeAll = foldr . wipe
 
 -- | Apply the given function to the elements in the given 'Three' that satisfy the given path.
 applyTo

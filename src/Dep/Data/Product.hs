@@ -25,7 +25,7 @@ import Data.Hashable(Hashable)
 import Data.Text(Text, cons)
 
 import Dep.Data.LogicItem(EvaluateItem(evaluateItem, isTrivial, numberOfVariables), ToCompact(fromCompact, toCompact), getThreeList, putThreeList, subscriptVariable)
-import Dep.Data.Three(ThreePath)
+import Dep.Data.Three(ThreePath, Three(Leaf), simplify, wipeAll)
 import Dep.Data.ThreeValue(ThreeValue(Zero, One, DontCare))
 
 import GHC.Generics(Generic)
@@ -107,8 +107,9 @@ instance EvaluateItem SumOfProducts where
   evaluateItem f ~(SumOfProducts s) = any (evaluateItem f) s
   isTrivial (SumOfProducts []) = Zero
   isTrivial (SumOfProducts sop)
-    | any ((One ==) . isTrivial) sop = One
+    | Leaf True <- simplify (wipeAll True (pure False) (map go sop)) = One
     | otherwise = DontCare
+    where go ~(Product p) = p
   numberOfVariables (SumOfProducts sop) = maximum (0 : map numberOfVariables sop)
 
 instance Hashable SumOfProducts

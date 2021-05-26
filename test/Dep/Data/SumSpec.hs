@@ -20,9 +20,9 @@ spec = do
     testBinaryLaws @Sum
     testBinaryLaws @CompactSum
     testBinaryLaws @ProductOfSums
-    it "trivial test" (quickCheckWith stdArgs { maxSuccess = 100000000 } (property (testTrivialItem @ Sum)))
-    it "trivial test" (quickCheckWith stdArgs { maxSuccess = 100000000 } (property (testTrivialItem @ CompactSum)))
-    it "trivial test" (quickCheckWith stdArgs { maxSuccess = 100000000 } (property (testTrivialItem @ ProductOfSums)))
+    it "isTrivial" (quickCheckWith stdArgs { maxSuccess = 10000000 } (property (testTrivialItem @ Sum)))
+    it "isTrivial" (quickCheckWith stdArgs { maxSuccess = 10000000 } (property (testTrivialItem @ CompactSum)))
+    it "isTrivial" (quickCheckWith stdArgs { maxSuccess = 1000000 } (property (testTrivialItem @ ProductOfSums)))
 
 testCompactIdentity :: Sum' -> Bool
 testCompactIdentity ss = reverse (dropWhile (DontCare ==) (reverse ss)) == fromCompact (toCompact ss)

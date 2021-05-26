@@ -23,8 +23,9 @@ import Data.Data(Data)
 import Data.Hashable(Hashable)
 import Data.Text(Text, cons)
 
+import Dep.Class.Opposite(opposite)
 import Dep.Data.LogicItem(EvaluateItem(evaluateItem, isTrivial, numberOfVariables), ToCompact(fromCompact, toCompact), getThreeList, putThreeList, subscriptVariable)
-import Dep.Data.Three(ThreePath)
+import Dep.Data.Three(ThreePath, Three(Leaf), simplify, wipeAll)
 import Dep.Data.ThreeValue(ThreeValue(Zero, One, DontCare))
 import Data.Binary(Binary(get, put, putList))
 
@@ -103,8 +104,9 @@ instance EvaluateItem ProductOfSums where
   evaluateItem f ~(ProductOfSums p) = all (evaluateItem f) p
   isTrivial (ProductOfSums []) = One
   isTrivial (ProductOfSums pos)
-    | any ((Zero ==) . isTrivial) pos = Zero
+    | Leaf False <- simplify (wipeAll False (pure True) (map go pos)) = Zero
     | otherwise = DontCare
+    where go ~(Sum s) = opposite s
   numberOfVariables (ProductOfSums pos) = maximum (0 : map numberOfVariables pos)
 
 instance Hashable ProductOfSums

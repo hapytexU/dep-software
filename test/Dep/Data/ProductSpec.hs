@@ -20,9 +20,9 @@ spec = do
     testBinaryLaws @Product
     testBinaryLaws @CompactProduct
     testBinaryLaws @SumOfProducts
-    it "trivial test" (quickCheckWith stdArgs { maxSuccess = 100000000 } (property (testTrivialItem @ Product)))
-    it "trivial test" (quickCheckWith stdArgs { maxSuccess = 100000000 } (property (testTrivialItem @ CompactProduct)))
-    it "trivial test" (quickCheckWith stdArgs { maxSuccess = 100000000 } (property (testTrivialItem @ SumOfProducts)))
+    it "isTrivial" (quickCheckWith stdArgs { maxSuccess = 10000000 } (property (testTrivialItem @ Product)))
+    it "isTrivial" (quickCheckWith stdArgs { maxSuccess = 10000000 } (property (testTrivialItem @ CompactProduct)))
+    it "isTrivial" (quickCheckWith stdArgs { maxSuccess = 1000000 } (property (testTrivialItem @ SumOfProducts)))
 
 testCompactIdentity :: Product' -> Bool
 testCompactIdentity ps = reverse (dropWhile (DontCare ==) (reverse ps)) == fromCompact (toCompact ps)
