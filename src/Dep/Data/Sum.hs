@@ -23,7 +23,7 @@ import Data.Data(Data)
 import Data.Hashable(Hashable)
 import Data.Text(Text, cons)
 
-import Dep.Data.LogicItem(EvaluateItem(evaluateItem, isTrivial), ToCompact(fromCompact, toCompact), getThreeList, putThreeList, subscriptVariable)
+import Dep.Data.LogicItem(EvaluateItem(evaluateItem, isTrivial, numberOfVariables), ToCompact(fromCompact, toCompact), getThreeList, putThreeList, subscriptVariable)
 import Dep.Data.Three(ThreePath)
 import Dep.Data.ThreeValue(ThreeValue(Zero, One, DontCare))
 import Data.Binary(Binary(get, put, putList))
@@ -54,6 +54,7 @@ instance EvaluateItem Sum where
           go !n (One:xs) = f n || go (n+1) xs
           go !n (~DontCare:xs) = go (n+1) xs
   isTrivial ~(Sum s) = bool DontCare Zero (all (DontCare ==) s)
+  numberOfVariables (Sum s) = (length . dropWhile (DontCare ==) . reverse) s
 
 instance Hashable Sum
 
@@ -81,6 +82,7 @@ instance EvaluateItem CompactSum where
             | n < 0 = not (f (-n))
             | otherwise = f n
   isTrivial ~(CompactSum cs) = bool DontCare Zero (all (0 ==) cs)
+  numberOfVariables (CompactSum cs) = maximum (0 : map abs cs)
 
 -- | A type synonym to present a product of sums where each item of the list is a 'Sum''.
 type ProductOfSums' = [Sum']
@@ -99,10 +101,11 @@ instance Binary ProductOfSums where
 
 instance EvaluateItem ProductOfSums where
   evaluateItem f ~(ProductOfSums p) = all (evaluateItem f) p
-  isTrivial (ProductsOfSums []) = One
-  isTrivial (SumOfProducts pos)
-    | all isTrivial pos = Zero
+  isTrivial (ProductOfSums []) = One
+  isTrivial (ProductOfSums pos)
+    | any ((Zero ==) . isTrivial) pos = Zero
     | otherwise = DontCare
+  numberOfVariables (ProductOfSums pos) = maximum (0 : map numberOfVariables pos)
 
 instance Hashable ProductOfSums
 

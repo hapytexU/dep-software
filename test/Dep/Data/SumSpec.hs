@@ -1,15 +1,18 @@
-{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE RankNTypes, TypeApplications #-}
 
 module Dep.Data.SumSpec where
 
 import Dep.CoreTest(testBinaryLaws)
 
-import Dep.Data.LogicItem(ToCompact(fromCompact, toCompact))
-import Dep.Data.ThreeValue(ThreeValue(DontCare))
+import Data.Bits(shiftL)
+import Data.Word(Word64)
+
+import Dep.Data.LogicItem(EvaluateItem(isTrivial, evaluateWithBits, numberOfVariables), ToCompact(fromCompact, toCompact))
+import Dep.Data.ThreeValue(ThreeValue(DontCare, Zero, One))
 import Dep.Data.Sum(Sum, Sum', CompactSum, ProductOfSums)
 
 import Test.Hspec(Spec, it)
-import Test.QuickCheck(property)
+import Test.QuickCheck(maxSuccess, property, quickCheckWith, stdArgs)
 
 spec :: Spec
 spec = do
@@ -17,6 +20,17 @@ spec = do
     testBinaryLaws @Sum
     testBinaryLaws @CompactSum
     testBinaryLaws @ProductOfSums
+    it "trivial test" (quickCheckWith stdArgs { maxSuccess = 100000000 } (property (testTrivialItem @ Sum)))
+    it "trivial test" (quickCheckWith stdArgs { maxSuccess = 100000000 } (property (testTrivialItem @ CompactSum)))
+    it "trivial test" (quickCheckWith stdArgs { maxSuccess = 100000000 } (property (testTrivialItem @ ProductOfSums)))
 
 testCompactIdentity :: Sum' -> Bool
 testCompactIdentity ss = reverse (dropWhile (DontCare ==) (reverse ss)) == fromCompact (toCompact ss)
+
+testTrivialItem :: forall a . EvaluateItem a => a -> Bool
+testTrivialItem ei = nvar >= 10 || go (isTrivial ei)
+  where go One = and mvs
+        go Zero = all not mvs
+        go DontCare = True `elem` mvs && False `elem` mvs
+        nvar = numberOfVariables ei
+        mvs = map (`evaluateWithBits` ei) [0 :: Word64 .. shiftL 1 nvar]

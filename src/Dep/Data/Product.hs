@@ -24,7 +24,7 @@ import Data.Data(Data)
 import Data.Hashable(Hashable)
 import Data.Text(Text, cons)
 
-import Dep.Data.LogicItem(EvaluateItem(evaluateItem, isTrivial), ToCompact(fromCompact, toCompact), getThreeList, putThreeList, subscriptVariable)
+import Dep.Data.LogicItem(EvaluateItem(evaluateItem, isTrivial, numberOfVariables), ToCompact(fromCompact, toCompact), getThreeList, putThreeList, subscriptVariable)
 import Dep.Data.Three(ThreePath)
 import Dep.Data.ThreeValue(ThreeValue(Zero, One, DontCare))
 
@@ -54,6 +54,7 @@ instance EvaluateItem Product where
           go !n (One:xs) = f n && go (n+1) xs
           go !n (~DontCare:xs) = go (n+1) xs
   isTrivial (Product p) = bool DontCare One (all (DontCare ==) p)
+  numberOfVariables (Product p) = (length . dropWhile (DontCare ==) . reverse) p
 
 instance Hashable Product
 
@@ -83,6 +84,7 @@ instance EvaluateItem CompactProduct where
             | n < 0 = not (f (-n))
             | otherwise = f n
   isTrivial (CompactProduct cp) = bool DontCare One (all (0 ==) cp)
+  numberOfVariables (CompactProduct cp) = maximum (0 : map abs cp)
 
 instance Hashable CompactProduct
 
@@ -105,8 +107,9 @@ instance EvaluateItem SumOfProducts where
   evaluateItem f ~(SumOfProducts s) = any (evaluateItem f) s
   isTrivial (SumOfProducts []) = Zero
   isTrivial (SumOfProducts sop)
-    | any isTrivial sop = One
+    | any ((One ==) . isTrivial) sop = One
     | otherwise = DontCare
+  numberOfVariables (SumOfProducts sop) = maximum (0 : map numberOfVariables sop)
 
 instance Hashable SumOfProducts
 

@@ -12,7 +12,7 @@ This module provides utility functions to compress/decompress sums, products, su
 
 module Dep.Data.LogicItem (
   -- * Evaluating logical items
-    EvaluateItem(evaluateItem, evaluateWithBits, isTrivial)
+    EvaluateItem(evaluateItem, evaluateWithBits, isTrivial, numberOfVariables)
   -- * Convert from and to a compact format
   , ToCompact(toCompact, fromCompact)
   -- * Binary encode/decode 'ThreeValues' in an efficient way.
@@ -31,6 +31,7 @@ import Data.Word(Word8)
 
 import Dep.Data.ThreeValue(ThreeValue(Zero, One, DontCare), ThreeValues)
 
+-- | An alias for 'ThreeValues': an item ('Dep.Data.Product.Product' or 'Dep.Data.Sum.Sum') is a sequence of 'ThreeValue's.
 type Item' = ThreeValues
 
 -- | A typeclass for objects that can be evaluated to a 'Bool'
@@ -60,7 +61,12 @@ class EvaluateItem a where
   isTrivial
     :: a  -- ^ The given logical item to test.
     -> ThreeValue  -- ^ returns 'One' if the 'EvaluateItem' object always resolves to 'True'; 'Zero' if the object always resolves to 'False'; and 'DontCare' if the function is not trivial.
-  {-# MINIMAL evaluateItem, isTrivial #-}
+
+  -- | Determine the largest index of the variables for which the 'EvaluateItem' is sensitive for.
+  numberOfVariables
+    :: a  -- ^ The given 'EvaluateItem'.
+    -> Int  -- ^ The largest index of the variables the given 'EvaluateItem' is sensitive for.
+  {-# MINIMAL evaluateItem, isTrivial, numberOfVariables #-}
 
 -- | A class that specifies that a given logic item can be made more compact, or from a compact form to
 -- its original form. The two functions are not per se fully each others inverse.
