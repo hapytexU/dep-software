@@ -27,6 +27,7 @@ library
    , Dep.Class.Mergeable
    , Dep.Class.NonDeterministicWalkable
    , Dep.Class.Walkable
+   , Dep.Data.GraySequence
    , Dep.Data.LogicItem
    , Dep.Data.Product
    , Dep.Data.Sum
