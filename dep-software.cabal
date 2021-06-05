@@ -23,9 +23,11 @@ library
    , Dep.Bricks.Karnaugh
    , Dep.Bricks.Layout
    , Dep.Bricks.Negation
+   , Dep.Bricks.Utils
    , Dep.Class.Opposite
    , Dep.Class.Mergeable
    , Dep.Class.NonDeterministicWalkable
+   , Dep.Class.Renderable
    , Dep.Class.Walkable
    , Dep.Data.GraySequence
    , Dep.Data.LogicItem

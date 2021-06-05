@@ -11,3 +11,9 @@ A module to render, update, and interact with Karnaugh cards.
 -}
 
 module Dep.Bricks.Karnaugh where
+
+import Dep.Class.Renderable(CharRenderable)
+import Dep.Data.Three(Three)
+
+renderKarnaugh :: CharRenderable a => Three a -> Bool
+renderKarnaugh = undefined

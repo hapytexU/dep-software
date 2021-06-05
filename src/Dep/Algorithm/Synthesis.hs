@@ -49,15 +49,6 @@ type WeightedProduct = (Int, Product')
 -- | A 2-tuple where the first item is the "weight" of the sum, and the second one the corresponding 'Sum''.
 type WeightedSum = (Int, Sum')
 
-_minWeightedItems :: (Int, a) -> (Int, a) -> (Int, a)
-_minWeightedItems x@(xw, _) y@(yw, _)
-  | xw <= yw = x
-  | otherwise = y
-
-_incStep :: ThreeValue -> Int -> Int
-_incStep DontCare = id
-_incStep _ = (1+)
-
 -- | Create a /simplified/ 'Three' where the 'DontCare' and 'One' map to 'True';
 -- and 'Zero' maps to 'False'.
 upperbound
@@ -81,10 +72,6 @@ _pushVal' = _pushVal succ
 
 _pushVal'' :: (Int, Product') -> (Int, Product')
 _pushVal'' = _pushVal id DontCare
-
-_pushWithVal :: ThreeValue -> (Int, Product') -> (Int, Product')
-_pushWithVal DontCare = _pushVal''
-_pushWithVal x = _pushVal' x
 
 extractItem
   :: ThreeValue  -- ^ The given 'ThreeValue' we are looking for. Typically this will be 'One' for a sum-of-products, and 'Zero' for a product of sums.
@@ -135,9 +122,6 @@ wipeout'
   -> Three ThreeValue  -- ^ The resulting 'Three' of 'ThreeValue's where items that match the path are wiped out.
 wipeout' = wipe DontCare
 
-_checkMinimize :: [Three Bool] -> Bool -> [Bool] -> Bool
-_checkMinimize sts stp stps = and (allWalkValues (allStep sts stp) stps)
-
 -- | Check if we follow the current non-determinisic path, we only
 -- find 'True' values wrapped in the nodes.
 validMinimize
@@ -145,12 +129,6 @@ validMinimize
   -> [Bool]  -- ^ The given path we need to follow.
   -> Bool -- ^ A 'Bool' that indicates that the nodes where we end only wraps 'True' values.
 validMinimize tbs stps = and (allWalkValues tbs stps)
-
-_allTrue :: (Foldable f, Functor f, Foldable g) => f (g Bool) -> Bool
-_allTrue = and . fmap and
-
-_allFalse :: (Foldable f, Functor f, Foldable g) => f (g Bool) -> Bool
-_allFalse = and . fmap (all not)
 
 mergeSide :: (Int -> Maybe WeightedItem) -> Int -> Maybe (Int, Product') -> Maybe WeightedItem
 mergeSide f n = go

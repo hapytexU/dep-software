@@ -30,13 +30,14 @@ import Control.Applicative((<|>))
 import Data.Bool(bool)
 import Data.Binary(Binary(put, get), getWord8, putWord8)
 import Data.Data(Data)
+import Data.Default(Default(def))
 import Data.Hashable(Hashable)
 import Data.List(find)
 import Data.List.NonEmpty(NonEmpty((:|)))
 
 import Dep.Class.Mergeable(Mergeable(merge))
 import Dep.Class.Opposite(Opposite(opposite))
-import Data.Default(Default(def))
+import Dep.Class.Renderable(Renderable, CharRenderable(charRenderItem))
 
 import GHC.Generics(Generic)
 
@@ -58,6 +59,9 @@ data ThreeValue
 
 instance Arbitrary ThreeValue where
   arbitrary = arbitraryBoundedEnum
+
+instance CharRenderable ThreeValue where
+  charRenderItem = threeValue '-' '0' '1'
 
 instance Default ThreeValue where
   def = DontCare
@@ -87,6 +91,8 @@ instance Opposite ThreeValue where
   opposite Zero = One
   opposite One = Zero
   opposite x = x
+
+instance Renderable ThreeValue
 
 instance Semigroup ThreeValue where
   (<>) DontCare = id
