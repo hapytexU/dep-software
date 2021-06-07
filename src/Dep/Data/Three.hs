@@ -18,10 +18,10 @@ module Dep.Data.Three (
   , ThreePath, ThreeStep
     -- * Catamorphisms
   , three, depth
+    -- * Manipulate a 'Three'
+  , flipThree, flipAllThree
     -- * Lookups and constructions
   , nstep, apply, applyTo, wipe, wipeAll
-  --  -- * Check elements for a given path
-  --, allElementsAt, allElementsAt', elementsAt, elementsAt'
     -- * Simplifying
   , simplify
     -- * Retrieve children according to a path
@@ -307,3 +307,20 @@ toTraces''
 toTraces'' (Leaf x) adr = ((adr, x) :)
 toTraces'' (Link x) adr = toTraces'' x (DontCare: adr)
 toTraces'' ~(Split xa xb) adr = toTraces'' xa (Zero: adr) . toTraces'' xb (One: adr)
+
+-- | Flip the most basic level such that 'True' now maps on 'False' and vice versa.
+-- This is for example used to render /Karnaugh cards/.
+flipTree
+  :: Three a  -- ^ The given 'Three' to flip.
+  -> Three a  -- ^ The corresponding flipped 'Three'.
+flipThree (Split l r) = Split r l
+flipThree l = l
+
+-- | Flip all the nodes in the 'Three' such that the 'False' subtree is now a 'True'
+-- subtree, and the 'True' subtree is now the 'False' subtree.
+flipAllThree
+  :: Three a  -- ^ The given 'Three' to flip.
+  -> Three a  -- ^ The corresponding flipped 'Three'.
+flipAllThree l@(Leaf ) = l
+flipAllThree (Link l) = Link (flipAllThree l)
+flipAllThree ~(Split l r) = Split (flipAllThree r) (flipAllThree l)

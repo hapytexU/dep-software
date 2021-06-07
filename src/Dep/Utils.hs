@@ -17,6 +17,8 @@ module Dep.Utils (
   , applyExp, applyExp'
     -- * 'Maybe' utils
   , unionMaybeWith
+    -- * Upperbound of a division
+  , udiv
   ) where
 
 import Language.Haskell.TH.Lib(appE, conE)
@@ -59,3 +61,10 @@ unionMaybeWith f = go
   where go (Just x) (Just y) = Just (f x y)
         go x@(Just _) ~Nothing = x
         go ~Nothing j = j
+
+-- | Divide the numerator by the denominator and round up.
+udiv :: Integral i
+  => i  -- ^ The given numerator.
+  -> i  -- ^ The given denominator.
+  -> i  -- ^ The corresponding division rounded up.
+udiv n d = div (n+d-1) d
