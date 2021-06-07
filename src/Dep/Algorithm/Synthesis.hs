@@ -24,8 +24,6 @@ module Dep.Algorithm.Synthesis (
   , extractProduct, extractSum
     -- * Processing a 'Three'
   , wipeout, wipeout'
-    -- * Check minimizations
-  , validMinimize
   ) where
 
 import Control.Applicative((<|>))
@@ -122,14 +120,6 @@ wipeout'
   -> Three ThreeValue  -- ^ The resulting 'Three' of 'ThreeValue's where items that match the path are wiped out.
 wipeout' = wipe DontCare
 
--- | Check if we follow the current non-determinisic path, we only
--- find 'True' values wrapped in the nodes.
-validMinimize
-  :: [Three Bool] -- ^ The given 'Three' of 'Bool's that we search for.
-  -> [Bool]  -- ^ The given path we need to follow.
-  -> Bool -- ^ A 'Bool' that indicates that the nodes where we end only wraps 'True' values.
-validMinimize tbs stps = and (allWalkValues tbs stps)
-
 mergeSide :: (Int -> Maybe WeightedItem) -> Int -> Maybe (Int, Product') -> Maybe WeightedItem
 mergeSide f n = go
     where go Nothing = f n
@@ -162,7 +152,7 @@ minimizeSum wght prd thr = fromMaybe prd (snd <$> minimizeSum' wght (map toUpper
 synthesis
   :: Three ThreeValue  -- ^ The 'Three' of 'ThreeValue's for which we want to make a logical formula.
   -> SumOfProducts  -- ^ The sum of products that work with the function defined in the 'Three'.
-synthesis = synthesisSOP
+synthesis = SumOfProducts . map Product . synthesis'
 
 -- | Create a 'SumOfProducts' object based on the given 'Three' of 'ThreeValue's.
 synthesisSOP

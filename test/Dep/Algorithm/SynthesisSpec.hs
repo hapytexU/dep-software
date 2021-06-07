@@ -5,7 +5,7 @@ import Data.Foldable(toList)
 import Data.Word(Word64)
 
 import Dep.Class.Walkable(walk)
-import Dep.Algorithm.Synthesis(synthesisSOP, synthesisPOS)
+import Dep.Algorithm.Synthesis(synthesis, synthesisSOP, synthesisPOS)
 import Dep.Data.LogicItem(EvaluateItem(evaluateWithBits))
 import Dep.Data.Three(Three, depth)
 import Dep.Data.ThreeValue(ThreeValue, fromBool)
@@ -17,10 +17,14 @@ spec :: Spec
 spec = do
   it "depth check" (property depthCheck)
   it "synthesis check SOP" (quickCheckWith stdArgs { maxSuccess = 1000000 } (property synthesisCheckSop))
+  it "synthesis check SOP" (quickCheckWith stdArgs { maxSuccess = 1000000 } (property synthesisCheckSop'))
   it "synthesis check POS" (quickCheckWith stdArgs { maxSuccess = 1000000 } (property synthesisCheckPos))
 
 depthCheck :: Three ThreeValue -> Bool
 depthCheck thr = depth thr >= 0
+
+synthesisCheckSop' :: Three ThreeValue -> Bool
+synthesisCheckSop' = synthesisCheck synthesis
 
 synthesisCheckSop :: Three ThreeValue -> Bool
 synthesisCheckSop = synthesisCheck synthesisSOP
