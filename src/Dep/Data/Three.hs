@@ -310,7 +310,7 @@ toTraces'' ~(Split xa xb) adr = toTraces'' xa (Zero: adr) . toTraces'' xb (One: 
 
 -- | Flip the most basic level such that 'True' now maps on 'False' and vice versa.
 -- This is for example used to render /Karnaugh cards/.
-flipTree
+flipThree
   :: Three a  -- ^ The given 'Three' to flip.
   -> Three a  -- ^ The corresponding flipped 'Three'.
 flipThree (Split l r) = Split r l
@@ -321,6 +321,6 @@ flipThree l = l
 flipAllThree
   :: Three a  -- ^ The given 'Three' to flip.
   -> Three a  -- ^ The corresponding flipped 'Three'.
-flipAllThree l@(Leaf ) = l
+flipAllThree l@(Leaf _) = l
 flipAllThree (Link l) = Link (flipAllThree l)
 flipAllThree ~(Split l r) = Split (flipAllThree r) (flipAllThree l)
