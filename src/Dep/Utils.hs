@@ -12,7 +12,7 @@ This module defines utility functions that are used elsewhere in the software pa
 
 module Dep.Utils (
     -- * List processing
-    toList'
+    toList', zipWithLast
     -- * Lifting objects
   , applyExp, applyExp'
     -- * 'Maybe' utils
@@ -50,6 +50,19 @@ applyExp' :: (Lift a, Foldable f)
   -> Q Exp -- ^ An expression where a function with the given name is applied to the given 'Foldable' of the parameter.
 applyExp' = foldl ((. lift) . appE) . conE
 
+-- | Perform a 'zipWith', but when one of the lists is exhausted
+-- the remaining elements of the other list are returned.
+{-# NOINLINE [1] zipWithLast #-}
+zipWithLast
+  :: (a -> a -> a)  -- ^ The given /merge/ function.
+  -> [a]  -- ^ The first given list of items.
+  -> [a]  -- ^ The second given list of items.
+  -> [a]  -- ^ The result of zipping the two lists until one of the lists is exhausted and then return the remaining items of the other list.
+zipWithLast f = go
+  where go [] ys = ys
+        go xs [] = xs
+        go ~(x:xs) ~(y:ys) = f x y : go xs ys
+
 -- | Using the merge function if the two given 'Maybe's
 -- use the 'Just' data constructor. If one of the two is 'Nothing',
 -- then the item with the 'Just' compiler is used. If the
@@ -83,13 +96,8 @@ flatRaster' :: (a -> Bool) -> [Raster a] -> Raster a
 flatRaster' f = foldr (mergeRaster' f) [[]]
 
 mergeRaster' :: (a -> Bool) -> Raster a -> Raster a -> Raster a
-mergeRaster' f = go
-  where go [] xs = xs
-        go xs@(_:_) [] = xs
-        go ~(x:xs) ~(y:ys) = go' x y : go xs ys
-        go' [] rbs = rbs
-        go' ras [] = ras
-        go' ~(ra:ras) ~(rb:rbs)
-          | f ra = ra : go' ras rbs
-          | otherwise = rb : go' ras rbs
-
+mergeRaster' p = go
+  where go = zipWithLast (zipWithLast g)
+          where g x y
+                  | p x = x
+                  | otherwise = y
