@@ -24,6 +24,7 @@ library
    , Dep.Bricks.Layered
    , Dep.Bricks.Layout
    , Dep.Bricks.Negation
+   , Dep.Bricks.Palette
    , Dep.Bricks.Utils
    , Dep.Class.Opposite
    , Dep.Class.Mergeable

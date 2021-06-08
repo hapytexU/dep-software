@@ -14,7 +14,8 @@ import Dep.Bricks.Utils(inRaster)
 import Dep.Class.Renderable(CharRenderable)
 import Dep.Data.Three(Three)
 
+import Graphics.Vty.Attributes(Attr)
 import Graphics.Vty.Image(Image)
 
-renderKarnaugh :: CharRenderable a => Three a -> Image
-renderKarnaugh _ = inRaster undefined undefined
+renderKarnaugh :: CharRenderable a => Three a -> Attr -> Image
+renderKarnaugh _ _ = inRaster undefined undefined
