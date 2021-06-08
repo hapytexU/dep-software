@@ -1,4 +1,4 @@
-{-# LANGUAGE Safe #-}
+{-# LANGUAGE Safe, TupleSections #-}
 
 {-|
 Module      : Dep.Utils
@@ -19,6 +19,8 @@ module Dep.Utils (
   , unionMaybeWith
     -- * Upperbound of a division
   , udiv
+    -- * Raster functions
+  , toRaster, flatRaster, flatRaster'
   ) where
 
 import Language.Haskell.TH.Lib(appE, conE)
@@ -68,3 +70,14 @@ udiv :: Integral i
   -> i  -- ^ The given denominator.
   -> i  -- ^ The corresponding division rounded up.
 udiv n d = div (n+d-1) d
+
+type Raster a = [[a]]
+
+toRaster :: a -> Raster b -> Raster (a, b)
+toRaster x = map (map (x, ))
+
+flatRaster :: (b -> Bool) -> [(a, Raster b)] -> Raster (a, b)
+flatRaster cond = flatRaster' (cond . snd) . map (uncurry toRaster)
+
+flatRaster' :: (a -> Bool) -> [Raster a] -> Raster a
+flatRaster' = undefined

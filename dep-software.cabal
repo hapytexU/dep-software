@@ -21,6 +21,7 @@ library
    , Dep.Bricks.Circuit
    , Dep.Bricks.Gate
    , Dep.Bricks.Karnaugh
+   , Dep.Bricks.Layered
    , Dep.Bricks.Layout
    , Dep.Bricks.Negation
    , Dep.Bricks.Utils
