@@ -80,4 +80,16 @@ flatRaster :: (b -> Bool) -> [(a, Raster b)] -> Raster (a, b)
 flatRaster cond = flatRaster' (cond . snd) . map (uncurry toRaster)
 
 flatRaster' :: (a -> Bool) -> [Raster a] -> Raster a
-flatRaster' = undefined
+flatRaster' f = foldr (mergeRaster' f) [[]]
+
+mergeRaster' :: (a -> Bool) -> Raster a -> Raster a -> Raster a
+mergeRaster' f = go
+  where go [] xs = xs
+        go xs@(_:_) [] = xs
+        go ~(x:xs) ~(y:ys) = go' x y : go xs ys
+        go' [] rbs = rbs
+        go' ras [] = ras
+        go' ~(ra:ras) ~(rb:rbs)
+          | f ra = ra : go' ras rbs
+          | otherwise = rb : go' ras rbs
+
