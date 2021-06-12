@@ -47,6 +47,7 @@ library
     , binary >= 0.2
     , brick >= 0.50
     , data-default >=0.2
+    , deepseq >=1.4.3.0
     , Diff >= 0.3 && < 0.4
     , hashable >=1.2.7.0
     , lens >= 4.0

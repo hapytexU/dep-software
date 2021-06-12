@@ -18,6 +18,8 @@ module Dep.Data.Sum (
   , showProductOfSums, showSum, showSum'
   ) where
 
+import Control.DeepSeq(NFData)
+
 import Data.Bool(bool)
 import Data.Data(Data)
 import Data.Hashable(Hashable)
@@ -59,6 +61,8 @@ instance EvaluateItem Sum where
 
 instance Hashable Sum
 
+instance NFData Sum
+
 -- | A more compact representation of a sum where the indexes that have 'Zero'
 -- or 'One' are listed by the /positive/ or /negative/ index respectively.
 type CompactSum' = [Int]
@@ -85,6 +89,8 @@ instance EvaluateItem CompactSum where
   isTrivial ~(CompactSum cs) = bool DontCare Zero (all (0 ==) cs)
   numberOfVariables (CompactSum cs) = maximum (0 : map abs cs)
 
+instance NFData CompactSum
+
 -- | A type synonym to present a product of sums where each item of the list is a 'Sum''.
 type ProductOfSums' = [Sum']
 
@@ -110,6 +116,8 @@ instance EvaluateItem ProductOfSums where
   numberOfVariables (ProductOfSums pos) = maximum (0 : map numberOfVariables pos)
 
 instance Hashable ProductOfSums
+
+instance NFData ProductOfSums
 
 instance ToCompact Sum CompactSum where
   toCompact (Sum s) = CompactSum (toCompact s)

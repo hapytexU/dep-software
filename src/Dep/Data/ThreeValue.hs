@@ -26,6 +26,7 @@ module Dep.Data.ThreeValue (
   ) where
 
 import Control.Applicative((<|>))
+import Control.DeepSeq(NFData)
 
 import Data.Bool(bool)
 import Data.Binary(Binary(put, get), getWord8, putWord8)
@@ -86,6 +87,8 @@ instance Monoid ThreeValue where
   mconcat xs
     | Just x <- find (DontCare /=) xs = x
     | otherwise = DontCare
+
+instance NFData ThreeValue
 
 instance Opposite ThreeValue where
   opposite Zero = One

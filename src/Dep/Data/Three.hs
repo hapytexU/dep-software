@@ -31,6 +31,7 @@ module Dep.Data.Three (
   ) where
 
 import Control.Applicative(Applicative(liftA2))
+import Control.DeepSeq(NFData, NFData1)
 
 import Data.Binary(Binary(put, get), getWord8, putWord8)
 import Data.Bool(bool)
@@ -79,6 +80,9 @@ instance Lift a => Lift (Three a) where
   lift (Split a b) = applyExp' 'Split [a, b]
   lift ~(Split a b) = applyExp' 'Split [a, b]
 
+instance NFData a => NFData (Three a)
+
+instance NFData1 Three
 
 instance Ord1 Three where
   liftCompare cmp = go

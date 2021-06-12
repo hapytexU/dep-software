@@ -18,6 +18,8 @@ module Dep.Data.Product (
   , showSumOfProducts, showProduct, showProduct', subscriptVariable
   ) where
 
+import Control.DeepSeq(NFData)
+
 import Data.Binary(Binary(get, put), putList)
 import Data.Bool(bool)
 import Data.Data(Data)
@@ -58,6 +60,8 @@ instance EvaluateItem Product where
 
 instance Hashable Product
 
+instance NFData Product
+
 instance ToCompact Product CompactProduct where
   toCompact (Product s) = CompactProduct (toCompact s)
   fromCompact (CompactProduct s) = Product (fromCompact s)
@@ -88,6 +92,8 @@ instance EvaluateItem CompactProduct where
 
 instance Hashable CompactProduct
 
+instance NFData CompactProduct
+
 -- | A type synonym to present a sum of products where each item of the list is a 'Product''.
 type SumOfProducts' = [Product']
 
@@ -113,6 +119,8 @@ instance EvaluateItem SumOfProducts where
   numberOfVariables (SumOfProducts sop) = maximum (0 : map numberOfVariables sop)
 
 instance Hashable SumOfProducts
+
+instance NFData SumOfProducts
 
 -- | Convert the given sum of products to a 'Text' object that presents
 -- the 'SumOfProducts'' as a 'Text' object with variables as subscript.
