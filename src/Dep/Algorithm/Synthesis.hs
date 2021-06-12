@@ -28,8 +28,6 @@ module Dep.Algorithm.Synthesis (
 
 import Control.Applicative((<|>))
 
-import Data.Maybe(fromMaybe)
-
 import Dep.Class.Opposite(opposite)
 import Dep.Class.Walkable(Walkable(allStep, allWalkValues))
 import Dep.Class.NonDeterministicWalkable(NonDeterministicWalkable(allNstep))
