@@ -142,10 +142,10 @@ minimizeSum' :: Int -> [Bool] -> [Three Bool] -> Maybe WeightedSum
 minimizeSum' = _minimizeItem' (not . or)
 
 minimizeProduct :: Int -> Product' -> Three Bool -> Product'
-minimizeProduct wght prd thr = fromMaybe prd (snd <$> minimizeProduct' wght (map toUpper prd) [thr])
+minimizeProduct wght prd thr = maybe prd snd (minimizeProduct' wght (map toUpper prd) [thr])
 
 minimizeSum :: Int -> Sum' -> Three Bool -> Sum'
-minimizeSum wght prd thr = fromMaybe prd (snd <$> minimizeSum' wght (map toUpper prd) [thr])
+minimizeSum wght prd thr = maybe prd snd (minimizeSum' wght (map toUpper prd) [thr])
 
 -- | Create a 'SumOfProducts' object based on the given 'Three' of 'ThreeValue's. This function acts
 -- as an alias for the 'synthesisSOP' function.
