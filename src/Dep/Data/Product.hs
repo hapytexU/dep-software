@@ -122,6 +122,12 @@ instance Hashable SumOfProducts
 
 instance NFData SumOfProducts
 
+instance Semigroup SumOfProducts where
+  SumOfProducts sopa <> SumOfProducts sopb = SumOfProducts (sopa <> sopb)
+
+instance Monoid SumOfProducts where
+  mempty = SumOfProducts []
+
 -- | Convert the given sum of products to a 'Text' object that presents
 -- the 'SumOfProducts'' as a 'Text' object with variables as subscript.
 --

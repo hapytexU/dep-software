@@ -119,6 +119,12 @@ instance Hashable ProductOfSums
 
 instance NFData ProductOfSums
 
+instance Semigroup ProductOfSums where
+  ProductOfSums posa <> ProductOfSums posb = ProductOfSums (posa <> posb)
+
+instance Monoid ProductOfSums where
+  mempty = ProductOfSums []
+
 instance ToCompact Sum CompactSum where
   toCompact (Sum s) = CompactSum (toCompact s)
   fromCompact (CompactSum s) = Sum (fromCompact s)
