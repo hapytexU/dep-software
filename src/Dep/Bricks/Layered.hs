@@ -1,5 +1,3 @@
-{-# LANGUAGE TupleSections #-}
-
 {-|
 Module      : Dep.Bricks.Layered
 Description : A module to combine several 'Image' layers to one 'Layer'.
@@ -38,4 +36,4 @@ mergeLayers p = createImage . flatRaster p
 createImage
   :: [[(Attr, Char)]]  -- ^ The given list of lists of 'Char's
   -> Image
-createImage = foldr ((<->) . (foldr ((<|>) . uncurry char) emptyImage)) emptyImage
+createImage = foldr ((<->) . foldr ((<|>) . uncurry char) emptyImage) emptyImage
