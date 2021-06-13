@@ -40,6 +40,11 @@ instance CharRenderable Bool where
 
 instance Renderable Bool
 
+instance CharRenderable Char where
+  charRenderItem = id
+
+instance Renderable Char
+
 instance CharRenderable a => CharRenderable (Maybe a) where
   charRenderItem = maybe '-' charRenderItem
 
