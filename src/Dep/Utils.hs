@@ -20,7 +20,7 @@ module Dep.Utils (
     -- * Upperbound of a division
   , udiv
     -- * Raster functions
-  , toRaster, flatRaster, flatRaster'
+  , Raster, toRaster, flatRaster, flatRaster'
   ) where
 
 import Language.Haskell.TH.Lib(appE, conE)
@@ -84,18 +84,40 @@ udiv :: Integral i
   -> i  -- ^ The corresponding division rounded up.
 udiv n d = div (n+d-1) d
 
+-- | A 'Raster' is a list of lists of items. This is for example used
+-- to render an image with /Bricks/ where there are multiple layers.
 type Raster a = [[a]]
 
-toRaster :: a -> Raster b -> Raster (a, b)
+
+-- | Convert the given 'Raster's to a 'Raster' of 2-tuples where the first
+-- item is a given "label" or "attribute".
+toRaster
+  :: a  -- ^ The given /label/ or /attribute/ that will be attached to the 'Raster'.
+  -> Raster b  -- ^ The given 'Raster' of values that will be annotated.
+  -> Raster (a, b)  -- ^ A 'Raster' of 2-tuples where we annotate each item with the given /label/ or /attribute/ value.
 toRaster x = map (map (x, ))
 
-flatRaster :: (b -> Bool) -> [(a, Raster b)] -> Raster (a, b)
+-- | Convert a list of labeled 'Raster's to a single 'Raster' where the predicate determines from which value we take the item.
+flatRaster
+  :: (b -> Bool)  -- ^ The predicate that returns 'True' if we want to retain the item from the /upper/ layer, and 'False' if we want to retain the item from the /lower/ layer.
+  -> [(a, Raster b)]  -- ^ A list of annotated 'Raster's that will be merged to a signle 'Raster'.
+  -> Raster (a, b)  -- ^ A single 'Raster' where each item is annotated with the /label/ or /attribute/.
 flatRaster cond = flatRaster' (cond . snd) . map (uncurry toRaster)
 
-flatRaster' :: (a -> Bool) -> [Raster a] -> Raster a
+-- | Convert the given 'Raster's to a raster where the given predicate
+-- decides if we retain the upper or lower layer.
+flatRaster'
+  :: (a -> Bool)  -- ^ The given predicate that returns 'True' if we want to retain the upper 'Raster', and 'False' if we want to retain the lower 'Raster'.
+  -> [Raster a]  -- ^ The list of 'Raster's that is ordered top-to-bottom.
+  -> Raster a  -- ^ The resulting 'Raster' where we perfor the merge between all the 'Raster's.
 flatRaster' f = foldr (mergeRaster' f) [[]]
 
-mergeRaster' :: (a -> Bool) -> Raster a -> Raster a -> Raster a
+-- | Merge two 'Raster's together to a new 'Raster'.
+mergeRaster'
+  :: (a -> Bool)  -- ^ The given predicate that returns 'True' if we want to retain the upper 'Raster' for that item, and 'False' if we want to retain the item of the lower 'Raster'.
+  -> Raster a  -- ^ The given /upper/ 'Raster'.
+  -> Raster a  -- ^ The given /lower/ 'Raster'.
+  -> Raster a  -- ^ The raster we obtain after merging the /upper/ and /lower/ raster.
 mergeRaster' p = go
   where go = zipWithLast (zipWithLast g)
           where g x y

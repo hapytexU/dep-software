@@ -1,3 +1,14 @@
+{-|
+Module      : Dep.Bricks.Palette
+Description : A module to aims to make it easier to select colors that are distant from each other.
+Maintainer  : hapytexeu+gh@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+This module generates palettes. A 'Palette' is an infinite list of 'Color's that endlessly repeats
+itself. This is used to obtain colors to typeset different items on the screen.
+-}
+
 module Dep.Bricks.Palette (
     -- * Palettes
     Palette, isoColorPalette, brightIsoColorPalette, color240Palette
@@ -37,6 +48,7 @@ isoColorToBright (ISOColor i)
   | i < 8 = ISOColor (i+8)
 isoColorToBright x = x
 
+-- | Obtain the equivalent color that is /not/ bright.
 isoColorFromBright
   :: Color  -- ^ The given 'Color' to make a 'Color' that is less bright.
   -> Color  -- ^ The corresponding less bright variant of the given 'Color'.
