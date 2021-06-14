@@ -21,6 +21,8 @@ module Dep.Utils (
   , udiv
     -- * Raster functions
   , Raster, toRaster, flatRaster, flatRaster'
+    -- * Type aliasses
+  , Operator
   ) where
 
 import Language.Haskell.TH.Lib(appE, conE)
@@ -123,3 +125,8 @@ mergeRaster' p = go
           where g x y
                   | p x = x
                   | otherwise = y
+
+-- | An alias for an /operator/: a function that takes two
+-- items of the same type, and produces an item. In case
+-- the function is /associative/, this can be used for a 'Semigroup'.
+type Operator a = a -> a -> a

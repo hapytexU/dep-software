@@ -17,7 +17,7 @@ module Dep.Data.Three (
     -- * Paths in a three
   , ThreePath, ThreeStep
     -- * Catamorphisms
-  , three, depth
+  , three, depth, leftmost, rightmost
     -- * Manipulate a 'Three'
   , flipThree, flipAllThree
     -- * Lookups and constructions
@@ -328,3 +328,18 @@ flipAllThree
 flipAllThree l@(Leaf _) = l
 flipAllThree (Link l) = Link (flipAllThree l)
 flipAllThree ~(Split l r) = Split (flipAllThree r) (flipAllThree l)
+
+_most :: (a -> a -> a) -> Three a -> a
+_most = three id id
+
+-- | Obtain the leftmost item of the 'Three'.
+leftmost
+  :: Three a  -- ^ The 'Three' to obtain the leftmost item from.
+  -> a  -- ^ The leftmost item in the given 'Three'.
+leftmost = _most const
+
+-- | Obtain the rightmost item of the 'Three'.
+rightmost
+  :: Three a  -- ^ The 'Three' to obtain the rightmost item from.
+  -> a  -- ^ The rightmost item in the given 'Three'.
+rightmost = _most (const id)
