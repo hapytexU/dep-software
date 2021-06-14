@@ -129,4 +129,4 @@ mergeRaster' p = go
 -- | An alias for an /operator/: a function that takes two
 -- items of the same type, and produces an item. In case
 -- the function is /associative/, this can be used for a 'Semigroup'.
-type Operator a = a -> a -> a
+type Operator a = (a, a) -> a

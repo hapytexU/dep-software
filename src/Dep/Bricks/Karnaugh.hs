@@ -1,3 +1,5 @@
+{-# LANGUAGE BangPatterns #-}
+
 {-|
 Module      : Dep.Bricks.Karnaugh
 Description : A module to define three-value logic.
@@ -14,22 +16,28 @@ module Dep.Bricks.Karnaugh (
 
 import Dep.Algorithm.Synthesis(synthesis)
 import Dep.Bricks.Utils(inRaster)
-import Dep.Class.Renderable(CharRenderable)
+import Dep.Class.Renderable(CharRenderable(charRenderItem))
 import Dep.Data.Product(SumOfProducts)
-import Dep.Data.Three(Three(Leaf, Link, Split))
+import Dep.Data.Three(Three(Leaf, Link, Split), depth, leftmost)
 import Dep.Data.ThreeValue(ThreeValue)
 import Dep.Utils(Operator)
 
-import Graphics.Vty.Attributes(Attr)
-import Graphics.Vty.Image(Image)
+import Graphics.Vty.Attributes(Attr, defAttr)
+import Graphics.Vty.Image(Image, (<->), emptyImage, string)
 
-type KRaster = [String]
+type KLine = String
+type KRaster = [KLine]
 
-mergeVertical :: KRaster -> KRaster -> KRaster
-mergeVertical = (<>)
+mergeVertical :: KLine -> Operator KRaster
+mergeVertical _ ([], []) = []
+mergeVertical zs (xs@(x:_), []) = xs ++ [zs']
+  where zs' = zipWith const (cycle zs) x
+mergeVertical zs (xs, ys@(y:_)) = xs ++ zs' : reverse ys
+  where zs' = zipWith const (cycle zs) y
 
-mergeHorizontal :: KRaster -> KRaster -> KRaster
-mergeHorizontal = zipWith (<>)
+mergeHorizontal :: KLine -> Operator KRaster
+mergeHorizontal spl = uncurry (zipWith3 f (cycle spl))
+  where f sp xs ys = xs ++ sp : reverse ys
 
 valueRaster :: [String]
 valueRaster = undefined
@@ -38,12 +46,13 @@ valueRaster = undefined
 _recurseDraw _ _ = 0-}
 
 recurse :: CharRenderable a => Operator KRaster -> Operator KRaster -> Int -> Three a -> KRaster
-recurse ma mb n = uncurry mergeVertical . go
-      where fn n = recurse mb ma (n-1)
-            go' 0 ~(Leaf l) = [[charRenderItem l]]
-            go' _ l@(Leaf _) = let fnl = fn n l in (fnl, fnl)
-            go' _ (Link l) = let fnl = fn n l in (fnl, fnl)
-            go' _ ~(Split la lb) = (fn n la, fn n lb)
+recurse ma mb !n = go
+      where fn = recurse mb ma (n-1)
+            go l |
+              n <= 0 = [[charRenderItem (leftmost l)]]  -- leftmost is used to prevent cases with multiple items
+            go l@(Leaf _) = let fnl = fn l in ma (fnl, fnl)
+            go (Link l) = let fnl = fn l in ma (fnl, fnl)
+            go (Split la lb) = ma (fn la, fn lb)
 
 -- renderCard :: CharRenderable a => Three a -> String
 
@@ -62,4 +71,5 @@ renderKarnaugh :: CharRenderable a
   -> SumOfProducts -- ^ The sum of products that will be used to mark the /Karnaugh card/.
   -> Attr  -- ^ The base 'Attr'ibute to render the /Karnaugh card/.
   -> Image  -- ^ The image that contains a rendered version of the /Karnaugh card/.
-renderKarnaugh _ _ _ = inRaster undefined undefined
+renderKarnaugh ts sop atr = (inRaster atr (foldr ((<->) . string atr) emptyImage recs))
+  where recs = recurse (mergeHorizontal "\x2502\x253c") (mergeVertical "\x2500\x253c") (depth ts) ts

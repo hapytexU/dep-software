@@ -191,12 +191,19 @@ testMonoidLaws = describe "Monoid laws" do
     itproperty "Left identity of a monoid 1" (testMonoidLeftIdentity @m)
     itproperty "Concatenation of the monoid 1" (testMonoidConcatenation @m)
 
+testIdempotentLaws :: forall a . (Arbitrary a, Eq a, Show a) => (a -> a) -> SpecWith ()
+testIdempotentLaws f = describe "Check if the function is idempotent" $ do
+    itproperty "Check idempotence" (testIdempotent f)
 
 _unFun :: Functor f => Fun a b -> f a -> f b
 _unFun = fmap . applyFun
 
 _toFunc :: Functor f => f (Fun a b) -> f (a -> b)
 _toFunc = fmap applyFun
+
+testIdempotent :: Eq a => (a -> a) -> a -> Bool
+testIdempotent f x = f y == y
+  where y = f x
 
 testFunctorIdentity :: forall f a . (Functor f, Eq (f a)) => f a -> Bool
 testFunctorIdentity x = fmap id x == x
