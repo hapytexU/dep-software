@@ -22,7 +22,7 @@ import Dep.Data.Three(Three(Leaf, Link, Split), depth, leftmost)
 import Dep.Data.ThreeValue(ThreeValue)
 import Dep.Utils(Operator)
 
-import Graphics.Vty.Attributes(Attr, defAttr)
+import Graphics.Vty.Attributes(Attr)
 import Graphics.Vty.Image(Image, (<->), emptyImage, string)
 
 type KLine = String
@@ -38,12 +38,6 @@ mergeVertical zs (xs, ys@(y:_)) = xs ++ zs' : reverse ys
 mergeHorizontal :: KLine -> Operator KRaster
 mergeHorizontal spl = uncurry (zipWith3 f (cycle spl))
   where f sp xs ys = xs ++ sp : reverse ys
-
-valueRaster :: [String]
-valueRaster = undefined
-
-{-_recurseDraw :: Int -> Operator Image -> Int
-_recurseDraw _ _ = 0-}
 
 recurse :: CharRenderable a => Operator KRaster -> Operator KRaster -> Int -> Three a -> KRaster
 recurse ma mb !n = go
@@ -71,5 +65,5 @@ renderKarnaugh :: CharRenderable a
   -> SumOfProducts -- ^ The sum of products that will be used to mark the /Karnaugh card/.
   -> Attr  -- ^ The base 'Attr'ibute to render the /Karnaugh card/.
   -> Image  -- ^ The image that contains a rendered version of the /Karnaugh card/.
-renderKarnaugh ts sop atr = inRaster atr (foldr ((<->) . string atr) emptyImage recs)
+renderKarnaugh ts _ atr = inRaster atr (foldr ((<->) . string atr) emptyImage recs)
   where recs = recurse (mergeHorizontal "\x2502\x253c") (mergeVertical "\x2500\x253c") (depth ts) ts
