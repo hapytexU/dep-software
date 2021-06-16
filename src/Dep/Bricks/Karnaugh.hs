@@ -14,6 +14,8 @@ module Dep.Bricks.Karnaugh (
     renderKarnaugh, renderKarnaugh'
   ) where
 
+import Debug.Trace(trace)
+
 import Dep.Algorithm.Synthesis(synthesis)
 import Dep.Bricks.Utils(harrow', varrow', inRaster')
 import Dep.Class.Renderable(CharRenderable(charRenderItem))
@@ -23,17 +25,28 @@ import Dep.Data.ThreeValue(ThreeValue)
 import Dep.Utils(Operator)
 
 import Graphics.Vty.Attributes(Attr)
-import Graphics.Vty.Image(Image, (<->), (<|>), char, emptyImage, string)
+import Graphics.Vty.Image(Image, (<->), (<|>), char, emptyImage, safeWcswidth, string)
 
 type KLine = String
 type KRaster = [KLine]
 
+hmark :: Int -> Int -> String
+hmark m n = replicate m ' ' ++ '\x2576' : replicate n '\x2500' ++ "\x2574"
+
+hname :: Int -> Int -> String -> String
+hname m n st = replicate (m + div (n-l+1) 2) ' ' ++ st
+  where l = trace (show (safeWcswidth st)) (safeWcswidth st)
+
 twig :: Attr -> Image
 twig atr = string atr "\x2572 " <-> string atr " \x2572"
 
--- spacemark :: Attr -> Int -> Image -> Image
--- spacemark =
+addTopMark :: String -> KRaster -> KRaster
+addTopMark st = (:) (hname 4 3 st) . (:) (hmark 4 3)
 
+addBottomMark :: String -> KRaster -> KRaster
+addBottomMark st = (++ [hmark 2 3, hname 2 3 st])
+
+{-
 hmark :: (Image -> Image -> Image) -> String -> Attr -> Int -> Image
 hmark f l atr n = f (string atr (replicate (div (n+3-length l) 2) ' ') <|> string atr l) (harrow' '\x2576' "\x2500" '\x2574' atr n)
 
@@ -42,6 +55,7 @@ hmark' = hmark (<->)
 
 hmark'' :: String -> Attr -> Int -> Image
 hmark'' = hmark (flip (<->))
+-}
 
 vmark :: (Image -> Image -> Image) -> String -> Attr -> Int -> Int -> Image
 vmark _ _ atr m n = foldr ((<->) . char atr) (varrow' '\x2577' "\x2502" '\x2575' atr n) (replicate m ' ')
@@ -87,5 +101,5 @@ renderKarnaugh :: CharRenderable a
   -> SumOfProducts -- ^ The sum of products that will be used to mark the /Karnaugh card/.
   -> Attr  -- ^ The base 'Attr'ibute to render the /Karnaugh card/.
   -> Image  -- ^ The image that contains a rendered version of the /Karnaugh card/.
-renderKarnaugh ts _ atr = foldr ((<->) . string atr) emptyImage (inRaster' recs)
+renderKarnaugh ts _ atr = foldr ((<->) . string atr) emptyImage (addBottomMark "x\x2083" (addTopMark "x\x2081" (inRaster' recs)))
   where recs = _recurse (_mergeHorizontal "\x2502\x253c") (_mergeVertical "\x2500\x253c") (depth ts) ts
