@@ -18,7 +18,7 @@ module Dep.Bricks.Utils (
   , harrow, harrow'
   , varrow, varrow'
     -- * Raster (for Karnaugh cards)
-  , inRaster
+  , inRaster, inRaster'
   ) where
 
 import Data.Text(Text, cons, pack, singleton, unpack)
@@ -28,6 +28,8 @@ import Dep.Utils(udiv)
 
 import Graphics.Vty.Attributes(Attr)
 import Graphics.Vty.Image(Image, (<->), (<|>), char, imageWidth, imageHeight, text', vertCat)
+
+type Raster = [String]
 
 -- | Render a /horizontal/ arrow with the given number of characters between the arrow heads. The 'Text'
 -- in the middle is "/cycled/".
@@ -122,3 +124,12 @@ inRaster atr img = top <-> (lft <|> img <|> rght) <-> bot
           rght = vline "\x2503\x2528" atr h
           top = harrow '\x250f' "\x2501\x252f" '\x2513' atr w
           bot = harrow '\x2517' "\x2501\x2537" '\x251b'atr  w
+
+-- | Wrap the given list of 'String's in a raster structure with thick borders
+-- and with small lines for the raster image in the middle.
+inRaster'
+  :: Raster  -- ^ The given list of 'String's that we want to wrap in a /raster/.
+  -> Raster  -- ^ A list of 'String's that contains the given image wrapped in a /raster/.
+inRaster' img = ('\x250f' : take w (cycle "\x2501\x252f") ++ "\x2513") : go (cycle "\x2503\x2520") (cycle "\x2503\x2528") img ++ ['\x2517' : take w (cycle "\x2501\x2537") ++ "\x251b"]
+    where w = maximum (map length img)
+          go = zipWith3 (\x y z -> x : z ++ [y])

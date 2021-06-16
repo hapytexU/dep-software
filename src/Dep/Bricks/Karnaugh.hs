@@ -15,7 +15,7 @@ module Dep.Bricks.Karnaugh (
   ) where
 
 import Dep.Algorithm.Synthesis(synthesis)
-import Dep.Bricks.Utils(harrow', varrow', inRaster)
+import Dep.Bricks.Utils(harrow', varrow', inRaster')
 import Dep.Class.Renderable(CharRenderable(charRenderItem))
 import Dep.Data.Product(SumOfProducts)
 import Dep.Data.Three(Three(Leaf, Link, Split), depth, leftmost)
@@ -28,8 +28,8 @@ import Graphics.Vty.Image(Image, (<->), (<|>), char, emptyImage, string)
 type KLine = String
 type KRaster = [KLine]
 
-stem :: Attr -> Image
-stem atr = string atr "\x2572 " <-> string atr " \x2572"
+twig :: Attr -> Image
+twig atr = string atr "\x2572 " <-> string atr " \x2572"
 
 -- spacemark :: Attr -> Int -> Image -> Image
 -- spacemark =
@@ -87,5 +87,5 @@ renderKarnaugh :: CharRenderable a
   -> SumOfProducts -- ^ The sum of products that will be used to mark the /Karnaugh card/.
   -> Attr  -- ^ The base 'Attr'ibute to render the /Karnaugh card/.
   -> Image  -- ^ The image that contains a rendered version of the /Karnaugh card/.
-renderKarnaugh ts _ atr = stem atr <|> (((string atr "     " <|> hmark' "x\x2081" atr 3) <-> (vmark' "x\x2082" atr 4 3 <|> inRaster atr (foldr ((<->) . string atr) emptyImage recs) <|> emptyImage ))) <-> (string atr "   " <|> hmark'' "x\x2083" atr 3)
+renderKarnaugh ts _ atr = foldr ((<->) . string atr) emptyImage (inRaster' recs)
   where recs = _recurse (_mergeHorizontal "\x2502\x253c") (_mergeVertical "\x2500\x253c") (depth ts) ts
