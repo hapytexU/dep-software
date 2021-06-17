@@ -35,16 +35,16 @@ hmark m n = replicate m ' ' ++ '\x2576' : replicate n '\x2500' ++ "\x2574"
 
 hname :: Int -> Int -> String -> String
 hname m n st = replicate (m + div (n-l+1) 2) ' ' ++ st
-  where l = trace (show (safeWcswidth st)) (safeWcswidth st)
+  where l = safeWcswidth st
 
 twig :: Attr -> Image
 twig atr = string atr "\x2572 " <-> string atr " \x2572"
 
 addTopMark :: String -> KRaster -> KRaster
-addTopMark st = (:) (hname 5 3 st) . (:) (hmark 5 3)
+addTopMark st = (:) (hname 7 3 st) . (:) (hmark 7 3)
 
 addBottomMark :: String -> KRaster -> KRaster
-addBottomMark st = (++ [hmark 3 3, hname 3 3 st])
+addBottomMark st = (++ [hmark 5 3, hname 5 3 st])
 
 addRightMark :: String -> KRaster -> KRaster
 addRightMark st kr = la ++ (l1 ++ "\x2577") : map (++"\x2502") lb ++ (l2 ++ '\x2502' : st) : map (++ "\x2502") lc ++ (l3 ++ "\x2575") : ld
@@ -53,9 +53,13 @@ addRightMark st kr = la ++ (l1 ++ "\x2577") : map (++"\x2502") lb ++ (l2 ++ '\x2
         ~(lc, (l3:ld)) = splitAt 1 lt
 
 addLeftMark :: String -> KRaster -> KRaster
-addLeftMark st kr = map (' ':) la ++ ('\x2577' : l1) : map ('\x2502' :) lb ++ ('\x2575' : l2) : map (' ' :) lc
+addLeftMark st kr = map (spac1 ++) la ++ (spac ++ '\x2577' : l1) : map ((spac ++ "\x2502") ++) lb ++ (st ++ '\x2502' : l2) : map ((spac ++ "\x2502")++) lc ++ (spac ++ "\x2575" ++ l3) : map (spac1 ++) ld
   where ~(la, (l1:ls)) = splitAt 4 kr
-        ~(lb, (l2:lc)) = splitAt 3 ls
+        ~(lb, (l2:lt)) = splitAt 1 ls
+        ~(lc, (l3:ld)) = splitAt 1 lt
+        w = safeWcswidth st
+        spac = replicate w ' '
+        spac1 = ' ' : spac
 
 
 {-
