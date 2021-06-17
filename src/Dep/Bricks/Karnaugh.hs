@@ -41,10 +41,22 @@ twig :: Attr -> Image
 twig atr = string atr "\x2572 " <-> string atr " \x2572"
 
 addTopMark :: String -> KRaster -> KRaster
-addTopMark st = (:) (hname 4 3 st) . (:) (hmark 4 3)
+addTopMark st = (:) (hname 5 3 st) . (:) (hmark 5 3)
 
 addBottomMark :: String -> KRaster -> KRaster
-addBottomMark st = (++ [hmark 2 3, hname 2 3 st])
+addBottomMark st = (++ [hmark 3 3, hname 3 3 st])
+
+addRightMark :: String -> KRaster -> KRaster
+addRightMark st kr = la ++ (l1 ++ "\x2577") : map (++"\x2502") lb ++ (l2 ++ '\x2502' : st) : map (++ "\x2502") lc ++ (l3 ++ "\x2575") : ld
+  where ~(la, (l1:ls)) = splitAt 2 kr
+        ~(lb, (l2:lt)) = splitAt 1 ls
+        ~(lc, (l3:ld)) = splitAt 1 lt
+
+addLeftMark :: String -> KRaster -> KRaster
+addLeftMark st kr = map (' ':) la ++ ('\x2577' : l1) : map ('\x2502' :) lb ++ ('\x2575' : l2) : map (' ' :) lc
+  where ~(la, (l1:ls)) = splitAt 4 kr
+        ~(lb, (l2:lc)) = splitAt 3 ls
+
 
 {-
 hmark :: (Image -> Image -> Image) -> String -> Attr -> Int -> Image
@@ -101,5 +113,5 @@ renderKarnaugh :: CharRenderable a
   -> SumOfProducts -- ^ The sum of products that will be used to mark the /Karnaugh card/.
   -> Attr  -- ^ The base 'Attr'ibute to render the /Karnaugh card/.
   -> Image  -- ^ The image that contains a rendered version of the /Karnaugh card/.
-renderKarnaugh ts _ atr = foldr ((<->) . string atr) emptyImage (addBottomMark "x\x2083" (addTopMark "x\x2081" (inRaster' recs)))
+renderKarnaugh ts _ atr = foldr ((<->) . string atr) emptyImage (addBottomMark "x\x2083" (addTopMark "x\x2081" (addLeftMark "x\x2082" (addRightMark "x\x2084" (inRaster' recs)))))
   where recs = _recurse (_mergeHorizontal "\x2502\x253c") (_mergeVertical "\x2500\x253c") (depth ts) ts
