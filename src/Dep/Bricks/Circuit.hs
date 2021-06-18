@@ -71,7 +71,8 @@ circuit = Widget Fixed Fixed $ do
   let tree''' = Split tree' tree''
   let tree'''' = Split tree''' tree'''
   let tree''''' = Split tree'''' tree''''
-  let tree = Split tree''''' tree'''''
+  let tree'''''' = Split tree''''' tree'''''
+  let tree = Split tree'''''' tree''''''
 
   -- let tree = Split (Split (Split (Split la lb) (Split lc ld)) (Split (Split le lf) (Split lg lh))) (Split (Split (Split li lj) (Split lk ll)) (Split (Split lm ln) (Split lo lp)))
 --   return (emptyResult & imageL .~ renderKarnaugh' (Split (Split (Split (Split l1 l0) l1) (Split (Split l0 l1) l1)) (Split (Split l1 ld) ld)) defAttr)
