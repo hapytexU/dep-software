@@ -110,18 +110,18 @@ _mergeVertical spt spb n
         cyspb = transpose . zipWith const (cycle spb)
         go ([], []) = []
         go (xs@(x:_), []) = xs ++ [cyspt x]
-        go (xs, ys@(y:_)) = xs ++ cyspt y : reverse (map (map mapFrameV) ys)
+        go (xs, ys@(y:_)) = xs ++ cyspt y : reverse ys
         go' ([], []) = []
         go' (xs@(x:_), []) = xs ++ cyspb x
-        go' (xs, ys@(y:_)) = xs ++ cyspb y ++ reverse (map (map mapFrameV) ys)
+        go' (xs, ys@(y:_)) = xs ++ cyspb y ++ map (map mapFrameH) (reverse ys)
 
 
 _mergeHorizontal :: KLine -> KRaster -> Int -> Operator KRaster
 _mergeHorizontal spl spr n
-  | n <= 4 = trace (show n) (uncurry (zipWith3 f (cycle spl)))
-  | otherwise = trace (show n) (uncurry (zipWith3 f' (cycle spr)))
-  where f sp xs ys = xs ++ sp : reverse (map mapFrameH ys)
-        f' sp xs ys = xs ++ sp ++ reverse (map mapFrameH ys)
+  | n <= 4 = (uncurry (zipWith3 f (cycle spl)))
+  | otherwise = (uncurry (zipWith3 f' (cycle spr)))
+  where f sp xs ys = xs ++ sp : reverse ys
+        f' sp xs ys = xs ++ sp ++ map mapFrameV (reverse ys)
 
 _recurse :: CharRenderable a => (Int -> Operator KRaster) -> (Int -> Operator KRaster) -> Int -> Three a -> KRaster
 _recurse ma mb !n = go
