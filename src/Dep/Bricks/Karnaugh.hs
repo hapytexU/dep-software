@@ -16,8 +16,6 @@ module Dep.Bricks.Karnaugh (
 
 import Data.List(transpose)
 
-import Debug.Trace(trace)
-
 import Dep.Algorithm.Synthesis(synthesis)
 import Dep.Bricks.Utils(fromRaster, harrow', varrow', inRaster')
 import Dep.Class.Renderable(CharRenderable(charRenderItem))

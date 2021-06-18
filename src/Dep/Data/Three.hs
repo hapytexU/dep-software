@@ -88,11 +88,11 @@ instance Ord1 Three where
   liftCompare cmp = go
     where go (Leaf a) (Leaf b) = cmp a b
           go (Leaf _) _ = LT
-          go (Link _) (Leaf _) = GT
+          go _ (Leaf _) = GT
           go (Link la) (Link lb) = go la lb
           go (Link _) _ = LT
+          go _ (Link _) = GT
           go (Split la lb) (Split ma mb) = go la ma <> go lb mb
-          go (Split _ _) _ = GT
 
 -- | A type alias for (non-deterministic) steps in a 'Three' structure.
 type ThreeStep = ThreeValue

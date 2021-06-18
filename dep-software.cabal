@@ -17,6 +17,7 @@ library
   hs-source-dirs: src
   exposed-modules:
      Dep.Algorithm.Synthesis
+   , Dep.Algorithm.Levenshtein
    , Dep.Bricks.Box
    , Dep.Bricks.Circuit
    , Dep.Bricks.Gate
