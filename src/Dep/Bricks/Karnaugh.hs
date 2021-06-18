@@ -16,6 +16,8 @@ module Dep.Bricks.Karnaugh (
 
 import Data.List(transpose)
 
+import Debug.Trace(trace)
+
 import Dep.Algorithm.Synthesis(synthesis)
 import Dep.Bricks.Utils(fromRaster, harrow', varrow', inRaster')
 import Dep.Class.Renderable(CharRenderable(charRenderItem))
@@ -29,6 +31,24 @@ import Graphics.Vty.Image(Image, (<->), (<|>), char, emptyImage, safeWcswidth, s
 
 type KLine = String
 type KRaster = [KLine]
+
+mapFrameH :: Char -> Char
+mapFrameH '\x250f' = '\x2517'
+mapFrameH '\x2517' = '\x250f'
+mapFrameH '\x2513' = '\x251b'
+mapFrameH '\x251b' = '\x2513'
+mapFrameH '\x252f' = '\x2537'
+mapFrameH '\x2537' = '\x252f'
+mapFrameH c = c
+
+mapFrameV :: Char -> Char
+mapFrameV '\x250f' = '\x2513'
+mapFrameV '\x2513' = '\x250f'
+mapFrameV '\x2517' = '\x251b'
+mapFrameV '\x251b' = '\x2517'
+mapFrameV '\x2520' = '\x2528'
+mapFrameV '\x2528' = '\x2520'
+mapFrameV c = c
 
 hmark :: Int -> Int -> String
 hmark m n = replicate m ' ' ++ '\x2576' : replicate n '\x2500' ++ "\x2574"
@@ -90,18 +110,18 @@ _mergeVertical spt spb n
         cyspb = transpose . zipWith const (cycle spb)
         go ([], []) = []
         go (xs@(x:_), []) = xs ++ [cyspt x]
-        go (xs, ys@(y:_)) = xs ++ cyspt y : reverse ys
+        go (xs, ys@(y:_)) = xs ++ cyspt y : reverse (map (map mapFrameV) ys)
         go' ([], []) = []
         go' (xs@(x:_), []) = xs ++ cyspb x
-        go' (xs, ys@(y:_)) = xs ++ cyspb y ++ reverse ys
+        go' (xs, ys@(y:_)) = xs ++ cyspb y ++ reverse (map (map mapFrameV) ys)
 
 
 _mergeHorizontal :: KLine -> KRaster -> Int -> Operator KRaster
 _mergeHorizontal spl spr n
-  | n <= 4 = uncurry (zipWith3 f (cycle spl))
-  | otherwise = uncurry (zipWith3 f' (cycle spr))
-  where f sp xs ys = xs ++ sp : reverse ys
-        f' sp xs ys = xs ++ sp ++ reverse ys
+  | n <= 4 = trace (show n) (uncurry (zipWith3 f (cycle spl)))
+  | otherwise = trace (show n) (uncurry (zipWith3 f' (cycle spr)))
+  where f sp xs ys = xs ++ sp : reverse (map mapFrameH ys)
+        f' sp xs ys = xs ++ sp ++ reverse (map mapFrameH ys)
 
 _recurse :: CharRenderable a => (Int -> Operator KRaster) -> (Int -> Operator KRaster) -> Int -> Three a -> KRaster
 _recurse ma mb !n = go
