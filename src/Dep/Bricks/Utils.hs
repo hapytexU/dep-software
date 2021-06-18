@@ -11,8 +11,10 @@ A module that is used to render lines, arrows, rasters, etc.
 -}
 
 module Dep.Bricks.Utils (
+    -- * Convert to an 'Image'
+    fromRaster
     -- * Lines
-    hline, hline'
+  , hline, hline'
   , vline, vline'
     -- * Arrows
   , harrow, harrow'
@@ -27,9 +29,18 @@ import qualified Data.Text as T
 import Dep.Utils(udiv)
 
 import Graphics.Vty.Attributes(Attr)
-import Graphics.Vty.Image(Image, (<->), (<|>), char, imageWidth, imageHeight, text', vertCat)
+import Graphics.Vty.Image(Image, (<->), (<|>), char, emptyImage, imageWidth, imageHeight, string, text', vertCat)
 
-type Raster = [String]
+type Row = String
+type Raster = [Row]
+
+-- | Convert a given list of strings to an 'Image' where all the
+-- images have the same attribute.
+fromRaster
+  :: Attr  -- ^ The 'Attr'ibute that determines how to render the raster.
+  -> Raster  -- ^ The given list of strings that we want to render.
+  -> Image  -- ^ The corresponding image by vertically aligning the rows of the raster.
+fromRaster atr = foldr ((<->) . string atr) emptyImage
 
 -- | Render a /horizontal/ arrow with the given number of characters between the arrow heads. The 'Text'
 -- in the middle is "/cycled/".
@@ -122,7 +133,7 @@ inRaster atr img = top <-> (lft <|> img <|> rght) <-> bot
           h = imageHeight img
           lft = vline "\x2503\x2520" atr h
           rght = vline "\x2503\x2528" atr h
-          top = harrow '\x250f' "\x2501\x252f" '\x2513' atr w
+          top = harrow '\x250f' "\x2501\x252f\x2501\x252f\x2501\x252f\x2501\x2513" '\x2513' atr w
           bot = harrow '\x2517' "\x2501\x2537" '\x251b'atr  w
 
 -- | Wrap the given list of 'String's in a raster structure with thick borders
@@ -130,6 +141,6 @@ inRaster atr img = top <-> (lft <|> img <|> rght) <-> bot
 inRaster'
   :: Raster  -- ^ The given list of 'String's that we want to wrap in a /raster/.
   -> Raster  -- ^ A list of 'String's that contains the given image wrapped in a /raster/.
-inRaster' img = ('\x250f' : take w (cycle "\x2501\x252f") ++ "\x2513") : go (cycle "\x2503\x2520") (cycle "\x2503\x2528") img ++ ['\x2517' : take w (cycle "\x2501\x2537") ++ "\x251b"]
+inRaster' img = ('\x250f' : take w (cycle "\x2501\x252f\x2501\x252f\x2501\x252f\x2501\x2513 \x250f") ++ "\x2513") : go (cycle "\x2503\x2520\x2503\x2520\x2503\x2520\x2503\x2517 \x250f") (cycle "\x2503\x2528\x2503\x2528\x2503\x2528\x2503\x251b \x2513") img ++ ['\x2517' : take w (cycle "\x2501\x2537\x2501\x2537\x2501\x2537\x2501\x251b \x2517") ++ "\x251b"]
     where w = maximum (map length img)
           go = zipWith3 (\x y z -> x : z ++ [y])

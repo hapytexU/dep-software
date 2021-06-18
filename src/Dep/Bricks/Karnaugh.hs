@@ -14,10 +14,10 @@ module Dep.Bricks.Karnaugh (
     renderKarnaugh, renderKarnaugh'
   ) where
 
-import Debug.Trace(trace)
+import Data.List(transpose)
 
 import Dep.Algorithm.Synthesis(synthesis)
-import Dep.Bricks.Utils(harrow', varrow', inRaster')
+import Dep.Bricks.Utils(fromRaster, harrow', varrow', inRaster')
 import Dep.Class.Renderable(CharRenderable(charRenderItem))
 import Dep.Data.Product(SumOfProducts)
 import Dep.Data.Three(Three(Leaf, Link, Split), depth, leftmost)
@@ -82,25 +82,36 @@ vmark' = vmark (<|>)
 vmark'' :: String -> Attr -> Int -> Int -> Image
 vmark'' = vmark (flip (<|>))
 
-_mergeVertical :: KLine -> Operator KRaster
-_mergeVertical _ ([], []) = []
-_mergeVertical zs (xs@(x:_), []) = xs ++ [zs']
-  where zs' = zipWith const (cycle zs) x
-_mergeVertical zs (xs, ys@(y:_)) = xs ++ zs' : reverse ys
-  where zs' = zipWith const (cycle zs) y
+_mergeVertical :: KLine -> KRaster -> Int -> Operator KRaster
+_mergeVertical spt spb n
+  | n <= 4 = go
+  | otherwise = go'
+  where cyspt = zipWith const (cycle spt)
+        cyspb = transpose . zipWith const (cycle spb)
+        go ([], []) = []
+        go (xs@(x:_), []) = xs ++ [cyspt x]
+        go (xs, ys@(y:_)) = xs ++ cyspt y : reverse ys
+        go' ([], []) = []
+        go' (xs@(x:_), []) = xs ++ cyspb x
+        go' (xs, ys@(y:_)) = xs ++ cyspb y ++ reverse ys
 
-_mergeHorizontal :: KLine -> Operator KRaster
-_mergeHorizontal spl = uncurry (zipWith3 f (cycle spl))
+
+_mergeHorizontal :: KLine -> KRaster -> Int -> Operator KRaster
+_mergeHorizontal spl spr n
+  | n <= 4 = uncurry (zipWith3 f (cycle spl))
+  | otherwise = uncurry (zipWith3 f' (cycle spr))
   where f sp xs ys = xs ++ sp : reverse ys
+        f' sp xs ys = xs ++ sp ++ reverse ys
 
-_recurse :: CharRenderable a => Operator KRaster -> Operator KRaster -> Int -> Three a -> KRaster
+_recurse :: CharRenderable a => (Int -> Operator KRaster) -> (Int -> Operator KRaster) -> Int -> Three a -> KRaster
 _recurse ma mb !n = go
       where fn = _recurse mb ma (n-1)
+            man = ma n
             go l |
               n <= 0 = [[charRenderItem (leftmost l)]]  -- leftmost is used to prevent cases with multiple items
-            go l@(Leaf _) = let fnl = fn l in ma (fnl, fnl)
-            go (Link l) = let fnl = fn l in ma (fnl, fnl)
-            go (Split la lb) = ma (fn la, fn lb)
+            go l@(Leaf _) = let fnl = fn l in man (fnl, fnl)
+            go (Link l) = let fnl = fn l in man (fnl, fnl)
+            go ~(Split la lb) = man (fn la, fn lb)
 
 -- | Render the given 'Three' as a /Karnaugh/ card, that can
 -- also visualize the /sum-of-product/.
@@ -117,5 +128,6 @@ renderKarnaugh :: CharRenderable a
   -> SumOfProducts -- ^ The sum of products that will be used to mark the /Karnaugh card/.
   -> Attr  -- ^ The base 'Attr'ibute to render the /Karnaugh card/.
   -> Image  -- ^ The image that contains a rendered version of the /Karnaugh card/.
-renderKarnaugh ts _ atr = foldr ((<->) . string atr) emptyImage (addBottomMark "x\x2083" (addTopMark "x\x2081" (addLeftMark "x\x2082" (addRightMark "x\x2084" (inRaster' recs)))))
-  where recs = _recurse (_mergeHorizontal "\x2502\x253c") (_mergeVertical "\x2500\x253c") (depth ts) ts
+renderKarnaugh ts _ atr = (fromRaster atr (inRaster' recs))
+  -- ts _ atr = foldr ((<->) . string atr) emptyImage (addBottomMark "x\x2083" (addTopMark "x\x2081" (addLeftMark "x\x2082" (addRightMark "x\x2084" (inRaster' recs)))))
+  where recs = _recurse (_mergeHorizontal "\x2502\x253c" ["\x2503 \x2503", "\x2528 \x2520"]) (_mergeVertical "\x2500\x253c" ["\x2501 \x2501", "\x2537 \x252f"]) (depth ts) ts
