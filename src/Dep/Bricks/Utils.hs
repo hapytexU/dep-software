@@ -33,7 +33,10 @@ import Dep.Utils(udiv)
 import Graphics.Vty.Attributes(Attr)
 import Graphics.Vty.Image(Image, (<->), (<|>), char, emptyImage, imageWidth, imageHeight, string, text', vertCat)
 
+-- | A Row is a simple 'String', typically a row in an 'Raster' (and later an 'Image').
 type Row = String
+
+-- | A list of lists of 'Char'acters is a 'Raster', typically this is used to convert this to an 'Image'.
 type Raster = [Row]
 
 -- | Convert a given list of strings to an 'Image' where all the
