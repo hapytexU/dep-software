@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, DeriveFoldable, DeriveFunctor, DeriveGeneric, DeriveTraversable, Safe, TemplateHaskellQuotes #-}
+{-# LANGUAGE DeriveDataTypeable, DeriveGeneric, DeriveTraversable, Safe, TemplateHaskellQuotes #-}
 
 module Dep.Algorithm.Levenshtein (
     -- * Present edits to a sequence

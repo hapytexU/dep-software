@@ -66,15 +66,15 @@ addBottomMark st = (++ [hmark 5 3, hname 5 3 st])
 
 addRightMark :: String -> KRaster -> KRaster
 addRightMark st kr = la ++ (l1 ++ "\x2577") : map (++"\x2502") lb ++ (l2 ++ '\x2502' : st) : map (++ "\x2502") lc ++ (l3 ++ "\x2575") : ld
-  where ~(la, (l1:ls)) = splitAt 2 kr
-        ~(lb, (l2:lt)) = splitAt 1 ls
-        ~(lc, (l3:ld)) = splitAt 1 lt
+  where ~(la, l1:ls) = splitAt 2 kr
+        ~(lb, l2:lt) = splitAt 1 ls
+        ~(lc, l3:ld) = splitAt 1 lt
 
 addLeftMark :: String -> KRaster -> KRaster
 addLeftMark st kr = map (spac1 ++) la ++ (spac ++ '\x2577' : l1) : map ((spac ++ "\x2502") ++) lb ++ (st ++ '\x2502' : l2) : map ((spac ++ "\x2502")++) lc ++ (spac ++ "\x2575" ++ l3) : map (spac1 ++) ld
-  where ~(la, (l1:ls)) = splitAt 4 kr
-        ~(lb, (l2:lt)) = splitAt 1 ls
-        ~(lc, (l3:ld)) = splitAt 1 lt
+  where ~(la, l1:ls) = splitAt 4 kr
+        ~(lb, l2:lt) = splitAt 1 ls
+        ~(lc, l3:ld) = splitAt 1 lt
         w = safeWcswidth st
         spac = replicate w ' '
         spac1 = ' ' : spac
@@ -116,8 +116,8 @@ _mergeVertical spt spb n
 
 _mergeHorizontal :: KLine -> KRaster -> Int -> Operator KRaster
 _mergeHorizontal spl spr n
-  | n <= 4 = (uncurry (zipWith3 f (cycle spl)))
-  | otherwise = (uncurry (zipWith3 f' (cycle spr)))
+  | n <= 4 = uncurry (zipWith3 f (cycle spl))
+  | otherwise = uncurry (zipWith3 f' (cycle spr))
   where f sp xs ys = xs ++ sp : reverse ys
         f' sp xs ys = xs ++ sp ++ map mapFrameV (reverse ys)
 
@@ -146,7 +146,7 @@ renderKarnaugh :: CharRenderable a
   -> SumOfProducts -- ^ The sum of products that will be used to mark the /Karnaugh card/.
   -> Attr  -- ^ The base 'Attr'ibute to render the /Karnaugh card/.
   -> Image  -- ^ The image that contains a rendered version of the /Karnaugh card/.
-renderKarnaugh ts _ atr = (fromRaster atr (inRaster' recs))
+renderKarnaugh ts _ atr = fromRaster atr (inRaster' recs)
   -- ts _ atr = foldr ((<->) . string atr) emptyImage (addBottomMark "x\x2083" (addTopMark "x\x2081" (addLeftMark "x\x2082" (addRightMark "x\x2084" (inRaster' recs)))))
   where recs = _recurse (_mergeHorizontal "\x2502\x253c" ["\x2503 \x2503", "\x2528 \x2520", "\x2503 \x2503", "\x2528 \x2520", "\x2503 \x2503", "\x2528 \x2520", "\x2503 \x2503", "\x251b \x2517", "   ", "\x2513 \x250f"]) (_mergeVertical "\x2500\x253c" ["\x2501 \x2501", "\x2537 \x252f", "\x2501 \x2501", "\x2537 \x252f", "\x2501 \x2501", "\x2537 \x252f", "\x2501 \x2501", "\x251b \x2513", "   ", "\x2517 \x250f"] ) (depth ts) ts
 
