@@ -17,7 +17,7 @@ module Dep.Bricks.Karnaugh (
 import Data.List(transpose)
 
 import Dep.Algorithm.Synthesis(synthesis)
-import Dep.Bricks.Utils(fromRaster, harrow', varrow', inRaster')
+import Dep.Bricks.Utils(fromRaster, inRaster')  -- harrow', varrow'
 import Dep.Class.Renderable(CharRenderable(charRenderItem))
 import Dep.Data.Product(SumOfProducts)
 import Dep.Data.Three(Three(Leaf, Link, Split), depth, leftmost)
@@ -25,7 +25,7 @@ import Dep.Data.ThreeValue(ThreeValue)
 import Dep.Utils(Operator)
 
 import Graphics.Vty.Attributes(Attr)
-import Graphics.Vty.Image(Image, (<->), (<|>), char, emptyImage, safeWcswidth, string)
+import Graphics.Vty.Image(Image)  -- , (<->), (<|>), char, safeWcswidth, string)
 
 type KLine = String
 type KRaster = [KLine]
@@ -48,6 +48,7 @@ mapFrameV '\x2520' = '\x2528'
 mapFrameV '\x2528' = '\x2520'
 mapFrameV c = c
 
+{-
 hmark :: Int -> Int -> String
 hmark m n = replicate m ' ' ++ '\x2576' : replicate n '\x2500' ++ "\x2574"
 
@@ -79,8 +80,6 @@ addLeftMark st kr = map (spac1 ++) la ++ (spac ++ '\x2577' : l1) : map ((spac ++
         spac = replicate w ' '
         spac1 = ' ' : spac
 
-
-{-
 hmark :: (Image -> Image -> Image) -> String -> Attr -> Int -> Image
 hmark f l atr n = f (string atr (replicate (div (n+3-length l) 2) ' ') <|> string atr l) (harrow' '\x2576' "\x2500" '\x2574' atr n)
 
@@ -89,7 +88,6 @@ hmark' = hmark (<->)
 
 hmark'' :: String -> Attr -> Int -> Image
 hmark'' = hmark (flip (<->))
--}
 
 vmark :: (Image -> Image -> Image) -> String -> Attr -> Int -> Int -> Image
 vmark _ _ atr m n = foldr ((<->) . char atr) (varrow' '\x2577' "\x2502" '\x2575' atr n) (replicate m ' ')
@@ -99,6 +97,7 @@ vmark' = vmark (<|>)
 
 vmark'' :: String -> Attr -> Int -> Int -> Image
 vmark'' = vmark (flip (<|>))
+-}
 
 _mergeVertical :: KLine -> KRaster -> Int -> Operator KRaster
 _mergeVertical spt spb n

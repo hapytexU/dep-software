@@ -18,7 +18,7 @@ import Control.Lens.Operators((&), (.~)) -- , (^.))
 -- import Dep.Bricks.Layout(CircuitLayout(Horizontal))
 import Dep.Bricks.Karnaugh(renderKarnaugh)
 import Dep.Data.Three(Three(Leaf, Split))
-import Dep.Data.ThreeValue(ThreeValue(Zero, One, DontCare))
+-- import Dep.Data.ThreeValue(ThreeValue(Zero, One, DontCare))
 
 import Graphics.Vty.Attributes(defAttr)
 
@@ -29,9 +29,9 @@ circuit = Widget Fixed Fixed $ do
   -- let a = c ^. attrL
   -- return (emptyResult & imageL .~ andGateV3 (c ^. attrL))
 --  return (emptyResult & imageL .~ genericGate '&' Horizontal [False, True, False, True] True a)
-  let l0 = Leaf Zero
-  let l1 = Leaf One
-  let ld = Leaf DontCare
+  -- let l0 = Leaf Zero
+  -- let l1 = Leaf One
+  -- let ld = Leaf DontCare
   let la = Leaf 'a'
   let lb = Leaf 'b'
   let lc = Leaf 'c'
