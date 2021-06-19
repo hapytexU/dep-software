@@ -29,27 +29,13 @@ import Language.Haskell.TH.Syntax(Lift(lift, liftTyped), TExp(TExp))
 import Test.QuickCheck(oneof)
 import Test.QuickCheck.Arbitrary(Arbitrary(arbitrary, shrink), Arbitrary1(liftArbitrary), arbitrary1)
 
+-- | A data type that is used to list how to edit a sequence to form another sequence.
 data Edit a
-  = Add a
-  | Rem a
-  | Copy a
-  | Swap a a
+  = Add a  -- ^ We add the given element to the sequence.
+  | Rem a  -- ^ We remove the given element to the sequence.
+  | Copy a  -- ^ We copy an element from the sequence, this basically act as a /no-op/.
+  | Swap a a  -- ^ We modify the given first item into the second item, this thus denotes a replacement.
   deriving (Data, Eq, Foldable, Functor, Generic, Generic1, Ord, Read, Show, Traversable)
-
--- | Determine the standard edit score for the /Levenshtein distance/.
-editScore
-  :: Edit a  -- ^ The given 'Edit' to convert to a score.
-  -> Int  -- ^ The score of the given 'Edit' object.
-editScore (Add _) = 1
-editScore (Rem _) = 1
-editScore (Copy _) = 0
-editScore (Swap _ _) = 1
-
--- | Determine the score for the /Levenshtein distance/ for a 'Foldable' of 'Edit's.
-editScore' :: Foldable f
-  => f (Edit a)  -- ^ The given 'Foldable' of edits to determine the score from.
-  -> Int  -- ^ The edit score given for the given 'Foldable' of 'Edit's.
-editScore' = foldr ((+) . editScore) 0
 
 instance Arbitrary1 Edit where
     liftArbitrary arb = go
@@ -113,10 +99,36 @@ instance Ord1 Edit where
           go _ (Copy _) = GT
           go (Swap la lb) (Swap ra rb) = cmp la ra <> cmp lb rb
 
-levenshtein :: Eq a => [a] -> [a] -> (Int, [Edit a])
+
+-- | Determine the standard edit score for the /Levenshtein distance/.
+editScore
+  :: Edit a  -- ^ The given 'Edit' to convert to a score.
+  -> Int  -- ^ The score of the given 'Edit' object.
+editScore (Add _) = 1
+editScore (Rem _) = 1
+editScore (Copy _) = 0
+editScore (Swap _ _) = 1
+
+-- | Determine the score for the /Levenshtein distance/ for a 'Foldable' of 'Edit's.
+editScore' :: Foldable f
+  => f (Edit a)  -- ^ The given 'Foldable' of edits to determine the score from.
+  -> Int  -- ^ The edit score given for the given 'Foldable' of 'Edit's.
+editScore' = foldr ((+) . editScore) 0
+
+-- | Obtain the /Levenshtein distance/ from one sequence ot another, given we each time add one point for an addition, deletion and substitution.
+levenshtein :: Eq a
+  => [a]  -- ^ The original given sequence.
+  -> [a]  -- ^ The target given sequence.
+  -> (Int, [Edit a])  -- ^ A 2-tuple with the edit score as first item, and a list of modifications as second item to transform the first sequence to the second one.
 levenshtein = levenshtein' (==)
 
-levenshtein' :: (a -> a -> Bool) -> [a] -> [a] -> (Int, [Edit a])
+-- | Obtain the /Levenshtein distance/ from one sequence ot another, given we each time add one point for an addition, deletion and substitution. The
+-- equality relation is given, for example to perform case-insensitive matching.
+levenshtein'
+  :: (a -> a -> Bool)  -- ^ A function that determines whether the two items of the sequences are equivalent.
+  -> [a]  -- ^ The original given sequence.
+  -> [a]  -- ^ The target given sequence.
+  -> (Int, [Edit a])  -- ^ A 2-tuple with the edit score as first item, and a list of modifications as second item to transform the first sequence to the second one.
 levenshtein' eq xs' ys' = second reverse (reversedLevenshtein' eq xs' ys')
 
 reversedLevenshtein :: Eq a => [a] -> [a] -> (Int, [Edit a])

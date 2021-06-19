@@ -19,6 +19,8 @@ module Dep.Bricks.Utils (
     -- * Arrows
   , harrow, harrow'
   , varrow, varrow'
+    -- * Type aliasses for rows and rasters
+  , Row, Raster
     -- * Raster (for Karnaugh cards)
   , inRaster, inRaster'
   ) where
