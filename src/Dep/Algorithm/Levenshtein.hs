@@ -3,8 +3,12 @@
 module Dep.Algorithm.Levenshtein (
     -- * Present edits to a sequence
     Edit(Add, Rem, Copy, Swap)
+    -- * Edit distance score
+  , editScore, editScore'
     -- * Determine the most optimal edit
-  , levenshtein, reversedLevenshtein
+  , levenshtein, levenshtein', reversedLevenshtein, reversedLevenshtein'
+    -- * Advanced Levenshtein distances
+  , genericReversedLevenshtein, genericReversedLevenshtein'
   ) where
 
 import Control.Arrow(second)
@@ -31,6 +35,21 @@ data Edit a
   | Copy a
   | Swap a a
   deriving (Data, Eq, Foldable, Functor, Generic, Generic1, Ord, Read, Show, Traversable)
+
+-- | Determine the standard edit score for the /Levenshtein distance/.
+editScore
+  :: Edit a  -- ^ The given 'Edit' to convert to a score.
+  -> Int  -- ^ The score of the given 'Edit' object.
+editScore (Add _) = 1
+editScore (Rem _) = 1
+editScore (Copy _) = 0
+editScore (Swap _ _) = 1
+
+-- | Determine the score for the /Levenshtein distance/ for a 'Foldable' of 'Edit's.
+editScore' :: Foldable f
+  => f (Edit a)  -- ^ The given 'Foldable' of edits to determine the score from.
+  -> Int  -- ^ The edit score given for the given 'Foldable' of 'Edit's.
+editScore' = foldr ((+) . editScore) 0
 
 instance Arbitrary1 Edit where
     liftArbitrary arb = go
@@ -104,13 +123,23 @@ reversedLevenshtein :: Eq a => [a] -> [a] -> (Int, [Edit a])
 reversedLevenshtein = reversedLevenshtein' (==)
 
 reversedLevenshtein' :: (a -> a -> Bool) -> [a] -> [a] -> (Int, [Edit a])
-reversedLevenshtein' eq xs' ys' = last (foldl (nextRow ys') row0 xs')
+reversedLevenshtein' eq = genericReversedLevenshtein' eq c1 c1 (const c1)
+  where c1 = const 1
+
+genericReversedLevenshtein :: Eq a => (a -> Int) -> (a -> Int) -> (a -> a -> Int) -> [a] -> [a] -> (Int, [Edit a])
+genericReversedLevenshtein = genericReversedLevenshtein' (==)
+
+genericReversedLevenshtein' :: (a -> a -> Bool) -> (a -> Int) -> (a -> Int) -> (a -> a -> Int) -> [a] -> [a] -> (Int, [Edit a])
+genericReversedLevenshtein' eq ad rm sw xs' ys' = last (foldl (nextRow ys') row0 xs')
   where
-    row0 = scanl (\(w, is) i -> (w+1, Add i: is)) (0, []) ys'
+    row0 = scanl (\(w, is) i -> (w+ad i, Add i: is)) (0, []) ys'
     nextCell x (l, le) y (lt, lte) (t, te)
       | eq x y = (lt, Copy x : lte)
-      | lt <= t && lt <= l = (lt+1, Swap x y:lte)
-      | l <= t = (l+1, Add y:le)
-      | otherwise = (t+1, Rem x:te)
+      | scs <= scr && lt <= sca = (scs, Swap x y:lte)
+      | sca <= scr = (sca, Add y:le)
+      | otherwise = (scr, Rem x:te)
+      where sca = l + ad y
+            scr = t + rm x
+            scs = lt + sw x y
     curryNextCell x l = uncurry (uncurry (nextCell x l))
-    nextRow ys da@(~((dn, de):ds)) x = scanl (curryNextCell x) (dn+1,Rem x:de) (zip (zip ys da) ds)
+    nextRow ys da@(~((dn, de):ds)) x = scanl (curryNextCell x) (dn+rm x,Rem x:de) (zip (zip ys da) ds)
