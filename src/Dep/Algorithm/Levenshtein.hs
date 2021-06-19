@@ -1,5 +1,17 @@
 {-# LANGUAGE DeriveDataTypeable, DeriveGeneric, DeriveTraversable, Safe, TemplateHaskellQuotes #-}
 
+{-|
+Module      : Dep.Algorithm.Levenshtein
+Description : A module to determine the edit distance between two sequences.
+Maintainer  : hapytexeu+gh@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+This module exports functions to help determine how different two sequences are.
+This is used to guess the name of the command if the command given by the user
+does not map on an action.
+-}
+
 module Dep.Algorithm.Levenshtein (
     -- * Present edits to a sequence
     Edit(Add, Rem, Copy, Swap)
@@ -131,17 +143,45 @@ levenshtein'
   -> (Int, [Edit a])  -- ^ A 2-tuple with the edit score as first item, and a list of modifications as second item to transform the first sequence to the second one.
 levenshtein' eq xs' ys' = second reverse (reversedLevenshtein' eq xs' ys')
 
-reversedLevenshtein :: Eq a => [a] -> [a] -> (Int, [Edit a])
+-- | Obtain the /Levenshtein distance/ where the list of edits is in /reverse/ order. This because this is more efficient and is thus useful if the order of
+-- the 'Edit's does not matter much.
+reversedLevenshtein :: Eq a
+  => [a]  -- ^ The original given sequence.
+  -> [a]  -- ^ The target given sequence.
+  -> (Int, [Edit a])  -- ^ A 2-tuple with the edit score as first item, and a list of modifications in /reversed/ order as second item to transform the first sequence to the second one.
 reversedLevenshtein = reversedLevenshtein' (==)
 
-reversedLevenshtein' :: (a -> a -> Bool) -> [a] -> [a] -> (Int, [Edit a])
+-- | Obtain the /Levenshtein distance/ where the list of edits is in /reverse/ order. This because this is more efficient and is thus useful if the order of
+-- the 'Edit's does not matter much. The equivalence relation is given through a parameter, and thus can for example allow case-insensitive matching.
+reversedLevenshtein'
+  :: (a -> a -> Bool)  -- ^ The given equivalence relation to work with.
+  -> [a]  -- ^ The original given sequence.
+  -> [a]  -- ^ The target sequence.
+  -> (Int, [Edit a])  -- ^ A 2-tuple with the edit score as first item, and a list of modifications in /reversed/ order as second item to transform the first sequence to the second one.
 reversedLevenshtein' eq = genericReversedLevenshtein' eq c1 c1 (const c1)
   where c1 = const 1
 
-genericReversedLevenshtein :: Eq a => (a -> Int) -> (a -> Int) -> (a -> a -> Int) -> [a] -> [a] -> (Int, [Edit a])
+-- | A function to determine the /Levenshtein distance/ by specifying the cost functions of adding, removing and editing characters. The 2-tuple returns the distance
+-- as first item of the 2-tuple, and the list of 'Edit's in reverse order as second item.
+genericReversedLevenshtein :: Eq a
+  => (a -> Int)  -- ^ The cost of adding the given item.
+  -> (a -> Int)  -- ^ The cost of removing the given item.
+  -> (a -> a -> Int)  -- ^ The cost that it takes to replace an item of the first parameter with one of the second parameter.
+  -> [a]  -- ^ The original given sequence.
+  -> [a]  -- ^ The target sequence.
+  -> (Int, [Edit a])  -- ^ A 2-tuple with the edit score as first item, and a list of modifications in /reversed/ order as second item to transform the first sequence to the second one.
 genericReversedLevenshtein = genericReversedLevenshtein' (==)
 
-genericReversedLevenshtein' :: (a -> a -> Bool) -> (a -> Int) -> (a -> Int) -> (a -> a -> Int) -> [a] -> [a] -> (Int, [Edit a])
+-- | A function to determine the /Levenshtein distance/ by specifying the cost functions of adding, removing and editing characters. The 2-tuple returns the distance
+-- as first item of the 2-tuple, and the list of 'Edit's in reverse order as second item.
+genericReversedLevenshtein'
+  :: (a -> a -> Bool)  -- ^ The given equivalence relation to work with.
+  -> (a -> Int)  -- ^ The cost of adding the given item.
+  -> (a -> Int)  -- ^ The cost of removing the given item.
+  -> (a -> a -> Int)  -- ^ The cost that it takes to replace an item of the first parameter with one of the second parameter.
+  -> [a]  -- ^ The original given sequence.
+  -> [a]  -- ^ The target sequence.
+  -> (Int, [Edit a])  -- ^ A 2-tuple with the edit score as first item, and a list of modifications in /reversed/ order as second item to transform the first sequence to the second one.
 genericReversedLevenshtein' eq ad rm sw xs' ys' = last (foldl (nextRow ys') row0 xs')
   where
     row0 = scanl (\(w, is) i -> (w+ad i, Add i: is)) (0, []) ys'
