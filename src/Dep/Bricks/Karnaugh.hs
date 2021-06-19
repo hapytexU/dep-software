@@ -149,7 +149,3 @@ renderKarnaugh :: CharRenderable a
 renderKarnaugh ts _ atr = fromRaster atr (inRaster' recs)
   -- ts _ atr = foldr ((<->) . string atr) emptyImage (addBottomMark "x\x2083" (addTopMark "x\x2081" (addLeftMark "x\x2082" (addRightMark "x\x2084" (inRaster' recs)))))
   where recs = _recurse (_mergeHorizontal "\x2502\x253c" ["\x2503 \x2503", "\x2528 \x2520", "\x2503 \x2503", "\x2528 \x2520", "\x2503 \x2503", "\x2528 \x2520", "\x2503 \x2503", "\x251b \x2517", "   ", "\x2513 \x250f"]) (_mergeVertical "\x2500\x253c" ["\x2501 \x2501", "\x2537 \x252f", "\x2501 \x2501", "\x2537 \x252f", "\x2501 \x2501", "\x2537 \x252f", "\x2501 \x2501", "\x251b \x2513", "   ", "\x2517 \x250f"] ) (depth ts) ts
-
--- TODO: mechanism for reverse
-
--- ["\x2501 \x2501", "\x2537 \x252f"]
