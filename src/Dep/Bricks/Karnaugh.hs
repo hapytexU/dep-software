@@ -2,7 +2,7 @@
 
 {-|
 Module      : Dep.Bricks.Karnaugh
-Description : A module to define three-value logic.
+Description : A module to render Karnaugh cards in an interactive way.
 Maintainer  : hapytexeu+gh@gmail.com
 Stability   : experimental
 Portability : POSIX
@@ -134,6 +134,7 @@ _recurse ma mb !n = go
 -- also visualize the /sum-of-product/.
 renderKarnaugh'
   :: Three ThreeValue  -- ^ The given 'Three' to render as a /Karnaugh card/.
+  -> [String]  -- ^ The names of the variables that are rendered. If there are no sufficient variables, it will work with x₀, x₁, x₂, etc.
   -> Attr  -- ^ The base 'Attr'ibute to render the /Karnaugh card/.
   -> Image  -- ^ The image that contains a rendered version of the /Karnaugh card/.
 renderKarnaugh' = renderKarnaugh <*> synthesis
@@ -143,8 +144,9 @@ renderKarnaugh' = renderKarnaugh <*> synthesis
 renderKarnaugh :: CharRenderable a
   => Three a  -- ^ The given 'Three' to render as a /Karnaugh card/.
   -> SumOfProducts -- ^ The sum of products that will be used to mark the /Karnaugh card/.
+  -> [String]  -- ^ The names of the variables that are rendered. If there are no sufficient variables, it will work with x₀, x₁, x₂, etc.
   -> Attr  -- ^ The base 'Attr'ibute to render the /Karnaugh card/.
   -> Image  -- ^ The image that contains a rendered version of the /Karnaugh card/.
-renderKarnaugh ts _ atr = fromRaster atr (inRaster' recs)
+renderKarnaugh ts _ _ atr = fromRaster atr (inRaster' recs)
   -- ts _ atr = foldr ((<->) . string atr) emptyImage (addBottomMark "x\x2083" (addTopMark "x\x2081" (addLeftMark "x\x2082" (addRightMark "x\x2084" (inRaster' recs)))))
   where recs = _recurse (_mergeHorizontal "\x2502\x253c" ["\x2503 \x2503", "\x2528 \x2520", "\x2503 \x2503", "\x2528 \x2520", "\x2503 \x2503", "\x2528 \x2520", "\x2503 \x2503", "\x251b \x2517", "   ", "\x2513 \x250f"]) (_mergeVertical "\x2500\x253c" ["\x2501 \x2501", "\x2537 \x252f", "\x2501 \x2501", "\x2537 \x252f", "\x2501 \x2501", "\x2537 \x252f", "\x2501 \x2501", "\x251b \x2513", "   ", "\x2517 \x250f"] ) (depth ts) ts
