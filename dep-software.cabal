@@ -32,7 +32,6 @@ library
    , Dep.Class.NonDeterministicWalkable
    , Dep.Class.Renderable
    , Dep.Class.Walkable
-   , Dep.Data.GraySequence
    , Dep.Data.LogicItem
    , Dep.Data.Product
    , Dep.Data.Sum
@@ -41,7 +40,7 @@ library
    , Dep.Utils
   default-language: Haskell2010
   build-tool-depends:
-      liquidhaskell:liquidhaskell >=0.8.10
+    liquidhaskell:liquidhaskell >=0.8.10
   build-depends:
       base >= 4.7 && < 5
     , blaze-markup >= 0.5.0.0
@@ -58,6 +57,9 @@ library
     , text >=0.1
     , unicode-tricks >=0.1
     , vty >= 5.32
+  build-tools:
+      alex
+    , happy
 
 executable dep-software
   hs-source-dirs:      app

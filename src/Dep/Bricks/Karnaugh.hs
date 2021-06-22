@@ -48,57 +48,6 @@ mapFrameV '\x2520' = '\x2528'
 mapFrameV '\x2528' = '\x2520'
 mapFrameV c = c
 
-{-
-hmark :: Int -> Int -> String
-hmark m n = replicate m ' ' ++ '\x2576' : replicate n '\x2500' ++ "\x2574"
-
-hname :: Int -> Int -> String -> String
-hname m n st = replicate (m + div (n-l+1) 2) ' ' ++ st
-  where l = safeWcswidth st
-
-twig :: Attr -> Image
-twig atr = string atr "\x2572 " <-> string atr " \x2572"
-
-addTopMark :: String -> KRaster -> KRaster
-addTopMark st = (:) (hname 7 3 st) . (:) (hmark 7 3)
-
-addBottomMark :: String -> KRaster -> KRaster
-addBottomMark st = (++ [hmark 5 3, hname 5 3 st])
-
-addRightMark :: String -> KRaster -> KRaster
-addRightMark st kr = la ++ (l1 ++ "\x2577") : map (++"\x2502") lb ++ (l2 ++ '\x2502' : st) : map (++ "\x2502") lc ++ (l3 ++ "\x2575") : ld
-  where ~(la, l1:ls) = splitAt 2 kr
-        ~(lb, l2:lt) = splitAt 1 ls
-        ~(lc, l3:ld) = splitAt 1 lt
-
-addLeftMark :: String -> KRaster -> KRaster
-addLeftMark st kr = map (spac1 ++) la ++ (spac ++ '\x2577' : l1) : map ((spac ++ "\x2502") ++) lb ++ (st ++ '\x2502' : l2) : map ((spac ++ "\x2502")++) lc ++ (spac ++ "\x2575" ++ l3) : map (spac1 ++) ld
-  where ~(la, l1:ls) = splitAt 4 kr
-        ~(lb, l2:lt) = splitAt 1 ls
-        ~(lc, l3:ld) = splitAt 1 lt
-        w = safeWcswidth st
-        spac = replicate w ' '
-        spac1 = ' ' : spac
-
-hmark :: (Image -> Image -> Image) -> String -> Attr -> Int -> Image
-hmark f l atr n = f (string atr (replicate (div (n+3-length l) 2) ' ') <|> string atr l) (harrow' '\x2576' "\x2500" '\x2574' atr n)
-
-hmark' :: String -> Attr -> Int -> Image
-hmark' = hmark (<->)
-
-hmark'' :: String -> Attr -> Int -> Image
-hmark'' = hmark (flip (<->))
-
-vmark :: (Image -> Image -> Image) -> String -> Attr -> Int -> Int -> Image
-vmark _ _ atr m n = foldr ((<->) . char atr) (varrow' '\x2577' "\x2502" '\x2575' atr n) (replicate m ' ')
-
-vmark' :: String -> Attr -> Int -> Int -> Image
-vmark' = vmark (<|>)
-
-vmark'' :: String -> Attr -> Int -> Int -> Image
-vmark'' = vmark (flip (<|>))
--}
-
 _mergeVertical :: KLine -> KRaster -> Int -> Operator KRaster
 _mergeVertical spt spb n
   | n <= 4 = go
@@ -149,4 +98,7 @@ renderKarnaugh :: CharRenderable a
   -> Image  -- ^ The image that contains a rendered version of the /Karnaugh card/.
 renderKarnaugh ts _ _ atr = fromRaster atr (inRaster' recs)
   -- ts _ atr = foldr ((<->) . string atr) emptyImage (addBottomMark "x\x2083" (addTopMark "x\x2081" (addLeftMark "x\x2082" (addRightMark "x\x2084" (inRaster' recs)))))
-  where recs = _recurse (_mergeHorizontal "\x2502\x253c" ["\x2503 \x2503", "\x2528 \x2520", "\x2503 \x2503", "\x2528 \x2520", "\x2503 \x2503", "\x2528 \x2520", "\x2503 \x2503", "\x251b \x2517", "   ", "\x2513 \x250f"]) (_mergeVertical "\x2500\x253c" ["\x2501 \x2501", "\x2537 \x252f", "\x2501 \x2501", "\x2537 \x252f", "\x2501 \x2501", "\x2537 \x252f", "\x2501 \x2501", "\x251b \x2513", "   ", "\x2517 \x250f"] ) (depth ts) ts
+  where dpt = depth ts
+        recs = swapit _recurse (_mergeHorizontal "\x2502\x253c" ["\x2503 \x2503", "\x2528 \x2520", "\x2503 \x2503", "\x2528 \x2520", "\x2503 \x2503", "\x2528 \x2520", "\x2503 \x2503", "\x251b \x2517", "   ", "\x2513 \x250f"]) (_mergeVertical "\x2500\x253c" ["\x2501 \x2501", "\x2537 \x252f", "\x2501 \x2501", "\x2537 \x252f", "\x2501 \x2501", "\x2537 \x252f", "\x2501 \x2501", "\x251b \x2513", "   ", "\x2517 \x250f"] ) dpt ts
+        swapit | even dpt = id
+               | otherwise = flip
