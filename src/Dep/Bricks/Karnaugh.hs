@@ -124,7 +124,7 @@ renderKarnaugh :: CharRenderable a
   -> [String]  -- ^ The names of the variables that are rendered. If there are no sufficient variables, it will work with x₀, x₁, x₂, etc.
   -> Attr  -- ^ The base 'Attr'ibute to render the /Karnaugh card/.
   -> Image  -- ^ The image that contains a rendered version of the /Karnaugh card/.
-renderKarnaugh ts _ _ atr = string atr (hvar "x\x2080" 10 7 <-> string atr (hmask '\x251c' '\x2500' '\x2524' 10 7) <-> string atr (hvar "x\x2081" 4 9) <-> string atr (hmask '\x251c' '\x2500' '\x2524' 4 9) <-> fromRaster atr (inRaster' recs))
+renderKarnaugh ts _ _ atr = string atr (hvar "x\x2080" 10 7) <-> string atr (hmask '\x251c' '\x2500' '\x2524' 10 7) <-> string atr (hvar "x\x2081" 4 9) <-> string atr (hmask '\x251c' '\x2500' '\x2524' 4 9) <-> fromRaster atr (inRaster' recs)
 -- renderKarnaugh ts _ _ atr = foldr ((<->) . string atr) emptyImage (addBottomMark "x\x2083" (addTopMark "x\x2081" (addLeftMark "x\x2082" (addRightMark "x\x2084" (inRaster' recs)))))
   where dpt = depth ts
         recs = swapit _recurse (_mergeHorizontal _horizontalThin _horizontalThick) (_mergeVertical _verticalThin _verticalThick) dpt ts
