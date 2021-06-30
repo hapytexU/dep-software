@@ -26,8 +26,9 @@ import Data.Data(Data)
 import Data.Hashable(Hashable)
 import Data.Text(Text, cons)
 
+import Dep.Class.Simplify(simplify)
 import Dep.Data.LogicItem(EvaluateItem(evaluateItem, isTrivial, numberOfVariables), ToCompact(fromCompact, toCompact), getThreeList, putThreeList, subscriptVariable)
-import Dep.Data.Three(ThreePath, Three(Leaf), simplify, wipeAll)
+import Dep.Data.Three(ThreePath, Three(Leaf), wipeAll)
 import Dep.Data.ThreeValue(ThreeValue(Zero, One, DontCare))
 
 import GHC.Generics(Generic)

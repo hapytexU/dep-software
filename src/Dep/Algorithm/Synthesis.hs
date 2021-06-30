@@ -29,12 +29,13 @@ module Dep.Algorithm.Synthesis (
 import Control.Applicative((<|>))
 
 import Dep.Class.Opposite(opposite)
-import Dep.Class.Walkable(Walkable(allStep, allWalkValues))
 import Dep.Class.NonDeterministicWalkable(NonDeterministicWalkable(allNstep))
+import Dep.Class.Simplify(simplify)
+import Dep.Class.Walkable(Walkable(allStep, allWalkValues))
 import Dep.Data.LogicItem(Item')
 import Dep.Data.Product(Product(Product), Product', SumOfProducts(SumOfProducts), SumOfProducts')
 import Dep.Data.Sum(ProductOfSums(ProductOfSums), ProductOfSums', Sum', Sum(Sum))
-import Dep.Data.Three(Three(Leaf, Link, Split), depth, simplify, wipe)
+import Dep.Data.Three(Three(Leaf, Link, Split), depth, wipe)
 import Dep.Data.ThreeValue(ThreeValue(DontCare, Zero, One), fromBool, toLower, toUpper)
 
 type WeightedItem = (Int, Item')

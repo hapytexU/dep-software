@@ -22,8 +22,6 @@ module Dep.Data.Three (
   , flipThree, flipAllThree
     -- * Lookups and constructions
   , nstep, apply, applyTo, wipe, wipeAll
-    -- * Simplifying
-  , simplify
     -- * Retrieve children according to a path
   , children, children'
     -- * Convert the 'Three' to an key-value list
@@ -43,6 +41,7 @@ import Data.Hashable.Lifted(Hashable1)
 
 import Dep.Class.NonDeterministicWalkable(NonDeterministicWalkable(nstep, nstep'))
 import Dep.Class.Opposite(Opposite)
+import Dep.Class.Simplify(Simplify(simplify))
 import Dep.Class.Walkable(Walkable(step))
 import Dep.Data.ThreeValue(ThreeValue(DontCare, Zero, One), ThreeValues)
 import Dep.Utils(applyExp')
@@ -183,20 +182,18 @@ _simplifyLink :: Three a -> Three a
 _simplifyLink l@(Leaf _) = l
 _simplifyLink l = Link l
 
--- | Simplify the given 'Three' object by minimizing common
--- subtrees. This is used to determine sum-of-products and
--- products-of-sums more efficiently, but can also be used
--- to make a table more readable.
-simplify :: Eq a
-  => Three a  -- ^ The given 'Three' to simplify.
-  -> Three a  -- ^ The corresponding simplified 'Three'.
-simplify l@(Leaf _) = l
-simplify (Link l) = _simplifyLink (simplify l)
-simplify (Split la lb)
-  | sa == sb = _simplifyLink sa
-  | otherwise = Split sa sb
-  where sa = simplify la
-        sb = simplify lb
+instance Eq a => Simplify (Three a) where
+  -- | Simplify the given 'Three' object by minimizing common
+  -- subtrees. This is used to determine sum-of-products and
+  -- products-of-sums more efficiently, but can also be used
+  -- to make a table more readable.
+  simplify l@(Leaf _) = l
+  simplify (Link l) = _simplifyLink (simplify l)
+  simplify (Split la lb)
+    | sa == sb = _simplifyLink sa
+    | otherwise = Split sa sb
+    where sa = simplify la
+          sb = simplify lb
 
 
 instance Walkable Three Bool where
@@ -284,7 +281,7 @@ instance Binary a => Binary (Three a) where
           0 -> Leaf <$> get
           1 -> Link <$> get
           2 -> Split <$> get <*> get
-          _ -> fail ("The numer " ++ show tp ++ " is not a valid Three item.")
+          _ -> fail ("The number " ++ show tp ++ " is not a valid Three item.")
 
 -- | Convert the given 'Three' to a list of 2-tuples with as first item the "address" in __reverse__,
 -- and as second item the value associated with this.

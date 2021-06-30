@@ -28,6 +28,7 @@ library
    , Dep.Bricks.Palette
    , Dep.Bricks.Utils
    , Dep.Class.Opposite
+   , Dep.Class.Simplify
    , Dep.Class.Mergeable
    , Dep.Class.NonDeterministicWalkable
    , Dep.Class.Renderable

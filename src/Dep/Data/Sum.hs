@@ -26,8 +26,9 @@ import Data.Hashable(Hashable)
 import Data.Text(Text, cons)
 
 import Dep.Class.Opposite(opposite)
+import Dep.Class.Simplify(simplify)
 import Dep.Data.LogicItem(EvaluateItem(evaluateItem, isTrivial, numberOfVariables), ToCompact(fromCompact, toCompact), getThreeList, putThreeList, subscriptVariable)
-import Dep.Data.Three(ThreePath, Three(Leaf), simplify, wipeAll)
+import Dep.Data.Three(ThreePath, Three(Leaf), wipeAll)
 import Dep.Data.ThreeValue(ThreeValue(Zero, One, DontCare))
 import Data.Binary(Binary(get, put, putList))
 
