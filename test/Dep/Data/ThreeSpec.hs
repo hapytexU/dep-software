@@ -3,7 +3,8 @@
 module Dep.Data.ThreeSpec where
 
 import Dep.CoreTest(testFunctorLaws, testApplicativeLaws, testIdempotentLaws, testSemigroupLaws, testMonoidLaws, testBinaryLaws)
-import Dep.Data.Three(Three, depth, simplify)
+import Dep.Class.Simplify(simplify)
+import Dep.Data.Three(Three, depth)
 
 import Test.Hspec(Spec, it)
 import Test.QuickCheck(property)
