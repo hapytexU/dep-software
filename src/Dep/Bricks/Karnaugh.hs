@@ -37,8 +37,8 @@ hmask c0 ci cn = go
 hvar :: String -> Int -> Int -> String
 hvar st n m = replicate (n + div (m-length st+1) 2) ' ' ++ st
 
-twig :: Attr -> Int -> Image
-twig atr n = foldMap ((<|> char atr '\x2572') . string atr . (`replicate` ' ')) [0 .. n-1]
+-- twig :: Attr -> Int -> Image
+-- twig atr n = foldMap ((<|> char atr '\x2572') . string atr . (`replicate` ' ')) [0 .. n-1]
 
 flipFrameH :: Char -> Char
 flipFrameH '\x250f' = '\x2517'

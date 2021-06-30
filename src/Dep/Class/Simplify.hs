@@ -1,5 +1,16 @@
 {-# LANGUAGE Safe #-}
 
+{-|
+Module      : Dep.Class.Simplify
+Description : A module that exposes a type class 'Simplify' that can simplify objects of types that are a member of that typeclass.
+Maintainer  : hapytexeu+gh@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+The 'Simplify' typeclass exports a function 'simplify' that is used to simplify a value. That function should be /idempotent/:
+multiple 'simplify' calls should not have a different result than a single 'simplify' call.
+-}
+
 module Dep.Class.Simplify (
     -- * A typeclass to specify that values of the type can be simplified.
     Simplify(simplify)
