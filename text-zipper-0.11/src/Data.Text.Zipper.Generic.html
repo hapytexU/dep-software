@@ -1,0 +1,181 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE FlexibleInstances #-}</span><span>
+</span><span id="line-2"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Data.Text.Zipper.Generic</span><span>
+</span><span id="line-3"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Data.Text.Zipper.Generic.html#GenericTextZipper"><span class="hs-identifier">GenericTextZipper</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-4"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Text.Zipper.Generic.html#textZipper"><span class="hs-identifier">Data.Text.Zipper.Generic.textZipper</span></a></span><span>
+</span><span id="line-5"></span><span>    </span><span class="hs-special">)</span><span>
+</span><span id="line-6"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-7"></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Prelude</span></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Prelude</span></span><span> </span><span class="hs-keyword">hiding</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">drop</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">take</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">length</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">last</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">init</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">null</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">lines</span></span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Text</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">T</span></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="Data.Text.Zipper.Vector.html"><span class="hs-identifier">Data.Text.Zipper.Vector</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">V</span></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">V</span></span><span>
+</span><span id="line-13"></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Monoid</span></span><span>
+</span><span id="line-15"></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Data.Text.Zipper.html"><span class="hs-identifier">Data.Text.Zipper</span></a></span><span>
+</span><span id="line-17"></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">class</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="#local-6989586621679057109"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span id="GenericTextZipper"><span class="annot"><a href="Data.Text.Zipper.Generic.html#GenericTextZipper"><span class="hs-identifier hs-var">GenericTextZipper</span></a></span></span><span> </span><span id="local-6989586621679057109"><span class="annot"><a href="#local-6989586621679057109"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-19"></span><span>  </span><span id="singleton"><span class="annot"><a href="Data.Text.Zipper.Generic.html#singleton"><span class="hs-identifier hs-type">singleton</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679057109"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-20"></span><span>  </span><span id="drop"><span class="annot"><a href="Data.Text.Zipper.Generic.html#drop"><span class="hs-identifier hs-type">drop</span></a></span></span><span>      </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679057109"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679057109"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-21"></span><span>  </span><span id="take"><span class="annot"><a href="Data.Text.Zipper.Generic.html#take"><span class="hs-identifier hs-type">take</span></a></span></span><span>      </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679057109"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679057109"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-22"></span><span>  </span><span id="length"><span class="annot"><a href="Data.Text.Zipper.Generic.html#length"><span class="hs-identifier hs-type">length</span></a></span></span><span>    </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679057109"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-23"></span><span>  </span><span id="last"><span class="annot"><a href="Data.Text.Zipper.Generic.html#last"><span class="hs-identifier hs-type">last</span></a></span></span><span>      </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679057109"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>
+</span><span id="line-24"></span><span>  </span><span id="init"><span class="annot"><a href="Data.Text.Zipper.Generic.html#init"><span class="hs-identifier hs-type">init</span></a></span></span><span>      </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679057109"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679057109"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-25"></span><span>  </span><span id="null"><span class="annot"><a href="Data.Text.Zipper.Generic.html#null"><span class="hs-identifier hs-type">null</span></a></span></span><span>      </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679057109"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-26"></span><span>  </span><span id="lines"><span class="annot"><a href="Data.Text.Zipper.Generic.html#lines"><span class="hs-identifier hs-type">lines</span></a></span></span><span>     </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679057109"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679057109"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-27"></span><span>  </span><span id="toList"><span class="annot"><a href="Data.Text.Zipper.Generic.html#toList"><span class="hs-identifier hs-type">toList</span></a></span></span><span>    </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679057109"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span class="hs-special">]</span><span>
+</span><span id="line-28"></span><span>
+</span><span id="line-29"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Data.Text.Zipper.Generic.html#GenericTextZipper"><span class="hs-identifier hs-type">GenericTextZipper</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span class="hs-special">]</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-30"></span><span>  </span><span id="local-6989586621679057060"><span class="annot"><span class="annottext">singleton :: Char -&gt; [Char]
+</span><a href="#local-6989586621679057060"><span class="hs-identifier hs-var hs-var hs-var hs-var">singleton</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Char -&gt; [Char] -&gt; [Char]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-31"></span><span>  </span><span id="local-6989586621679057059"><span class="annot"><span class="annottext">drop :: Int -&gt; [Char] -&gt; [Char]
+</span><a href="#local-6989586621679057059"><span class="hs-identifier hs-var hs-var hs-var hs-var">drop</span></a></span></span><span>      </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; [Char] -&gt; [Char]
+forall a. Int -&gt; [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">Prelude.drop</span></span><span>
+</span><span id="line-32"></span><span>  </span><span id="local-6989586621679057058"><span class="annot"><span class="annottext">take :: Int -&gt; [Char] -&gt; [Char]
+</span><a href="#local-6989586621679057058"><span class="hs-identifier hs-var hs-var hs-var hs-var">take</span></a></span></span><span>      </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; [Char] -&gt; [Char]
+forall a. Int -&gt; [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">Prelude.take</span></span><span>
+</span><span id="line-33"></span><span>  </span><span id="local-6989586621679057057"><span class="annot"><span class="annottext">length :: [Char] -&gt; Int
+</span><a href="#local-6989586621679057057"><span class="hs-identifier hs-var hs-var hs-var hs-var">length</span></a></span></span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Char] -&gt; Int
+forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Int
+</span><span class="hs-identifier hs-var">Prelude.length</span></span><span>
+</span><span id="line-34"></span><span>  </span><span id="local-6989586621679057056"><span class="annot"><span class="annottext">last :: [Char] -&gt; Char
+</span><a href="#local-6989586621679057056"><span class="hs-identifier hs-var hs-var hs-var hs-var">last</span></a></span></span><span>      </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Char] -&gt; Char
+forall a. [a] -&gt; a
+</span><span class="hs-identifier hs-var">Prelude.last</span></span><span>
+</span><span id="line-35"></span><span>  </span><span id="local-6989586621679057055"><span class="annot"><span class="annottext">init :: [Char] -&gt; [Char]
+</span><a href="#local-6989586621679057055"><span class="hs-identifier hs-var hs-var hs-var hs-var">init</span></a></span></span><span>      </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Char] -&gt; [Char]
+forall a. [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">Prelude.init</span></span><span>
+</span><span id="line-36"></span><span>  </span><span id="local-6989586621679057054"><span class="annot"><span class="annottext">null :: [Char] -&gt; Bool
+</span><a href="#local-6989586621679057054"><span class="hs-identifier hs-var hs-var hs-var hs-var">null</span></a></span></span><span>      </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Char] -&gt; Bool
+forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Bool
+</span><span class="hs-identifier hs-var">Prelude.null</span></span><span>
+</span><span id="line-37"></span><span>  </span><span id="local-6989586621679057053"><span class="annot"><span class="annottext">lines :: [Char] -&gt; [[Char]]
+</span><a href="#local-6989586621679057053"><span class="hs-identifier hs-var hs-var hs-var hs-var">lines</span></a></span></span><span>     </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Char] -&gt; [[Char]]
+</span><span class="hs-identifier hs-var">Prelude.lines</span></span><span>
+</span><span id="line-38"></span><span>  </span><span id="local-6989586621679057052"><span class="annot"><span class="annottext">toList :: [Char] -&gt; [Char]
+</span><a href="#local-6989586621679057052"><span class="hs-identifier hs-var hs-var hs-var hs-var">toList</span></a></span></span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Char] -&gt; [Char]
+forall a. a -&gt; a
+</span><span class="hs-identifier hs-var">id</span></span><span>
+</span><span id="line-39"></span><span>
+</span><span id="line-40"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Data.Text.Zipper.Generic.html#GenericTextZipper"><span class="hs-identifier hs-type">GenericTextZipper</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">T.Text</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-41"></span><span>  </span><span id="local-6989586621679057040"><span class="annot"><span class="annottext">singleton :: Char -&gt; Text
+</span><a href="#local-6989586621679057040"><span class="hs-identifier hs-var hs-var hs-var hs-var">singleton</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Text
+</span><span class="hs-identifier hs-var">T.singleton</span></span><span>
+</span><span id="line-42"></span><span>  </span><span id="local-6989586621679057038"><span class="annot"><span class="annottext">drop :: Int -&gt; Text -&gt; Text
+</span><a href="#local-6989586621679057038"><span class="hs-identifier hs-var hs-var hs-var hs-var">drop</span></a></span></span><span>      </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Text -&gt; Text
+</span><span class="hs-identifier hs-var">T.drop</span></span><span>
+</span><span id="line-43"></span><span>  </span><span id="local-6989586621679057036"><span class="annot"><span class="annottext">take :: Int -&gt; Text -&gt; Text
+</span><a href="#local-6989586621679057036"><span class="hs-identifier hs-var hs-var hs-var hs-var">take</span></a></span></span><span>      </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Text -&gt; Text
+</span><span class="hs-identifier hs-var">T.take</span></span><span>
+</span><span id="line-44"></span><span>  </span><span id="local-6989586621679057034"><span class="annot"><span class="annottext">length :: Text -&gt; Int
+</span><a href="#local-6989586621679057034"><span class="hs-identifier hs-var hs-var hs-var hs-var">length</span></a></span></span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Int
+</span><span class="hs-identifier hs-var">T.length</span></span><span>
+</span><span id="line-45"></span><span>  </span><span id="local-6989586621679057032"><span class="annot"><span class="annottext">last :: Text -&gt; Char
+</span><a href="#local-6989586621679057032"><span class="hs-identifier hs-var hs-var hs-var hs-var">last</span></a></span></span><span>      </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Char
+</span><span class="hs-identifier hs-var">T.last</span></span><span>
+</span><span id="line-46"></span><span>  </span><span id="local-6989586621679057030"><span class="annot"><span class="annottext">init :: Text -&gt; Text
+</span><a href="#local-6989586621679057030"><span class="hs-identifier hs-var hs-var hs-var hs-var">init</span></a></span></span><span>      </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Text
+</span><span class="hs-identifier hs-var">T.init</span></span><span>
+</span><span id="line-47"></span><span>  </span><span id="local-6989586621679057028"><span class="annot"><span class="annottext">null :: Text -&gt; Bool
+</span><a href="#local-6989586621679057028"><span class="hs-identifier hs-var hs-var hs-var hs-var">null</span></a></span></span><span>      </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Bool
+</span><span class="hs-identifier hs-var">T.null</span></span><span>
+</span><span id="line-48"></span><span>  </span><span id="local-6989586621679057026"><span class="annot"><span class="annottext">lines :: Text -&gt; [Text]
+</span><a href="#local-6989586621679057026"><span class="hs-identifier hs-var hs-var hs-var hs-var">lines</span></a></span></span><span>     </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; [Text]
+</span><span class="hs-identifier hs-var">T.lines</span></span><span>
+</span><span id="line-49"></span><span>  </span><span id="local-6989586621679057024"><span class="annot"><span class="annottext">toList :: Text -&gt; [Char]
+</span><a href="#local-6989586621679057024"><span class="hs-identifier hs-var hs-var hs-var hs-var">toList</span></a></span></span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; [Char]
+</span><span class="hs-identifier hs-var">T.unpack</span></span><span>
+</span><span id="line-50"></span><span>
+</span><span id="line-51"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Data.Text.Zipper.Generic.html#GenericTextZipper"><span class="hs-identifier hs-type">GenericTextZipper</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">V.Vector</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-52"></span><span>  </span><span id="local-6989586621679057012"><span class="annot"><span class="annottext">singleton :: Char -&gt; Vector Char
+</span><a href="#local-6989586621679057012"><span class="hs-identifier hs-var hs-var hs-var hs-var">singleton</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Vector Char
+forall a. a -&gt; Vector a
+</span><span class="hs-identifier hs-var">V.singleton</span></span><span>
+</span><span id="line-53"></span><span>  </span><span id="local-6989586621679057010"><span class="annot"><span class="annottext">drop :: Int -&gt; Vector Char -&gt; Vector Char
+</span><a href="#local-6989586621679057010"><span class="hs-identifier hs-var hs-var hs-var hs-var">drop</span></a></span></span><span>      </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Vector Char -&gt; Vector Char
+forall a. Int -&gt; Vector a -&gt; Vector a
+</span><span class="hs-identifier hs-var">V.drop</span></span><span>
+</span><span id="line-54"></span><span>  </span><span id="local-6989586621679057008"><span class="annot"><span class="annottext">take :: Int -&gt; Vector Char -&gt; Vector Char
+</span><a href="#local-6989586621679057008"><span class="hs-identifier hs-var hs-var hs-var hs-var">take</span></a></span></span><span>      </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Vector Char -&gt; Vector Char
+forall a. Int -&gt; Vector a -&gt; Vector a
+</span><span class="hs-identifier hs-var">V.take</span></span><span>
+</span><span id="line-55"></span><span>  </span><span id="local-6989586621679057006"><span class="annot"><span class="annottext">length :: Vector Char -&gt; Int
+</span><a href="#local-6989586621679057006"><span class="hs-identifier hs-var hs-var hs-var hs-var">length</span></a></span></span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Vector Char -&gt; Int
+forall a. Vector a -&gt; Int
+</span><span class="hs-identifier hs-var">V.length</span></span><span>
+</span><span id="line-56"></span><span>  </span><span id="local-6989586621679057004"><span class="annot"><span class="annottext">last :: Vector Char -&gt; Char
+</span><a href="#local-6989586621679057004"><span class="hs-identifier hs-var hs-var hs-var hs-var">last</span></a></span></span><span>      </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Vector Char -&gt; Char
+forall a. Vector a -&gt; a
+</span><span class="hs-identifier hs-var">V.last</span></span><span>
+</span><span id="line-57"></span><span>  </span><span id="local-6989586621679057002"><span class="annot"><span class="annottext">init :: Vector Char -&gt; Vector Char
+</span><a href="#local-6989586621679057002"><span class="hs-identifier hs-var hs-var hs-var hs-var">init</span></a></span></span><span>      </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Vector Char -&gt; Vector Char
+forall a. Vector a -&gt; Vector a
+</span><span class="hs-identifier hs-var">V.init</span></span><span>
+</span><span id="line-58"></span><span>  </span><span id="local-6989586621679057000"><span class="annot"><span class="annottext">null :: Vector Char -&gt; Bool
+</span><a href="#local-6989586621679057000"><span class="hs-identifier hs-var hs-var hs-var hs-var">null</span></a></span></span><span>      </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Vector Char -&gt; Bool
+forall a. Vector a -&gt; Bool
+</span><span class="hs-identifier hs-var">V.null</span></span><span>
+</span><span id="line-59"></span><span>  </span><span id="local-6989586621679056998"><span class="annot"><span class="annottext">lines :: Vector Char -&gt; [Vector Char]
+</span><a href="#local-6989586621679056998"><span class="hs-identifier hs-var hs-var hs-var hs-var">lines</span></a></span></span><span>     </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Vector Char -&gt; [Vector Char]
+</span><a href="Data.Text.Zipper.Vector.html#vecLines"><span class="hs-identifier hs-var">V.vecLines</span></a></span><span>
+</span><span id="line-60"></span><span>  </span><span id="local-6989586621679056996"><span class="annot"><span class="annottext">toList :: Vector Char -&gt; [Char]
+</span><a href="#local-6989586621679056996"><span class="hs-identifier hs-var hs-var hs-var hs-var">toList</span></a></span></span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Vector Char -&gt; [Char]
+forall a. Vector a -&gt; [a]
+</span><span class="hs-identifier hs-var">V.toList</span></span><span>
+</span><span id="line-61"></span><span>
+</span><span id="line-62"></span><span id="local-6989586621679056994"><span class="annot"><a href="Data.Text.Zipper.Generic.html#textZipper"><span class="hs-identifier hs-type">textZipper</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Text.Zipper.Generic.html#GenericTextZipper"><span class="hs-identifier hs-type">GenericTextZipper</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679056994"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span>
+</span><span id="line-63"></span><span>              </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679056994"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.Text.Zipper.html#TextZipper"><span class="hs-identifier hs-type">TextZipper</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679056994"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-64"></span><span id="textZipper"><span class="annot"><span class="annottext">textZipper :: [a] -&gt; Maybe Int -&gt; TextZipper a
+</span><a href="Data.Text.Zipper.Generic.html#textZipper"><span class="hs-identifier hs-var hs-var">textZipper</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-65"></span><span>  </span><span class="annot"><span class="annottext">(Char -&gt; a)
+-&gt; (Int -&gt; a -&gt; a)
+-&gt; (Int -&gt; a -&gt; a)
+-&gt; (a -&gt; Int)
+-&gt; (a -&gt; Char)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; Bool)
+-&gt; (a -&gt; [a])
+-&gt; (a -&gt; [Char])
+-&gt; [a]
+-&gt; Maybe Int
+-&gt; TextZipper a
+forall a.
+Monoid a =&gt;
+(Char -&gt; a)
+-&gt; (Int -&gt; a -&gt; a)
+-&gt; (Int -&gt; a -&gt; a)
+-&gt; (a -&gt; Int)
+-&gt; (a -&gt; Char)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; Bool)
+-&gt; (a -&gt; [a])
+-&gt; (a -&gt; [Char])
+-&gt; [a]
+-&gt; Maybe Int
+-&gt; TextZipper a
+</span><a href="Data.Text.Zipper.html#mkZipper"><span class="hs-identifier hs-var">mkZipper</span></a></span><span> </span><span class="annot"><span class="annottext">Char -&gt; a
+forall a. GenericTextZipper a =&gt; Char -&gt; a
+</span><a href="Data.Text.Zipper.Generic.html#singleton"><span class="hs-identifier hs-var">singleton</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; a -&gt; a
+forall a. GenericTextZipper a =&gt; Int -&gt; a -&gt; a
+</span><a href="Data.Text.Zipper.Generic.html#drop"><span class="hs-identifier hs-var">drop</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; a -&gt; a
+forall a. GenericTextZipper a =&gt; Int -&gt; a -&gt; a
+</span><a href="Data.Text.Zipper.Generic.html#take"><span class="hs-identifier hs-var">take</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; Int
+forall a. GenericTextZipper a =&gt; a -&gt; Int
+</span><a href="Data.Text.Zipper.Generic.html#length"><span class="hs-identifier hs-var">length</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; Char
+forall a. GenericTextZipper a =&gt; a -&gt; Char
+</span><a href="Data.Text.Zipper.Generic.html#last"><span class="hs-identifier hs-var">last</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; a
+forall a. GenericTextZipper a =&gt; a -&gt; a
+</span><a href="Data.Text.Zipper.Generic.html#init"><span class="hs-identifier hs-var">init</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; Bool
+forall a. GenericTextZipper a =&gt; a -&gt; Bool
+</span><a href="Data.Text.Zipper.Generic.html#null"><span class="hs-identifier hs-var">null</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; [a]
+forall a. GenericTextZipper a =&gt; a -&gt; [a]
+</span><a href="Data.Text.Zipper.Generic.html#lines"><span class="hs-identifier hs-var">lines</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; [Char]
+forall a. GenericTextZipper a =&gt; a -&gt; [Char]
+</span><a href="Data.Text.Zipper.Generic.html#toList"><span class="hs-identifier hs-var">toList</span></a></span><span>
+</span><span id="line-66"></span></pre></body></html>

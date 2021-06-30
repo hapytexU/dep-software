@@ -1,0 +1,130 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- | This module provides a simple parser for parsing input event</span><span>
+</span><span id="line-2"></span><span class="hs-comment">-- control sequences.</span><span>
+</span><span id="line-3"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Graphics.Vty.Input.Classify.Parse</span><span>
+</span><span id="line-4"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Classify.Parse.html#Parser"><span class="hs-identifier">Parser</span></a></span><span>
+</span><span id="line-5"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Classify.Parse.html#runParser"><span class="hs-identifier">runParser</span></a></span><span>
+</span><span id="line-6"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Classify.Parse.html#failParse"><span class="hs-identifier">failParse</span></a></span><span>
+</span><span id="line-7"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Classify.Parse.html#readInt"><span class="hs-identifier">readInt</span></a></span><span>
+</span><span id="line-8"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Classify.Parse.html#readChar"><span class="hs-identifier">readChar</span></a></span><span>
+</span><span id="line-9"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Classify.Parse.html#expectChar"><span class="hs-identifier">expectChar</span></a></span><span>
+</span><span id="line-10"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-12"></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Events.html"><span class="hs-identifier">Graphics.Vty.Input.Events</span></a></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Classify.Types.html"><span class="hs-identifier">Graphics.Vty.Input.Classify.Types</span></a></span><span>
+</span><span id="line-15"></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.Trans.Maybe</span></span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.State</span></span><span>
+</span><span id="line-18"></span><span>
+</span><span id="line-19"></span><span class="hs-keyword">type</span><span> </span><span id="Parser"><span class="annot"><a href="Graphics.Vty.Input.Classify.Parse.html#Parser"><span class="hs-identifier hs-var">Parser</span></a></span></span><span> </span><span id="local-6989586621679365972"><span class="annot"><a href="#local-6989586621679365972"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MaybeT</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">State</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679365972"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-20"></span><span>
+</span><span id="line-21"></span><span class="hs-comment">-- | Run a parser on a given input string. If the parser fails, return</span><span>
+</span><span id="line-22"></span><span class="hs-comment">-- 'Invalid'. Otherwise return the valid event ('Valid') and the</span><span>
+</span><span id="line-23"></span><span class="hs-comment">-- remaining unparsed characters.</span><span>
+</span><span id="line-24"></span><span class="annot"><a href="Graphics.Vty.Input.Classify.Parse.html#runParser"><span class="hs-identifier hs-type">runParser</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Classify.Parse.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Events.html#Event"><span class="hs-identifier hs-type">Event</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Classify.Types.html#KClass"><span class="hs-identifier hs-type">KClass</span></a></span><span>
+</span><span id="line-25"></span><span id="runParser"><span class="annot"><span class="annottext">runParser :: String -&gt; Parser Event -&gt; KClass
+</span><a href="Graphics.Vty.Input.Classify.Parse.html#runParser"><span class="hs-identifier hs-var hs-var">runParser</span></a></span></span><span> </span><span id="local-6989586621679365971"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679365971"><span class="hs-identifier hs-var">s</span></a></span></span><span> </span><span id="local-6989586621679365970"><span class="annot"><span class="annottext">Parser Event
+</span><a href="#local-6989586621679365970"><span class="hs-identifier hs-var">parser</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-26"></span><span>    </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">State String (Maybe Event) -&gt; String -&gt; (Maybe Event, String)
+forall s a. State s a -&gt; s -&gt; (a, s)
+</span><span class="hs-identifier hs-var">runState</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Parser Event -&gt; State String (Maybe Event)
+forall (m :: * -&gt; *) a. MaybeT m a -&gt; m (Maybe a)
+</span><span class="hs-identifier hs-var hs-var">runMaybeT</span></span><span> </span><span class="annot"><span class="annottext">Parser Event
+</span><a href="#local-6989586621679365970"><span class="hs-identifier hs-var">parser</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679365971"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-27"></span><span>        </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Maybe Event
+</span><span class="hs-identifier hs-var">Nothing</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span>        </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">KClass
+</span><a href="Graphics.Vty.Input.Classify.Types.html#Invalid"><span class="hs-identifier hs-var">Invalid</span></a></span><span>
+</span><span id="line-28"></span><span>        </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679365966"><span class="annot"><span class="annottext">Event
+</span><a href="#local-6989586621679365966"><span class="hs-identifier hs-var">e</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679365965"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679365965"><span class="hs-identifier hs-var">remaining</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Event -&gt; String -&gt; KClass
+</span><a href="Graphics.Vty.Input.Classify.Types.html#Valid"><span class="hs-identifier hs-var">Valid</span></a></span><span> </span><span class="annot"><span class="annottext">Event
+</span><a href="#local-6989586621679365966"><span class="hs-identifier hs-var">e</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679365965"><span class="hs-identifier hs-var">remaining</span></a></span><span>
+</span><span id="line-29"></span><span>
+</span><span id="line-30"></span><span class="hs-comment">-- | Fail a parsing operation.</span><span>
+</span><span id="line-31"></span><span id="local-6989586621679365979"><span class="annot"><a href="Graphics.Vty.Input.Classify.Parse.html#failParse"><span class="hs-identifier hs-type">failParse</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Classify.Parse.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679365979"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-32"></span><span id="failParse"><span class="annot"><span class="annottext">failParse :: Parser a
+</span><a href="Graphics.Vty.Input.Classify.Parse.html#failParse"><span class="hs-identifier hs-var hs-var">failParse</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String -&gt; Parser a
+forall (m :: * -&gt; *) a. MonadFail m =&gt; String -&gt; m a
+</span><span class="hs-identifier hs-var">fail</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;invalid parse&quot;</span></span><span>
+</span><span id="line-33"></span><span>
+</span><span id="line-34"></span><span class="hs-comment">-- | Read an integer from the input stream. If an integer cannot be</span><span>
+</span><span id="line-35"></span><span class="hs-comment">-- read, fail parsing. E.g. calling readInt on an input of &quot;123abc&quot; will</span><span>
+</span><span id="line-36"></span><span class="hs-comment">-- return '123' and consume those characters.</span><span>
+</span><span id="line-37"></span><span class="annot"><a href="Graphics.Vty.Input.Classify.Parse.html#readInt"><span class="hs-identifier hs-type">readInt</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Classify.Parse.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-38"></span><span id="readInt"><span class="annot"><span class="annottext">readInt :: Parser Int
+</span><a href="Graphics.Vty.Input.Classify.Parse.html#readInt"><span class="hs-identifier hs-var hs-var">readInt</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-39"></span><span>    </span><span id="local-6989586621679365963"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679365963"><span class="hs-identifier hs-var">s</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MaybeT (State String) String
+forall s (m :: * -&gt; *). MonadState s m =&gt; m s
+</span><span class="hs-identifier hs-var">get</span></span><span>
+</span><span id="line-40"></span><span>    </span><span class="hs-keyword">case</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ReadS Int
+forall a. Read a =&gt; ReadS a
+</span><span class="hs-identifier hs-var">reads</span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ReadS</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679365963"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-41"></span><span>        </span><span class="hs-special">[</span><span class="hs-special">(</span><span id="local-6989586621679365960"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365960"><span class="hs-identifier hs-var">i</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679365959"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679365959"><span class="hs-identifier hs-var">rest</span></a></span></span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">String -&gt; MaybeT (State String) ()
+forall s (m :: * -&gt; *). MonadState s m =&gt; s -&gt; m ()
+</span><span class="hs-identifier hs-var">put</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679365959"><span class="hs-identifier hs-var">rest</span></a></span><span> </span><span class="annot"><span class="annottext">MaybeT (State String) () -&gt; Parser Int -&gt; Parser Int
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; m b -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Parser Int
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365960"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-42"></span><span>        </span><span class="annot"><span class="annottext">[(Int, String)]
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Parser Int
+forall a. Parser a
+</span><a href="Graphics.Vty.Input.Classify.Parse.html#failParse"><span class="hs-identifier hs-var">failParse</span></a></span><span>
+</span><span id="line-43"></span><span>
+</span><span id="line-44"></span><span class="hs-comment">-- | Read a character from the input stream. If one cannot be read (e.g.</span><span>
+</span><span id="line-45"></span><span class="hs-comment">-- we are out of characters), fail parsing.</span><span>
+</span><span id="line-46"></span><span class="annot"><a href="Graphics.Vty.Input.Classify.Parse.html#readChar"><span class="hs-identifier hs-type">readChar</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Classify.Parse.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>
+</span><span id="line-47"></span><span id="readChar"><span class="annot"><span class="annottext">readChar :: Parser Char
+</span><a href="Graphics.Vty.Input.Classify.Parse.html#readChar"><span class="hs-identifier hs-var hs-var">readChar</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-48"></span><span>    </span><span id="local-6989586621679365957"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679365957"><span class="hs-identifier hs-var">s</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">MaybeT (State String) String
+forall s (m :: * -&gt; *). MonadState s m =&gt; m s
+</span><span class="hs-identifier hs-var">get</span></span><span>
+</span><span id="line-49"></span><span>    </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679365957"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-50"></span><span>        </span><span id="local-6989586621679365956"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679365956"><span class="hs-identifier hs-var">c</span></a></span></span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span id="local-6989586621679365955"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679365955"><span class="hs-identifier hs-var">rest</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">String -&gt; MaybeT (State String) ()
+forall s (m :: * -&gt; *). MonadState s m =&gt; s -&gt; m ()
+</span><span class="hs-identifier hs-var">put</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679365955"><span class="hs-identifier hs-var">rest</span></a></span><span> </span><span class="annot"><span class="annottext">MaybeT (State String) () -&gt; Parser Char -&gt; Parser Char
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; m b -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Char -&gt; Parser Char
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679365956"><span class="hs-identifier hs-var">c</span></a></span><span>
+</span><span id="line-51"></span><span>        </span><span class="annot"><span class="annottext">String
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Parser Char
+forall a. Parser a
+</span><a href="Graphics.Vty.Input.Classify.Parse.html#failParse"><span class="hs-identifier hs-var">failParse</span></a></span><span>
+</span><span id="line-52"></span><span>
+</span><span id="line-53"></span><span class="hs-comment">-- | Read a character from the input stream and fail parsing if it is</span><span>
+</span><span id="line-54"></span><span class="hs-comment">-- not the specified character.</span><span>
+</span><span id="line-55"></span><span class="annot"><a href="Graphics.Vty.Input.Classify.Parse.html#expectChar"><span class="hs-identifier hs-type">expectChar</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Classify.Parse.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-56"></span><span id="expectChar"><span class="annot"><span class="annottext">expectChar :: Char -&gt; MaybeT (State String) ()
+</span><a href="Graphics.Vty.Input.Classify.Parse.html#expectChar"><span class="hs-identifier hs-var hs-var">expectChar</span></a></span></span><span> </span><span id="local-6989586621679365954"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679365954"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-57"></span><span>    </span><span id="local-6989586621679365953"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679365953"><span class="hs-identifier hs-var">c'</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Parser Char
+</span><a href="Graphics.Vty.Input.Classify.Parse.html#readChar"><span class="hs-identifier hs-var">readChar</span></a></span><span>
+</span><span id="line-58"></span><span>    </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679365953"><span class="hs-identifier hs-var">c'</span></a></span><span> </span><span class="annot"><span class="annottext">Char -&gt; Char -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679365954"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">() -&gt; MaybeT (State String) ()
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span> </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">MaybeT (State String) ()
+forall a. Parser a
+</span><a href="Graphics.Vty.Input.Classify.Parse.html#failParse"><span class="hs-identifier hs-var">failParse</span></a></span><span>
+</span><span id="line-59"></span></pre></body></html>

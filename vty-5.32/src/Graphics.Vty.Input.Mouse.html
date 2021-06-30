@@ -1,0 +1,425 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- | This module provides parsers for mouse events for both &quot;normal&quot; and</span><span>
+</span><span id="line-2"></span><span class="hs-comment">-- &quot;extended&quot; modes. This implementation was informed by</span><span>
+</span><span id="line-3"></span><span class="hs-comment">--</span><span>
+</span><span id="line-4"></span><span class="hs-comment">-- http://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Mouse-Tracking</span><span>
+</span><span id="line-5"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Graphics.Vty.Input.Mouse</span><span>
+</span><span id="line-6"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Mouse.html#requestMouseEvents"><span class="hs-identifier">requestMouseEvents</span></a></span><span>
+</span><span id="line-7"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Mouse.html#disableMouseEvents"><span class="hs-identifier">disableMouseEvents</span></a></span><span>
+</span><span id="line-8"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Mouse.html#isMouseEvent"><span class="hs-identifier">isMouseEvent</span></a></span><span>
+</span><span id="line-9"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Mouse.html#classifyMouseEvent"><span class="hs-identifier">classifyMouseEvent</span></a></span><span>
+</span><span id="line-10"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-12"></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Events.html"><span class="hs-identifier">Graphics.Vty.Input.Events</span></a></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Classify.Types.html"><span class="hs-identifier">Graphics.Vty.Input.Classify.Types</span></a></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Classify.Parse.html"><span class="hs-identifier">Graphics.Vty.Input.Classify.Parse</span></a></span><span>
+</span><span id="line-16"></span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.State</span></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.List</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">isPrefixOf</span></span><span class="hs-special">)</span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">catMaybes</span></span><span class="hs-special">)</span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Bits</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-operator">(.&amp;.)</span></span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span>
+</span><span id="line-22"></span><span class="hs-comment">-- A mouse event in SGR extended mode is</span><span>
+</span><span id="line-23"></span><span class="hs-comment">--</span><span>
+</span><span id="line-24"></span><span class="hs-comment">-- '\ESC' '[' '&lt;' B ';' X ';' Y ';' ('M'|'m')</span><span>
+</span><span id="line-25"></span><span class="hs-comment">--</span><span>
+</span><span id="line-26"></span><span class="hs-comment">-- where</span><span>
+</span><span id="line-27"></span><span class="hs-comment">--</span><span>
+</span><span id="line-28"></span><span class="hs-comment">-- * B is the number with button and modifier bits set,</span><span>
+</span><span id="line-29"></span><span class="hs-comment">-- * X is the X coordinate of the event starting at 1</span><span>
+</span><span id="line-30"></span><span class="hs-comment">-- * Y is the Y coordinate of the event starting at 1</span><span>
+</span><span id="line-31"></span><span class="hs-comment">-- * the final character is 'M' for a press, 'm' for a release</span><span>
+</span><span id="line-32"></span><span>
+</span><span id="line-33"></span><span class="hs-comment">-- | These sequences set xterm-based terminals to send mouse event</span><span>
+</span><span id="line-34"></span><span class="hs-comment">-- sequences.</span><span>
+</span><span id="line-35"></span><span class="annot"><a href="Graphics.Vty.Input.Mouse.html#requestMouseEvents"><span class="hs-identifier hs-type">requestMouseEvents</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
+</span><span id="line-36"></span><span id="requestMouseEvents"><span class="annot"><span class="annottext">requestMouseEvents :: String
+</span><a href="Graphics.Vty.Input.Mouse.html#requestMouseEvents"><span class="hs-identifier hs-var hs-var">requestMouseEvents</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\ESC[?1000h\ESC[?1002h\ESC[?1006h&quot;</span></span><span>
+</span><span id="line-37"></span><span>
+</span><span id="line-38"></span><span class="hs-comment">-- | These sequences disable mouse events.</span><span>
+</span><span id="line-39"></span><span class="annot"><a href="Graphics.Vty.Input.Mouse.html#disableMouseEvents"><span class="hs-identifier hs-type">disableMouseEvents</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
+</span><span id="line-40"></span><span id="disableMouseEvents"><span class="annot"><span class="annottext">disableMouseEvents :: String
+</span><a href="Graphics.Vty.Input.Mouse.html#disableMouseEvents"><span class="hs-identifier hs-var hs-var">disableMouseEvents</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\ESC[?1000l\ESC[?1002l\ESC[?1006l&quot;</span></span><span>
+</span><span id="line-41"></span><span>
+</span><span id="line-42"></span><span class="hs-comment">-- | Does the specified string begin with a mouse event?</span><span>
+</span><span id="line-43"></span><span class="annot"><a href="Graphics.Vty.Input.Mouse.html#isMouseEvent"><span class="hs-identifier hs-type">isMouseEvent</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-44"></span><span id="isMouseEvent"><span class="annot"><span class="annottext">isMouseEvent :: String -&gt; Bool
+</span><a href="Graphics.Vty.Input.Mouse.html#isMouseEvent"><span class="hs-identifier hs-var hs-var">isMouseEvent</span></a></span></span><span> </span><span id="local-6989586621679366549"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679366549"><span class="hs-identifier hs-var">s</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String -&gt; Bool
+</span><a href="Graphics.Vty.Input.Mouse.html#isSGREvent"><span class="hs-identifier hs-var">isSGREvent</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679366549"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">||</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; Bool
+</span><a href="Graphics.Vty.Input.Mouse.html#isNormalEvent"><span class="hs-identifier hs-var">isNormalEvent</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679366549"><span class="hs-identifier hs-var">s</span></a></span><span>
+</span><span id="line-45"></span><span>
+</span><span id="line-46"></span><span class="annot"><a href="Graphics.Vty.Input.Mouse.html#isSGREvent"><span class="hs-identifier hs-type">isSGREvent</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-47"></span><span id="isSGREvent"><span class="annot"><span class="annottext">isSGREvent :: String -&gt; Bool
+</span><a href="Graphics.Vty.Input.Mouse.html#isSGREvent"><span class="hs-identifier hs-var hs-var">isSGREvent</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String -&gt; String -&gt; Bool
+forall a. Eq a =&gt; [a] -&gt; [a] -&gt; Bool
+</span><span class="hs-identifier hs-var">isPrefixOf</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="Graphics.Vty.Input.Mouse.html#sgrPrefix"><span class="hs-identifier hs-var">sgrPrefix</span></a></span><span>
+</span><span id="line-48"></span><span>
+</span><span id="line-49"></span><span class="annot"><a href="Graphics.Vty.Input.Mouse.html#sgrPrefix"><span class="hs-identifier hs-type">sgrPrefix</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
+</span><span id="line-50"></span><span id="sgrPrefix"><span class="annot"><span class="annottext">sgrPrefix :: String
+</span><a href="Graphics.Vty.Input.Mouse.html#sgrPrefix"><span class="hs-identifier hs-var hs-var">sgrPrefix</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\ESC[M&quot;</span></span><span>
+</span><span id="line-51"></span><span>
+</span><span id="line-52"></span><span class="annot"><a href="Graphics.Vty.Input.Mouse.html#isNormalEvent"><span class="hs-identifier hs-type">isNormalEvent</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-53"></span><span id="isNormalEvent"><span class="annot"><span class="annottext">isNormalEvent :: String -&gt; Bool
+</span><a href="Graphics.Vty.Input.Mouse.html#isNormalEvent"><span class="hs-identifier hs-var hs-var">isNormalEvent</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String -&gt; String -&gt; Bool
+forall a. Eq a =&gt; [a] -&gt; [a] -&gt; Bool
+</span><span class="hs-identifier hs-var">isPrefixOf</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="Graphics.Vty.Input.Mouse.html#normalPrefix"><span class="hs-identifier hs-var">normalPrefix</span></a></span><span>
+</span><span id="line-54"></span><span>
+</span><span id="line-55"></span><span class="annot"><a href="Graphics.Vty.Input.Mouse.html#normalPrefix"><span class="hs-identifier hs-type">normalPrefix</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
+</span><span id="line-56"></span><span id="normalPrefix"><span class="annot"><span class="annottext">normalPrefix :: String
+</span><a href="Graphics.Vty.Input.Mouse.html#normalPrefix"><span class="hs-identifier hs-var hs-var">normalPrefix</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\ESC[&lt;&quot;</span></span><span>
+</span><span id="line-57"></span><span>
+</span><span id="line-58"></span><span class="hs-comment">-- Modifier bits:</span><span>
+</span><span id="line-59"></span><span class="annot"><a href="Graphics.Vty.Input.Mouse.html#shiftBit"><span class="hs-identifier hs-type">shiftBit</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-60"></span><span id="shiftBit"><span class="annot"><span class="annottext">shiftBit :: Int
+</span><a href="Graphics.Vty.Input.Mouse.html#shiftBit"><span class="hs-identifier hs-var hs-var">shiftBit</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">4</span></span><span>
+</span><span id="line-61"></span><span>
+</span><span id="line-62"></span><span class="annot"><a href="Graphics.Vty.Input.Mouse.html#metaBit"><span class="hs-identifier hs-type">metaBit</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-63"></span><span id="metaBit"><span class="annot"><span class="annottext">metaBit :: Int
+</span><a href="Graphics.Vty.Input.Mouse.html#metaBit"><span class="hs-identifier hs-var hs-var">metaBit</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">8</span></span><span>
+</span><span id="line-64"></span><span>
+</span><span id="line-65"></span><span class="annot"><a href="Graphics.Vty.Input.Mouse.html#ctrlBit"><span class="hs-identifier hs-type">ctrlBit</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-66"></span><span id="ctrlBit"><span class="annot"><span class="annottext">ctrlBit :: Int
+</span><a href="Graphics.Vty.Input.Mouse.html#ctrlBit"><span class="hs-identifier hs-var hs-var">ctrlBit</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">16</span></span><span>
+</span><span id="line-67"></span><span>
+</span><span id="line-68"></span><span class="hs-comment">-- These bits indicate the buttons involved:</span><span>
+</span><span id="line-69"></span><span class="annot"><a href="Graphics.Vty.Input.Mouse.html#buttonMask"><span class="hs-identifier hs-type">buttonMask</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-70"></span><span id="buttonMask"><span class="annot"><span class="annottext">buttonMask :: Int
+</span><a href="Graphics.Vty.Input.Mouse.html#buttonMask"><span class="hs-identifier hs-var hs-var">buttonMask</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">67</span></span><span>
+</span><span id="line-71"></span><span>
+</span><span id="line-72"></span><span class="annot"><a href="Graphics.Vty.Input.Mouse.html#leftButton"><span class="hs-identifier hs-type">leftButton</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-73"></span><span id="leftButton"><span class="annot"><span class="annottext">leftButton :: Int
+</span><a href="Graphics.Vty.Input.Mouse.html#leftButton"><span class="hs-identifier hs-var hs-var">leftButton</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span>
+</span><span id="line-74"></span><span>
+</span><span id="line-75"></span><span class="annot"><a href="Graphics.Vty.Input.Mouse.html#middleButton"><span class="hs-identifier hs-type">middleButton</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-76"></span><span id="middleButton"><span class="annot"><span class="annottext">middleButton :: Int
+</span><a href="Graphics.Vty.Input.Mouse.html#middleButton"><span class="hs-identifier hs-var hs-var">middleButton</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span>
+</span><span id="line-77"></span><span>
+</span><span id="line-78"></span><span class="annot"><a href="Graphics.Vty.Input.Mouse.html#rightButton"><span class="hs-identifier hs-type">rightButton</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-79"></span><span id="rightButton"><span class="annot"><span class="annottext">rightButton :: Int
+</span><a href="Graphics.Vty.Input.Mouse.html#rightButton"><span class="hs-identifier hs-var hs-var">rightButton</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">2</span></span><span>
+</span><span id="line-80"></span><span>
+</span><span id="line-81"></span><span class="annot"><a href="Graphics.Vty.Input.Mouse.html#scrollUp"><span class="hs-identifier hs-type">scrollUp</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-82"></span><span id="scrollUp"><span class="annot"><span class="annottext">scrollUp :: Int
+</span><a href="Graphics.Vty.Input.Mouse.html#scrollUp"><span class="hs-identifier hs-var hs-var">scrollUp</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">64</span></span><span>
+</span><span id="line-83"></span><span>
+</span><span id="line-84"></span><span class="annot"><a href="Graphics.Vty.Input.Mouse.html#scrollDown"><span class="hs-identifier hs-type">scrollDown</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-85"></span><span id="scrollDown"><span class="annot"><span class="annottext">scrollDown :: Int
+</span><a href="Graphics.Vty.Input.Mouse.html#scrollDown"><span class="hs-identifier hs-var hs-var">scrollDown</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">65</span></span><span>
+</span><span id="line-86"></span><span>
+</span><span id="line-87"></span><span class="annot"><a href="Graphics.Vty.Input.Mouse.html#hasBitSet"><span class="hs-identifier hs-type">hasBitSet</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-88"></span><span id="hasBitSet"><span class="annot"><span class="annottext">hasBitSet :: Int -&gt; Int -&gt; Bool
+</span><a href="Graphics.Vty.Input.Mouse.html#hasBitSet"><span class="hs-identifier hs-var hs-var">hasBitSet</span></a></span></span><span> </span><span id="local-6989586621679366533"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679366533"><span class="hs-identifier hs-var">val</span></a></span></span><span> </span><span id="local-6989586621679366532"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679366532"><span class="hs-identifier hs-var">bit</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679366533"><span class="hs-identifier hs-var">val</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.&amp;.</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679366532"><span class="hs-identifier hs-var">bit</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span>
+</span><span id="line-89"></span><span>
+</span><span id="line-90"></span><span class="hs-comment">-- | Attempt to lassify an input string as a mouse event.</span><span>
+</span><span id="line-91"></span><span class="annot"><a href="Graphics.Vty.Input.Mouse.html#classifyMouseEvent"><span class="hs-identifier hs-type">classifyMouseEvent</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Classify.Types.html#KClass"><span class="hs-identifier hs-type">KClass</span></a></span><span>
+</span><span id="line-92"></span><span id="classifyMouseEvent"><span class="annot"><span class="annottext">classifyMouseEvent :: String -&gt; KClass
+</span><a href="Graphics.Vty.Input.Mouse.html#classifyMouseEvent"><span class="hs-identifier hs-var hs-var">classifyMouseEvent</span></a></span></span><span> </span><span id="local-6989586621679366530"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679366530"><span class="hs-identifier hs-var">s</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String -&gt; Parser Event -&gt; KClass
+</span><a href="Graphics.Vty.Input.Classify.Parse.html#runParser"><span class="hs-identifier hs-var">runParser</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679366530"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="annot"><span class="annottext">(Parser Event -&gt; KClass) -&gt; Parser Event -&gt; KClass
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-93"></span><span>    </span><span class="annot"><span class="annottext">Bool -&gt; MaybeT (State String) () -&gt; MaybeT (State String) ()
+forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
+</span><span class="hs-identifier hs-var">when</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool -&gt; Bool
+</span><span class="hs-identifier hs-var">not</span></span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; Bool) -&gt; Bool -&gt; Bool
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; Bool
+</span><a href="Graphics.Vty.Input.Mouse.html#isMouseEvent"><span class="hs-identifier hs-var">isMouseEvent</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679366530"><span class="hs-identifier hs-var">s</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">MaybeT (State String) ()
+forall a. Parser a
+</span><a href="Graphics.Vty.Input.Classify.Parse.html#failParse"><span class="hs-identifier hs-var">failParse</span></a></span><span>
+</span><span id="line-94"></span><span>
+</span><span id="line-95"></span><span>    </span><span class="annot"><span class="annottext">Char -&gt; MaybeT (State String) ()
+</span><a href="Graphics.Vty.Input.Classify.Parse.html#expectChar"><span class="hs-identifier hs-var">expectChar</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\ESC'</span></span><span>
+</span><span id="line-96"></span><span>    </span><span class="annot"><span class="annottext">Char -&gt; MaybeT (State String) ()
+</span><a href="Graphics.Vty.Input.Classify.Parse.html#expectChar"><span class="hs-identifier hs-var">expectChar</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'['</span></span><span>
+</span><span id="line-97"></span><span>    </span><span id="local-6989586621679366524"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679366524"><span class="hs-identifier hs-var">ty</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Parser Char
+</span><a href="Graphics.Vty.Input.Classify.Parse.html#readChar"><span class="hs-identifier hs-var">readChar</span></a></span><span>
+</span><span id="line-98"></span><span>    </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679366524"><span class="hs-identifier hs-var">ty</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-99"></span><span>        </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'&lt;'</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Parser Event
+</span><a href="Graphics.Vty.Input.Mouse.html#classifySGRMouseEvent"><span class="hs-identifier hs-var">classifySGRMouseEvent</span></a></span><span>
+</span><span id="line-100"></span><span>        </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'M'</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Parser Event
+</span><a href="Graphics.Vty.Input.Mouse.html#classifyNormalMouseEvent"><span class="hs-identifier hs-var">classifyNormalMouseEvent</span></a></span><span>
+</span><span id="line-101"></span><span>        </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-identifier">_</span></span><span>   </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Parser Event
+forall a. Parser a
+</span><a href="Graphics.Vty.Input.Classify.Parse.html#failParse"><span class="hs-identifier hs-var">failParse</span></a></span><span>
+</span><span id="line-102"></span><span>
+</span><span id="line-103"></span><span class="hs-comment">-- Given a modifer/button value, determine which button was indicated</span><span>
+</span><span id="line-104"></span><span class="annot"><a href="Graphics.Vty.Input.Mouse.html#getSGRButton"><span class="hs-identifier hs-type">getSGRButton</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Classify.Parse.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Events.html#Button"><span class="hs-identifier hs-type">Button</span></a></span><span>
+</span><span id="line-105"></span><span id="getSGRButton"><span class="annot"><span class="annottext">getSGRButton :: Int -&gt; Parser Button
+</span><a href="Graphics.Vty.Input.Mouse.html#getSGRButton"><span class="hs-identifier hs-var hs-var">getSGRButton</span></a></span></span><span> </span><span id="local-6989586621679366519"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679366519"><span class="hs-identifier hs-var">mods</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-106"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679366518"><span class="annot"><span class="annottext">buttonMap :: [(Int, Button)]
+</span><a href="#local-6989586621679366518"><span class="hs-identifier hs-var hs-var">buttonMap</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="Graphics.Vty.Input.Mouse.html#leftButton"><span class="hs-identifier hs-var">leftButton</span></a></span><span class="hs-special">,</span><span>   </span><span class="annot"><span class="annottext">Button
+</span><a href="Graphics.Vty.Input.Events.html#BLeft"><span class="hs-identifier hs-var">BLeft</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-107"></span><span>                    </span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="Graphics.Vty.Input.Mouse.html#middleButton"><span class="hs-identifier hs-var">middleButton</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Button
+</span><a href="Graphics.Vty.Input.Events.html#BMiddle"><span class="hs-identifier hs-var">BMiddle</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-108"></span><span>                    </span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="Graphics.Vty.Input.Mouse.html#rightButton"><span class="hs-identifier hs-var">rightButton</span></a></span><span class="hs-special">,</span><span>  </span><span class="annot"><span class="annottext">Button
+</span><a href="Graphics.Vty.Input.Events.html#BRight"><span class="hs-identifier hs-var">BRight</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-109"></span><span>                    </span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="Graphics.Vty.Input.Mouse.html#scrollUp"><span class="hs-identifier hs-var">scrollUp</span></a></span><span class="hs-special">,</span><span>     </span><span class="annot"><span class="annottext">Button
+</span><a href="Graphics.Vty.Input.Events.html#BScrollUp"><span class="hs-identifier hs-var">BScrollUp</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-110"></span><span>                    </span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="Graphics.Vty.Input.Mouse.html#scrollDown"><span class="hs-identifier hs-var">scrollDown</span></a></span><span class="hs-special">,</span><span>   </span><span class="annot"><span class="annottext">Button
+</span><a href="Graphics.Vty.Input.Events.html#BScrollDown"><span class="hs-identifier hs-var">BScrollDown</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-111"></span><span>                    </span><span class="hs-special">]</span><span>
+</span><span id="line-112"></span><span>    </span><span class="hs-keyword">in</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Int -&gt; [(Int, Button)] -&gt; Maybe Button
+forall a b. Eq a =&gt; a -&gt; [(a, b)] -&gt; Maybe b
+</span><span class="hs-identifier hs-var">lookup</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679366519"><span class="hs-identifier hs-var">mods</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.&amp;.</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="Graphics.Vty.Input.Mouse.html#buttonMask"><span class="hs-identifier hs-var">buttonMask</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[(Int, Button)]
+</span><a href="#local-6989586621679366518"><span class="hs-identifier hs-var">buttonMap</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-113"></span><span>        </span><span class="annot"><span class="annottext">Maybe Button
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Parser Button
+forall a. Parser a
+</span><a href="Graphics.Vty.Input.Classify.Parse.html#failParse"><span class="hs-identifier hs-var">failParse</span></a></span><span>
+</span><span id="line-114"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679366511"><span class="annot"><span class="annottext">Button
+</span><a href="#local-6989586621679366511"><span class="hs-identifier hs-var">b</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Button -&gt; Parser Button
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Button
+</span><a href="#local-6989586621679366511"><span class="hs-identifier hs-var">b</span></a></span><span>
+</span><span id="line-115"></span><span>
+</span><span id="line-116"></span><span class="annot"><a href="Graphics.Vty.Input.Mouse.html#getModifiers"><span class="hs-identifier hs-type">getModifiers</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Graphics.Vty.Input.Events.html#Modifier"><span class="hs-identifier hs-type">Modifier</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-117"></span><span id="getModifiers"><span class="annot"><span class="annottext">getModifiers :: Int -&gt; [Modifier]
+</span><a href="Graphics.Vty.Input.Mouse.html#getModifiers"><span class="hs-identifier hs-var hs-var">getModifiers</span></a></span></span><span> </span><span id="local-6989586621679366509"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679366509"><span class="hs-identifier hs-var">mods</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-118"></span><span>    </span><span class="annot"><span class="annottext">[Maybe Modifier] -&gt; [Modifier]
+forall a. [Maybe a] -&gt; [a]
+</span><span class="hs-identifier hs-var">catMaybes</span></span><span> </span><span class="hs-special">[</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679366509"><span class="hs-identifier hs-var">mods</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+</span><a href="Graphics.Vty.Input.Mouse.html#hasBitSet"><span class="hs-operator hs-var">`hasBitSet`</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="Graphics.Vty.Input.Mouse.html#shiftBit"><span class="hs-identifier hs-var">shiftBit</span></a></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Modifier -&gt; Maybe Modifier
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">Modifier
+</span><a href="Graphics.Vty.Input.Events.html#MShift"><span class="hs-identifier hs-var">MShift</span></a></span><span> </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Maybe Modifier
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-119"></span><span>              </span><span class="hs-special">,</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679366509"><span class="hs-identifier hs-var">mods</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+</span><a href="Graphics.Vty.Input.Mouse.html#hasBitSet"><span class="hs-operator hs-var">`hasBitSet`</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="Graphics.Vty.Input.Mouse.html#metaBit"><span class="hs-identifier hs-var">metaBit</span></a></span><span>  </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Modifier -&gt; Maybe Modifier
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">Modifier
+</span><a href="Graphics.Vty.Input.Events.html#MMeta"><span class="hs-identifier hs-var">MMeta</span></a></span><span>  </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Maybe Modifier
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-120"></span><span>              </span><span class="hs-special">,</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679366509"><span class="hs-identifier hs-var">mods</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+</span><a href="Graphics.Vty.Input.Mouse.html#hasBitSet"><span class="hs-operator hs-var">`hasBitSet`</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="Graphics.Vty.Input.Mouse.html#ctrlBit"><span class="hs-identifier hs-var">ctrlBit</span></a></span><span>  </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Modifier -&gt; Maybe Modifier
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">Modifier
+</span><a href="Graphics.Vty.Input.Events.html#MCtrl"><span class="hs-identifier hs-var">MCtrl</span></a></span><span>  </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Maybe Modifier
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-121"></span><span>              </span><span class="hs-special">]</span><span>
+</span><span id="line-122"></span><span>
+</span><span id="line-123"></span><span class="hs-comment">-- Attempt to classify a control sequence as a &quot;normal&quot; mouse event. To</span><span>
+</span><span id="line-124"></span><span class="hs-comment">-- get here we should have already read &quot;\ESC[M&quot; so that will not be</span><span>
+</span><span id="line-125"></span><span class="hs-comment">-- included in the string to be parsed.</span><span>
+</span><span id="line-126"></span><span class="annot"><a href="Graphics.Vty.Input.Mouse.html#classifyNormalMouseEvent"><span class="hs-identifier hs-type">classifyNormalMouseEvent</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Classify.Parse.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Events.html#Event"><span class="hs-identifier hs-type">Event</span></a></span><span>
+</span><span id="line-127"></span><span id="classifyNormalMouseEvent"><span class="annot"><span class="annottext">classifyNormalMouseEvent :: Parser Event
+</span><a href="Graphics.Vty.Input.Mouse.html#classifyNormalMouseEvent"><span class="hs-identifier hs-var hs-var">classifyNormalMouseEvent</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-128"></span><span>    </span><span id="local-6989586621679366505"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679366505"><span class="hs-identifier hs-var">statusChar</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Parser Char
+</span><a href="Graphics.Vty.Input.Classify.Parse.html#readChar"><span class="hs-identifier hs-var">readChar</span></a></span><span>
+</span><span id="line-129"></span><span>    </span><span id="local-6989586621679366504"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679366504"><span class="hs-identifier hs-var">xCoordChar</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Parser Char
+</span><a href="Graphics.Vty.Input.Classify.Parse.html#readChar"><span class="hs-identifier hs-var">readChar</span></a></span><span>
+</span><span id="line-130"></span><span>    </span><span id="local-6989586621679366503"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679366503"><span class="hs-identifier hs-var">yCoordChar</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Parser Char
+</span><a href="Graphics.Vty.Input.Classify.Parse.html#readChar"><span class="hs-identifier hs-var">readChar</span></a></span><span>
+</span><span id="line-131"></span><span>
+</span><span id="line-132"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679366502"><span class="annot"><span class="annottext">xCoord :: Int
+</span><a href="#local-6989586621679366502"><span class="hs-identifier hs-var hs-var">xCoord</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Int
+forall a. Enum a =&gt; a -&gt; Int
+</span><span class="hs-identifier hs-var">fromEnum</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679366504"><span class="hs-identifier hs-var">xCoordChar</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">32</span></span><span>
+</span><span id="line-133"></span><span>        </span><span id="local-6989586621679366500"><span class="annot"><span class="annottext">yCoord :: Int
+</span><a href="#local-6989586621679366500"><span class="hs-identifier hs-var hs-var">yCoord</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Int
+forall a. Enum a =&gt; a -&gt; Int
+</span><span class="hs-identifier hs-var">fromEnum</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679366503"><span class="hs-identifier hs-var">yCoordChar</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">32</span></span><span>
+</span><span id="line-134"></span><span>        </span><span id="local-6989586621679366499"><span class="annot"><span class="annottext">status :: Int
+</span><a href="#local-6989586621679366499"><span class="hs-identifier hs-var hs-var">status</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Int
+forall a. Enum a =&gt; a -&gt; Int
+</span><span class="hs-identifier hs-var">fromEnum</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679366505"><span class="hs-identifier hs-var">statusChar</span></a></span><span>
+</span><span id="line-135"></span><span>        </span><span id="local-6989586621679366498"><span class="annot"><span class="annottext">modifiers :: [Modifier]
+</span><a href="#local-6989586621679366498"><span class="hs-identifier hs-var hs-var">modifiers</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; [Modifier]
+</span><a href="Graphics.Vty.Input.Mouse.html#getModifiers"><span class="hs-identifier hs-var">getModifiers</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679366499"><span class="hs-identifier hs-var">status</span></a></span><span>
+</span><span id="line-136"></span><span>
+</span><span id="line-137"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679366497"><span class="annot"><span class="annottext">press :: Bool
+</span><a href="#local-6989586621679366497"><span class="hs-identifier hs-var hs-var">press</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679366499"><span class="hs-identifier hs-var">status</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.&amp;.</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="Graphics.Vty.Input.Mouse.html#buttonMask"><span class="hs-identifier hs-var">buttonMask</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">/=</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">3</span></span><span>
+</span><span id="line-138"></span><span>    </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679366497"><span class="hs-identifier hs-var">press</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-139"></span><span>            </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-140"></span><span>                </span><span id="local-6989586621679366495"><span class="annot"><span class="annottext">Button
+</span><a href="#local-6989586621679366495"><span class="hs-identifier hs-var">button</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Parser Button
+</span><a href="Graphics.Vty.Input.Mouse.html#getSGRButton"><span class="hs-identifier hs-var">getSGRButton</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679366499"><span class="hs-identifier hs-var">status</span></a></span><span>
+</span><span id="line-141"></span><span>                </span><span class="annot"><span class="annottext">Event -&gt; Parser Event
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(Event -&gt; Parser Event) -&gt; Event -&gt; Parser Event
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Button -&gt; [Modifier] -&gt; Event
+</span><a href="Graphics.Vty.Input.Events.html#EvMouseDown"><span class="hs-identifier hs-var">EvMouseDown</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679366502"><span class="hs-identifier hs-var">xCoord</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679366500"><span class="hs-identifier hs-var">yCoord</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Button
+</span><a href="#local-6989586621679366495"><span class="hs-identifier hs-var">button</span></a></span><span> </span><span class="annot"><span class="annottext">[Modifier]
+</span><a href="#local-6989586621679366498"><span class="hs-identifier hs-var">modifiers</span></a></span><span>
+</span><span id="line-142"></span><span>            </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Event -&gt; Parser Event
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(Event -&gt; Parser Event) -&gt; Event -&gt; Parser Event
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Maybe Button -&gt; Event
+</span><a href="Graphics.Vty.Input.Events.html#EvMouseUp"><span class="hs-identifier hs-var">EvMouseUp</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679366502"><span class="hs-identifier hs-var">xCoord</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679366500"><span class="hs-identifier hs-var">yCoord</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Maybe Button
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-143"></span><span>
+</span><span id="line-144"></span><span class="hs-comment">-- Attempt to classify a control sequence as an SGR mouse event. To</span><span>
+</span><span id="line-145"></span><span class="hs-comment">-- get here we should have already read &quot;\ESC[&lt;&quot; so that will not be</span><span>
+</span><span id="line-146"></span><span class="hs-comment">-- included in the string to be parsed.</span><span>
+</span><span id="line-147"></span><span class="annot"><a href="Graphics.Vty.Input.Mouse.html#classifySGRMouseEvent"><span class="hs-identifier hs-type">classifySGRMouseEvent</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Classify.Parse.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Events.html#Event"><span class="hs-identifier hs-type">Event</span></a></span><span>
+</span><span id="line-148"></span><span id="classifySGRMouseEvent"><span class="annot"><span class="annottext">classifySGRMouseEvent :: Parser Event
+</span><a href="Graphics.Vty.Input.Mouse.html#classifySGRMouseEvent"><span class="hs-identifier hs-var hs-var">classifySGRMouseEvent</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-149"></span><span>    </span><span id="local-6989586621679366492"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679366492"><span class="hs-identifier hs-var">mods</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Parser Int
+</span><a href="Graphics.Vty.Input.Classify.Parse.html#readInt"><span class="hs-identifier hs-var">readInt</span></a></span><span>
+</span><span id="line-150"></span><span>    </span><span class="annot"><span class="annottext">Char -&gt; MaybeT (State String) ()
+</span><a href="Graphics.Vty.Input.Classify.Parse.html#expectChar"><span class="hs-identifier hs-var">expectChar</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">';'</span></span><span>
+</span><span id="line-151"></span><span>    </span><span id="local-6989586621679366490"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679366490"><span class="hs-identifier hs-var">xCoord</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Parser Int
+</span><a href="Graphics.Vty.Input.Classify.Parse.html#readInt"><span class="hs-identifier hs-var">readInt</span></a></span><span>
+</span><span id="line-152"></span><span>    </span><span class="annot"><span class="annottext">Char -&gt; MaybeT (State String) ()
+</span><a href="Graphics.Vty.Input.Classify.Parse.html#expectChar"><span class="hs-identifier hs-var">expectChar</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">';'</span></span><span>
+</span><span id="line-153"></span><span>    </span><span id="local-6989586621679366489"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679366489"><span class="hs-identifier hs-var">yCoord</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Parser Int
+</span><a href="Graphics.Vty.Input.Classify.Parse.html#readInt"><span class="hs-identifier hs-var">readInt</span></a></span><span>
+</span><span id="line-154"></span><span>    </span><span id="local-6989586621679366488"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679366488"><span class="hs-identifier hs-var">final</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Parser Char
+</span><a href="Graphics.Vty.Input.Classify.Parse.html#readChar"><span class="hs-identifier hs-var">readChar</span></a></span><span>
+</span><span id="line-155"></span><span>
+</span><span id="line-156"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679366487"><span class="annot"><span class="annottext">modifiers :: [Modifier]
+</span><a href="#local-6989586621679366487"><span class="hs-identifier hs-var hs-var">modifiers</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; [Modifier]
+</span><a href="Graphics.Vty.Input.Mouse.html#getModifiers"><span class="hs-identifier hs-var">getModifiers</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679366492"><span class="hs-identifier hs-var">mods</span></a></span><span>
+</span><span id="line-157"></span><span>    </span><span id="local-6989586621679366486"><span class="annot"><span class="annottext">Button
+</span><a href="#local-6989586621679366486"><span class="hs-identifier hs-var">button</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Parser Button
+</span><a href="Graphics.Vty.Input.Mouse.html#getSGRButton"><span class="hs-identifier hs-var">getSGRButton</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679366492"><span class="hs-identifier hs-var">mods</span></a></span><span>
+</span><span id="line-158"></span><span>    </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679366488"><span class="hs-identifier hs-var">final</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-159"></span><span>        </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'M'</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Event -&gt; Parser Event
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(Event -&gt; Parser Event) -&gt; Event -&gt; Parser Event
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Button -&gt; [Modifier] -&gt; Event
+</span><a href="Graphics.Vty.Input.Events.html#EvMouseDown"><span class="hs-identifier hs-var">EvMouseDown</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679366490"><span class="hs-identifier hs-var">xCoord</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679366489"><span class="hs-identifier hs-var">yCoord</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Button
+</span><a href="#local-6989586621679366486"><span class="hs-identifier hs-var">button</span></a></span><span> </span><span class="annot"><span class="annottext">[Modifier]
+</span><a href="#local-6989586621679366487"><span class="hs-identifier hs-var">modifiers</span></a></span><span>
+</span><span id="line-160"></span><span>        </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'m'</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Event -&gt; Parser Event
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(Event -&gt; Parser Event) -&gt; Event -&gt; Parser Event
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Maybe Button -&gt; Event
+</span><a href="Graphics.Vty.Input.Events.html#EvMouseUp"><span class="hs-identifier hs-var">EvMouseUp</span></a></span><span>   </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679366490"><span class="hs-identifier hs-var">xCoord</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679366489"><span class="hs-identifier hs-var">yCoord</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Button -&gt; Maybe Button
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">Button
+</span><a href="#local-6989586621679366486"><span class="hs-identifier hs-var">button</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-161"></span><span>        </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Parser Event
+forall a. Parser a
+</span><a href="Graphics.Vty.Input.Classify.Parse.html#failParse"><span class="hs-identifier hs-var">failParse</span></a></span><span>
+</span><span id="line-162"></span></pre></body></html>

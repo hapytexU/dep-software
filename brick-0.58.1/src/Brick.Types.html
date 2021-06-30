@@ -1,0 +1,563 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span id="%24con2tag_97mljsKeSfIIu0Xqs0MAMp"></span><span class="hs-comment">-- | Basic types used by this library.</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE TemplateHaskell #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE RankNTypes #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE GeneralizedNewtypeDeriving #-}</span><span>
+</span><span id="line-5"></span><span class="hs-pragma">{-# OPTIONS_GHC -fno-warn-orphans #-}</span><span>
+</span><span id="line-6"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Brick.Types</span><span>
+</span><span id="line-7"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-comment">-- * The Widget type</span></span><span>
+</span><span id="line-8"></span><span>    </span><span class="annot"><a href="Brick.Types.html#Widget"><span class="hs-identifier">Widget</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-9"></span><span>
+</span><span id="line-10"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Location types and lenses</span></span><span>
+</span><span id="line-11"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#Location"><span class="hs-identifier">Location</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-12"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#locL"><span class="hs-identifier">locL</span></a></span><span>
+</span><span id="line-13"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#TerminalLocation"><span class="hs-identifier">TerminalLocation</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-14"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#CursorLocation"><span class="hs-identifier">CursorLocation</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#cursorLocationL"><span class="hs-identifier">cursorLocationL</span></a></span><span>
+</span><span id="line-16"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#cursorLocationNameL"><span class="hs-identifier">cursorLocationNameL</span></a></span><span>
+</span><span id="line-17"></span><span>
+</span><span id="line-18"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Viewports</span></span><span>
+</span><span id="line-19"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#Viewport"><span class="hs-identifier">Viewport</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-20"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#ViewportType"><span class="hs-identifier">ViewportType</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#vpSize"><span class="hs-identifier">vpSize</span></a></span><span>
+</span><span id="line-22"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#vpTop"><span class="hs-identifier">vpTop</span></a></span><span>
+</span><span id="line-23"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#vpLeft"><span class="hs-identifier">vpLeft</span></a></span><span>
+</span><span id="line-24"></span><span>
+</span><span id="line-25"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Event-handling types</span></span><span>
+</span><span id="line-26"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.html#EventM"><span class="hs-identifier">EventM</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-27"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#Next"><span class="hs-identifier">Next</span></a></span><span>
+</span><span id="line-28"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#BrickEvent"><span class="hs-identifier">BrickEvent</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-29"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.html#handleEventLensed"><span class="hs-identifier">handleEventLensed</span></a></span><span>
+</span><span id="line-30"></span><span>
+</span><span id="line-31"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Rendering infrastructure</span></span><span>
+</span><span id="line-32"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.html#RenderM"><span class="hs-identifier">RenderM</span></a></span><span>
+</span><span id="line-33"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.html#getContext"><span class="hs-identifier">getContext</span></a></span><span>
+</span><span id="line-34"></span><span>
+</span><span id="line-35"></span><span>  </span><span class="annot"><span class="hs-comment">-- ** The rendering context</span></span><span>
+</span><span id="line-36"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#Context"><span class="hs-identifier">Context</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Brick.Types.Internal.html#ctxAttrName"><span class="hs-identifier">ctxAttrName</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#availWidth"><span class="hs-identifier">availWidth</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#availHeight"><span class="hs-identifier">availHeight</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#windowWidth"><span class="hs-identifier">windowWidth</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#windowHeight"><span class="hs-identifier">windowHeight</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#ctxBorderStyle"><span class="hs-identifier">ctxBorderStyle</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#ctxAttrMap"><span class="hs-identifier">ctxAttrMap</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#ctxDynBorders"><span class="hs-identifier">ctxDynBorders</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-37"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.html#attrL"><span class="hs-identifier">attrL</span></a></span><span>
+</span><span id="line-38"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.html#availWidthL"><span class="hs-identifier">availWidthL</span></a></span><span>
+</span><span id="line-39"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.html#availHeightL"><span class="hs-identifier">availHeightL</span></a></span><span>
+</span><span id="line-40"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.html#windowWidthL"><span class="hs-identifier">windowWidthL</span></a></span><span>
+</span><span id="line-41"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.html#windowHeightL"><span class="hs-identifier">windowHeightL</span></a></span><span>
+</span><span id="line-42"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.html#ctxAttrMapL"><span class="hs-identifier">ctxAttrMapL</span></a></span><span>
+</span><span id="line-43"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.html#ctxAttrNameL"><span class="hs-identifier">ctxAttrNameL</span></a></span><span>
+</span><span id="line-44"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.html#ctxBorderStyleL"><span class="hs-identifier">ctxBorderStyleL</span></a></span><span>
+</span><span id="line-45"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.html#ctxDynBordersL"><span class="hs-identifier">ctxDynBordersL</span></a></span><span>
+</span><span id="line-46"></span><span>
+</span><span id="line-47"></span><span>  </span><span class="annot"><span class="hs-comment">-- ** Rendering results</span></span><span>
+</span><span id="line-48"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#Result"><span class="hs-identifier">Result</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-49"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#emptyResult"><span class="hs-identifier">emptyResult</span></a></span><span>
+</span><span id="line-50"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.html#lookupAttrName"><span class="hs-identifier">lookupAttrName</span></a></span><span>
+</span><span id="line-51"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#Extent"><span class="hs-identifier">Extent</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-52"></span><span>
+</span><span id="line-53"></span><span>  </span><span class="annot"><span class="hs-comment">-- ** Rendering result lenses</span></span><span>
+</span><span id="line-54"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#imageL"><span class="hs-identifier">imageL</span></a></span><span>
+</span><span id="line-55"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#cursorsL"><span class="hs-identifier">cursorsL</span></a></span><span>
+</span><span id="line-56"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#visibilityRequestsL"><span class="hs-identifier">visibilityRequestsL</span></a></span><span>
+</span><span id="line-57"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#extentsL"><span class="hs-identifier">extentsL</span></a></span><span>
+</span><span id="line-58"></span><span>
+</span><span id="line-59"></span><span>  </span><span class="annot"><span class="hs-comment">-- ** Visibility requests</span></span><span>
+</span><span id="line-60"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#VisibilityRequest"><span class="hs-identifier">VisibilityRequest</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-61"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#vrPositionL"><span class="hs-identifier">vrPositionL</span></a></span><span>
+</span><span id="line-62"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#vrSizeL"><span class="hs-identifier">vrSizeL</span></a></span><span>
+</span><span id="line-63"></span><span>
+</span><span id="line-64"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Making lenses</span></span><span>
+</span><span id="line-65"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.TH.html#suffixLenses"><span class="hs-identifier">suffixLenses</span></a></span><span>
+</span><span id="line-66"></span><span>
+</span><span id="line-67"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Dynamic borders</span></span><span>
+</span><span id="line-68"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#bordersL"><span class="hs-identifier">bordersL</span></a></span><span>
+</span><span id="line-69"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#DynBorder"><span class="hs-identifier">DynBorder</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-70"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#dbStyleL"><span class="hs-identifier">dbStyleL</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#dbAttrL"><span class="hs-identifier">dbAttrL</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#dbSegmentsL"><span class="hs-identifier">dbSegmentsL</span></a></span><span>
+</span><span id="line-71"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#BorderSegment"><span class="hs-identifier">BorderSegment</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-72"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#bsAcceptL"><span class="hs-identifier">bsAcceptL</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#bsOfferL"><span class="hs-identifier">bsOfferL</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#bsDrawL"><span class="hs-identifier">bsDrawL</span></a></span><span>
+</span><span id="line-73"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier">Edges</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-74"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#eTopL"><span class="hs-identifier">eTopL</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#eBottomL"><span class="hs-identifier">eBottomL</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#eRightL"><span class="hs-identifier">eRightL</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#eLeftL"><span class="hs-identifier">eLeftL</span></a></span><span>
+</span><span id="line-75"></span><span>
+</span><span id="line-76"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Miscellaneous</span></span><span>
+</span><span id="line-77"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.html#Size"><span class="hs-identifier">Size</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-78"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.html#Padding"><span class="hs-identifier">Padding</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-79"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#Direction"><span class="hs-identifier">Direction</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-80"></span><span>
+</span><span id="line-81"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Renderer internals (for benchmarking)</span></span><span>
+</span><span id="line-82"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#RenderState"><span class="hs-identifier">RenderState</span></a></span><span>
+</span><span id="line-83"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-84"></span><span class="hs-keyword">where</span><span class="hs-cpp">
+
+#if !MIN_VERSION_base(4,8,0)
+</span><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Control.Applicative</span><span>
+</span><span id="line-88"></span><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Data.Monoid</span><span> </span><span class="hs-special">(</span><span class="hs-identifier">Monoid</span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-cpp">
+#endif
+</span><span>
+</span><span id="line-91"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Lens.Micro</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">_1</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">_2</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">to</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-operator">(^.)</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-operator">(&amp;)</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-operator">(.~)</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">Lens'</span></span><span class="hs-special">)</span><span>
+</span><span id="line-92"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Lens.Micro.Type</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Getting</span></span><span class="hs-special">)</span><span>
+</span><span id="line-93"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.Catch</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">MonadThrow</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">MonadCatch</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">MonadMask</span></span><span class="hs-special">)</span><span class="hs-cpp">
+#if !MIN_VERSION_base(4,13,0)
+</span><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Control.Monad.Fail</span><span> </span><span class="hs-special">(</span><span class="hs-identifier">MonadFail</span><span class="hs-special">)</span><span class="hs-cpp">
+#endif
+</span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.Trans.State.Lazy</span></span><span>
+</span><span id="line-98"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.Trans.Reader</span></span><span>
+</span><span id="line-99"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Graphics.Vty</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Attr</span></span><span class="hs-special">)</span><span>
+</span><span id="line-100"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.IO.Class</span></span><span>
+</span><span id="line-101"></span><span>
+</span><span id="line-102"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Brick.Types.TH.html"><span class="hs-identifier">Brick.Types.TH</span></a></span><span>
+</span><span id="line-103"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Brick.Types.Internal.html"><span class="hs-identifier">Brick.Types.Internal</span></a></span><span>
+</span><span id="line-104"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Brick.AttrMap.html"><span class="hs-identifier">Brick.AttrMap</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Brick.AttrMap.html#AttrName"><span class="hs-identifier">AttrName</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.AttrMap.html#attrMapLookup"><span class="hs-identifier">attrMapLookup</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-105"></span><span>
+</span><span id="line-106"></span><span class="hs-comment">-- | The type of padding.</span><span>
+</span><span id="line-107"></span><span class="hs-keyword">data</span><span> </span><span id="Padding"><span class="annot"><a href="Brick.Types.html#Padding"><span class="hs-identifier hs-var">Padding</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="Pad"><span class="annot"><a href="Brick.Types.html#Pad"><span class="hs-identifier hs-var">Pad</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-108"></span><span>             </span><span class="hs-comment">-- ^ Pad by the specified number of rows or columns.</span><span>
+</span><span id="line-109"></span><span>             </span><span class="hs-glyph">|</span><span> </span><span id="Max"><span class="annot"><a href="Brick.Types.html#Max"><span class="hs-identifier hs-var">Max</span></a></span></span><span>
+</span><span id="line-110"></span><span>             </span><span class="hs-comment">-- ^ Pad up to the number of available rows or columns.</span><span>
+</span><span id="line-111"></span><span>
+</span><span id="line-112"></span><span class="hs-comment">-- | A convenience function for handling events intended for values</span><span>
+</span><span id="line-113"></span><span class="hs-comment">-- that are targets of lenses in your application state. This function</span><span>
+</span><span id="line-114"></span><span class="hs-comment">-- obtains the target value of the specified lens, invokes 'handleEvent'</span><span>
+</span><span id="line-115"></span><span class="hs-comment">-- on it, and stores the resulting transformed value back in the state</span><span>
+</span><span id="line-116"></span><span class="hs-comment">-- using the lens.</span><span>
+</span><span id="line-117"></span><span id="local-6989586621679370998"><span id="local-6989586621679370999"><span id="local-6989586621679371000"><span id="local-6989586621679371001"><span class="annot"><a href="Brick.Types.html#handleEventLensed"><span class="hs-identifier hs-type">handleEventLensed</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679371001"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-118"></span><span>                  </span><span class="hs-comment">-- ^ The state value.</span><span>
+</span><span id="line-119"></span><span>                  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Lens'</span></span><span> </span><span class="annot"><a href="#local-6989586621679371001"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679371000"><span class="hs-identifier hs-type">b</span></a></span><span>
+</span><span id="line-120"></span><span>                  </span><span class="hs-comment">-- ^ The lens to use to extract and store the target</span><span>
+</span><span id="line-121"></span><span>                  </span><span class="hs-comment">-- of the event.</span><span>
+</span><span id="line-122"></span><span>                  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679370999"><span class="hs-identifier hs-type">e</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679371000"><span class="hs-identifier hs-type">b</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Types.html#EventM"><span class="hs-identifier hs-type">EventM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679370998"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679371000"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-123"></span><span>                  </span><span class="hs-comment">-- ^ The event handler.</span><span>
+</span><span id="line-124"></span><span>                  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679370999"><span class="hs-identifier hs-type">e</span></a></span><span>
+</span><span id="line-125"></span><span>                  </span><span class="hs-comment">-- ^ The event to handle.</span><span>
+</span><span id="line-126"></span><span>                  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Types.html#EventM"><span class="hs-identifier hs-type">EventM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679370998"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679371001"><span class="hs-identifier hs-type">a</span></a></span></span></span></span></span><span>
+</span><span id="line-127"></span><span id="handleEventLensed"><span class="annot"><span class="annottext">handleEventLensed :: a -&gt; Lens' a b -&gt; (e -&gt; b -&gt; EventM n b) -&gt; e -&gt; EventM n a
+</span><a href="Brick.Types.html#handleEventLensed"><span class="hs-identifier hs-var hs-var">handleEventLensed</span></a></span></span><span> </span><span id="local-6989586621679370997"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679370997"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span id="local-6989586621679370996"><span class="annot"><span class="annottext">Lens' a b
+</span><a href="#local-6989586621679370996"><span class="hs-identifier hs-var">target</span></a></span></span><span> </span><span id="local-6989586621679370995"><span class="annot"><span class="annottext">e -&gt; b -&gt; EventM n b
+</span><a href="#local-6989586621679370995"><span class="hs-identifier hs-var">handleEvent</span></a></span></span><span> </span><span id="local-6989586621679370994"><span class="annot"><span class="annottext">e
+</span><a href="#local-6989586621679370994"><span class="hs-identifier hs-var">ev</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-128"></span><span>    </span><span id="local-6989586621679370993"><span class="annot"><span class="annottext">b
+</span><a href="#local-6989586621679370993"><span class="hs-identifier hs-var">newB</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">e -&gt; b -&gt; EventM n b
+</span><a href="#local-6989586621679370995"><span class="hs-identifier hs-var">handleEvent</span></a></span><span> </span><span class="annot"><span class="annottext">e
+</span><a href="#local-6989586621679370994"><span class="hs-identifier hs-var">ev</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679370997"><span class="hs-identifier hs-var">v</span></a></span><span class="annot"><span class="annottext">a -&gt; Getting b a b -&gt; b
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting b a b
+Lens' a b
+</span><a href="#local-6989586621679370996"><span class="hs-identifier hs-var">target</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-129"></span><span>    </span><span class="annot"><span class="annottext">a -&gt; EventM n a
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(a -&gt; EventM n a) -&gt; a -&gt; EventM n a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679370997"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; (a -&gt; a) -&gt; a
+forall a b. a -&gt; (a -&gt; b) -&gt; b
+</span><span class="hs-operator hs-var">&amp;</span></span><span> </span><span class="annot"><span class="annottext">(b -&gt; Identity b) -&gt; a -&gt; Identity a
+Lens' a b
+</span><a href="#local-6989586621679370996"><span class="hs-identifier hs-var">target</span></a></span><span> </span><span class="annot"><span class="annottext">((b -&gt; Identity b) -&gt; a -&gt; Identity a) -&gt; b -&gt; a -&gt; a
+forall s t a b. ASetter s t a b -&gt; b -&gt; s -&gt; t
+</span><span class="hs-operator hs-var">.~</span></span><span> </span><span class="annot"><span class="annottext">b
+</span><a href="#local-6989586621679370993"><span class="hs-identifier hs-var">newB</span></a></span><span>
+</span><span id="line-130"></span><span>
+</span><span id="line-131"></span><span class="hs-comment">-- | The monad in which event handlers run. Although it may be tempting</span><span>
+</span><span id="line-132"></span><span class="hs-comment">-- to dig into the reader value yourself, just use</span><span>
+</span><span id="line-133"></span><span class="hs-comment">-- 'Brick.Main.lookupViewport'.</span><span>
+</span><span id="line-134"></span><span class="hs-keyword">newtype</span><span> </span><span id="EventM"><span class="annot"><a href="Brick.Types.html#EventM"><span class="hs-identifier hs-var">EventM</span></a></span></span><span> </span><span id="local-6989586621679370992"><span class="annot"><a href="#local-6989586621679370992"><span class="hs-identifier hs-type">n</span></a></span></span><span> </span><span id="local-6989586621679370991"><span class="annot"><a href="#local-6989586621679370991"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-135"></span><span>    </span><span id="EventM"><span class="annot"><a href="Brick.Types.html#EventM"><span class="hs-identifier hs-var">EventM</span></a></span></span><span> </span><span class="hs-special">{</span><span> </span><span id="runEventM"><span class="annot"><span class="annottext">EventM n a -&gt; ReaderT (EventRO n) (StateT (EventState n) IO) a
+</span><a href="Brick.Types.html#runEventM"><span class="hs-identifier hs-var hs-var">runEventM</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ReaderT</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Brick.Types.Internal.html#EventRO"><span class="hs-identifier hs-type">EventRO</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679370992"><span class="hs-identifier hs-type">n</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">StateT</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Brick.Types.Internal.html#EventState"><span class="hs-identifier hs-type">EventState</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679370992"><span class="hs-identifier hs-type">n</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679370991"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-136"></span><span>           </span><span class="hs-special">}</span><span>
+</span><span id="line-137"></span><span>           </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span> </span><span id="local-6989586621679370985"><span id="local-6989586621679370987"><span class="annot"><span class="annottext">a -&gt; EventM n b -&gt; EventM n a
+(a -&gt; b) -&gt; EventM n a -&gt; EventM n b
+(forall a b. (a -&gt; b) -&gt; EventM n a -&gt; EventM n b)
+-&gt; (forall a b. a -&gt; EventM n b -&gt; EventM n a)
+-&gt; Functor (EventM n)
+forall a b. a -&gt; EventM n b -&gt; EventM n a
+forall a b. (a -&gt; b) -&gt; EventM n a -&gt; EventM n b
+forall n a b. a -&gt; EventM n b -&gt; EventM n a
+forall n a b. (a -&gt; b) -&gt; EventM n a -&gt; EventM n b
+forall (f :: * -&gt; *).
+(forall a b. (a -&gt; b) -&gt; f a -&gt; f b)
+-&gt; (forall a b. a -&gt; f b -&gt; f a) -&gt; Functor f
+&lt;$ :: a -&gt; EventM n b -&gt; EventM n a
+$c&lt;$ :: forall n a b. a -&gt; EventM n b -&gt; EventM n a
+fmap :: (a -&gt; b) -&gt; EventM n a -&gt; EventM n b
+$cfmap :: forall n a b. (a -&gt; b) -&gt; EventM n a -&gt; EventM n b
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Functor</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679370973"><span id="local-6989586621679370975"><span id="local-6989586621679370977"><span id="local-6989586621679370979"><span id="local-6989586621679370981"><span class="annot"><span class="annottext">Functor (EventM n)
+a -&gt; EventM n a
+Functor (EventM n)
+-&gt; (forall a. a -&gt; EventM n a)
+-&gt; (forall a b. EventM n (a -&gt; b) -&gt; EventM n a -&gt; EventM n b)
+-&gt; (forall a b c.
+    (a -&gt; b -&gt; c) -&gt; EventM n a -&gt; EventM n b -&gt; EventM n c)
+-&gt; (forall a b. EventM n a -&gt; EventM n b -&gt; EventM n b)
+-&gt; (forall a b. EventM n a -&gt; EventM n b -&gt; EventM n a)
+-&gt; Applicative (EventM n)
+EventM n a -&gt; EventM n b -&gt; EventM n b
+EventM n a -&gt; EventM n b -&gt; EventM n a
+EventM n (a -&gt; b) -&gt; EventM n a -&gt; EventM n b
+(a -&gt; b -&gt; c) -&gt; EventM n a -&gt; EventM n b -&gt; EventM n c
+forall n. Functor (EventM n)
+forall a. a -&gt; EventM n a
+forall n a. a -&gt; EventM n a
+forall a b. EventM n a -&gt; EventM n b -&gt; EventM n a
+forall a b. EventM n a -&gt; EventM n b -&gt; EventM n b
+forall a b. EventM n (a -&gt; b) -&gt; EventM n a -&gt; EventM n b
+forall n a b. EventM n a -&gt; EventM n b -&gt; EventM n a
+forall n a b. EventM n a -&gt; EventM n b -&gt; EventM n b
+forall n a b. EventM n (a -&gt; b) -&gt; EventM n a -&gt; EventM n b
+forall a b c.
+(a -&gt; b -&gt; c) -&gt; EventM n a -&gt; EventM n b -&gt; EventM n c
+forall n a b c.
+(a -&gt; b -&gt; c) -&gt; EventM n a -&gt; EventM n b -&gt; EventM n c
+forall (f :: * -&gt; *).
+Functor f
+-&gt; (forall a. a -&gt; f a)
+-&gt; (forall a b. f (a -&gt; b) -&gt; f a -&gt; f b)
+-&gt; (forall a b c. (a -&gt; b -&gt; c) -&gt; f a -&gt; f b -&gt; f c)
+-&gt; (forall a b. f a -&gt; f b -&gt; f b)
+-&gt; (forall a b. f a -&gt; f b -&gt; f a)
+-&gt; Applicative f
+&lt;* :: EventM n a -&gt; EventM n b -&gt; EventM n a
+$c&lt;* :: forall n a b. EventM n a -&gt; EventM n b -&gt; EventM n a
+*&gt; :: EventM n a -&gt; EventM n b -&gt; EventM n b
+$c*&gt; :: forall n a b. EventM n a -&gt; EventM n b -&gt; EventM n b
+liftA2 :: (a -&gt; b -&gt; c) -&gt; EventM n a -&gt; EventM n b -&gt; EventM n c
+$cliftA2 :: forall n a b c.
+(a -&gt; b -&gt; c) -&gt; EventM n a -&gt; EventM n b -&gt; EventM n c
+&lt;*&gt; :: EventM n (a -&gt; b) -&gt; EventM n a -&gt; EventM n b
+$c&lt;*&gt; :: forall n a b. EventM n (a -&gt; b) -&gt; EventM n a -&gt; EventM n b
+pure :: a -&gt; EventM n a
+$cpure :: forall n a. a -&gt; EventM n a
+$cp1Applicative :: forall n. Functor (EventM n)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Applicative</span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679370965"><span id="local-6989586621679370967"><span id="local-6989586621679370969"><span class="annot"><span class="annottext">Applicative (EventM n)
+a -&gt; EventM n a
+Applicative (EventM n)
+-&gt; (forall a b. EventM n a -&gt; (a -&gt; EventM n b) -&gt; EventM n b)
+-&gt; (forall a b. EventM n a -&gt; EventM n b -&gt; EventM n b)
+-&gt; (forall a. a -&gt; EventM n a)
+-&gt; Monad (EventM n)
+EventM n a -&gt; (a -&gt; EventM n b) -&gt; EventM n b
+EventM n a -&gt; EventM n b -&gt; EventM n b
+forall n. Applicative (EventM n)
+forall a. a -&gt; EventM n a
+forall n a. a -&gt; EventM n a
+forall a b. EventM n a -&gt; EventM n b -&gt; EventM n b
+forall a b. EventM n a -&gt; (a -&gt; EventM n b) -&gt; EventM n b
+forall n a b. EventM n a -&gt; EventM n b -&gt; EventM n b
+forall n a b. EventM n a -&gt; (a -&gt; EventM n b) -&gt; EventM n b
+forall (m :: * -&gt; *).
+Applicative m
+-&gt; (forall a b. m a -&gt; (a -&gt; m b) -&gt; m b)
+-&gt; (forall a b. m a -&gt; m b -&gt; m b)
+-&gt; (forall a. a -&gt; m a)
+-&gt; Monad m
+return :: a -&gt; EventM n a
+$creturn :: forall n a. a -&gt; EventM n a
+&gt;&gt; :: EventM n a -&gt; EventM n b -&gt; EventM n b
+$c&gt;&gt; :: forall n a b. EventM n a -&gt; EventM n b -&gt; EventM n b
+&gt;&gt;= :: EventM n a -&gt; (a -&gt; EventM n b) -&gt; EventM n b
+$c&gt;&gt;= :: forall n a b. EventM n a -&gt; (a -&gt; EventM n b) -&gt; EventM n b
+$cp1Monad :: forall n. Applicative (EventM n)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Monad</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679370961"><span class="annot"><span class="annottext">Monad (EventM n)
+Monad (EventM n)
+-&gt; (forall a. IO a -&gt; EventM n a) -&gt; MonadIO (EventM n)
+IO a -&gt; EventM n a
+forall n. Monad (EventM n)
+forall a. IO a -&gt; EventM n a
+forall n a. IO a -&gt; EventM n a
+forall (m :: * -&gt; *).
+Monad m -&gt; (forall a. IO a -&gt; m a) -&gt; MonadIO m
+liftIO :: IO a -&gt; EventM n a
+$cliftIO :: forall n a. IO a -&gt; EventM n a
+$cp1MonadIO :: forall n. Monad (EventM n)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var">MonadIO</span></span></span><span>
+</span><span id="line-138"></span><span>                    </span><span class="hs-special">,</span><span> </span><span id="local-6989586621679370957"><span class="annot"><span class="annottext">Monad (EventM n)
+e -&gt; EventM n a
+Monad (EventM n)
+-&gt; (forall e a. Exception e =&gt; e -&gt; EventM n a)
+-&gt; MonadThrow (EventM n)
+forall n. Monad (EventM n)
+forall e a. Exception e =&gt; e -&gt; EventM n a
+forall n e a. Exception e =&gt; e -&gt; EventM n a
+forall (m :: * -&gt; *).
+Monad m -&gt; (forall e a. Exception e =&gt; e -&gt; m a) -&gt; MonadThrow m
+throwM :: e -&gt; EventM n a
+$cthrowM :: forall n e a. Exception e =&gt; e -&gt; EventM n a
+$cp1MonadThrow :: forall n. Monad (EventM n)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var">MonadThrow</span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679370953"><span class="annot"><span class="annottext">MonadThrow (EventM n)
+MonadThrow (EventM n)
+-&gt; (forall e a.
+    Exception e =&gt;
+    EventM n a -&gt; (e -&gt; EventM n a) -&gt; EventM n a)
+-&gt; MonadCatch (EventM n)
+EventM n a -&gt; (e -&gt; EventM n a) -&gt; EventM n a
+forall n. MonadThrow (EventM n)
+forall e a.
+Exception e =&gt;
+EventM n a -&gt; (e -&gt; EventM n a) -&gt; EventM n a
+forall n e a.
+Exception e =&gt;
+EventM n a -&gt; (e -&gt; EventM n a) -&gt; EventM n a
+forall (m :: * -&gt; *).
+MonadThrow m
+-&gt; (forall e a. Exception e =&gt; m a -&gt; (e -&gt; m a) -&gt; m a)
+-&gt; MonadCatch m
+catch :: EventM n a -&gt; (e -&gt; EventM n a) -&gt; EventM n a
+$ccatch :: forall n e a.
+Exception e =&gt;
+EventM n a -&gt; (e -&gt; EventM n a) -&gt; EventM n a
+$cp1MonadCatch :: forall n. MonadThrow (EventM n)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var">MonadCatch</span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679370945"><span id="local-6989586621679370947"><span id="local-6989586621679370949"><span class="annot"><span class="annottext">MonadCatch (EventM n)
+MonadCatch (EventM n)
+-&gt; (forall b.
+    ((forall a. EventM n a -&gt; EventM n a) -&gt; EventM n b) -&gt; EventM n b)
+-&gt; (forall b.
+    ((forall a. EventM n a -&gt; EventM n a) -&gt; EventM n b) -&gt; EventM n b)
+-&gt; (forall a b c.
+    EventM n a
+    -&gt; (a -&gt; ExitCase b -&gt; EventM n c)
+    -&gt; (a -&gt; EventM n b)
+    -&gt; EventM n (b, c))
+-&gt; MonadMask (EventM n)
+EventM n a
+-&gt; (a -&gt; ExitCase b -&gt; EventM n c)
+-&gt; (a -&gt; EventM n b)
+-&gt; EventM n (b, c)
+((forall a. EventM n a -&gt; EventM n a) -&gt; EventM n b) -&gt; EventM n b
+((forall a. EventM n a -&gt; EventM n a) -&gt; EventM n b) -&gt; EventM n b
+forall n. MonadCatch (EventM n)
+forall b.
+((forall a. EventM n a -&gt; EventM n a) -&gt; EventM n b) -&gt; EventM n b
+forall n b.
+((forall a. EventM n a -&gt; EventM n a) -&gt; EventM n b) -&gt; EventM n b
+forall a b c.
+EventM n a
+-&gt; (a -&gt; ExitCase b -&gt; EventM n c)
+-&gt; (a -&gt; EventM n b)
+-&gt; EventM n (b, c)
+forall n a b c.
+EventM n a
+-&gt; (a -&gt; ExitCase b -&gt; EventM n c)
+-&gt; (a -&gt; EventM n b)
+-&gt; EventM n (b, c)
+forall (m :: * -&gt; *).
+MonadCatch m
+-&gt; (forall b. ((forall a. m a -&gt; m a) -&gt; m b) -&gt; m b)
+-&gt; (forall b. ((forall a. m a -&gt; m a) -&gt; m b) -&gt; m b)
+-&gt; (forall a b c.
+    m a -&gt; (a -&gt; ExitCase b -&gt; m c) -&gt; (a -&gt; m b) -&gt; m (b, c))
+-&gt; MonadMask m
+generalBracket :: EventM n a
+-&gt; (a -&gt; ExitCase b -&gt; EventM n c)
+-&gt; (a -&gt; EventM n b)
+-&gt; EventM n (b, c)
+$cgeneralBracket :: forall n a b c.
+EventM n a
+-&gt; (a -&gt; ExitCase b -&gt; EventM n c)
+-&gt; (a -&gt; EventM n b)
+-&gt; EventM n (b, c)
+uninterruptibleMask :: ((forall a. EventM n a -&gt; EventM n a) -&gt; EventM n b) -&gt; EventM n b
+$cuninterruptibleMask :: forall n b.
+((forall a. EventM n a -&gt; EventM n a) -&gt; EventM n b) -&gt; EventM n b
+mask :: ((forall a. EventM n a -&gt; EventM n a) -&gt; EventM n b) -&gt; EventM n b
+$cmask :: forall n b.
+((forall a. EventM n a -&gt; EventM n a) -&gt; EventM n b) -&gt; EventM n b
+$cp1MonadMask :: forall n. MonadCatch (EventM n)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">MonadMask</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679370941"><span class="annot"><span class="annottext">Monad (EventM n)
+Monad (EventM n)
+-&gt; (forall a. String -&gt; EventM n a) -&gt; MonadFail (EventM n)
+String -&gt; EventM n a
+forall n. Monad (EventM n)
+forall a. String -&gt; EventM n a
+forall n a. String -&gt; EventM n a
+forall (m :: * -&gt; *).
+Monad m -&gt; (forall a. String -&gt; m a) -&gt; MonadFail m
+fail :: String -&gt; EventM n a
+$cfail :: forall n a. String -&gt; EventM n a
+$cp1MonadFail :: forall n. Monad (EventM n)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var">MonadFail</span></span></span><span>
+</span><span id="line-139"></span><span>                    </span><span class="hs-special">)</span><span>
+</span><span id="line-140"></span><span>
+</span><span id="line-141"></span><span class="hs-comment">-- | Widget size policies. These policies communicate how a widget uses</span><span>
+</span><span id="line-142"></span><span class="hs-comment">-- space when being rendered. These policies influence rendering order</span><span>
+</span><span id="line-143"></span><span class="hs-comment">-- and space allocation in the box layout algorithm for 'hBox' and</span><span>
+</span><span id="line-144"></span><span class="hs-comment">-- 'vBox'.</span><span>
+</span><span id="line-145"></span><span class="hs-keyword">data</span><span> </span><span id="Size"><span class="annot"><a href="Brick.Types.html#Size"><span class="hs-identifier hs-var">Size</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="Fixed"><span class="annot"><a href="Brick.Types.html#Fixed"><span class="hs-identifier hs-var">Fixed</span></a></span></span><span>
+</span><span id="line-146"></span><span>          </span><span class="hs-comment">-- ^ Widgets advertising this size policy should take up the</span><span>
+</span><span id="line-147"></span><span>          </span><span class="hs-comment">-- same amount of space no matter how much they are given,</span><span>
+</span><span id="line-148"></span><span>          </span><span class="hs-comment">-- i.e. their size depends on their contents alone rather than</span><span>
+</span><span id="line-149"></span><span>          </span><span class="hs-comment">-- on the size of the rendering area.</span><span>
+</span><span id="line-150"></span><span>          </span><span class="hs-glyph">|</span><span> </span><span id="Greedy"><span class="annot"><a href="Brick.Types.html#Greedy"><span class="hs-identifier hs-var">Greedy</span></a></span></span><span>
+</span><span id="line-151"></span><span>          </span><span class="hs-comment">-- ^ Widgets advertising this size policy must take up all the</span><span>
+</span><span id="line-152"></span><span>          </span><span class="hs-comment">-- space they are given.</span><span>
+</span><span id="line-153"></span><span>          </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679370932"><span id="local-6989586621679370934"><span id="local-6989586621679370936"><span class="annot"><span class="annottext">Int -&gt; Size -&gt; ShowS
+[Size] -&gt; ShowS
+Size -&gt; String
+(Int -&gt; Size -&gt; ShowS)
+-&gt; (Size -&gt; String) -&gt; ([Size] -&gt; ShowS) -&gt; Show Size
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [Size] -&gt; ShowS
+$cshowList :: [Size] -&gt; ShowS
+show :: Size -&gt; String
+$cshow :: Size -&gt; String
+showsPrec :: Int -&gt; Size -&gt; ShowS
+$cshowsPrec :: Int -&gt; Size -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679370927"><span id="local-6989586621679370929"><span class="annot"><span class="annottext">Size -&gt; Size -&gt; Bool
+(Size -&gt; Size -&gt; Bool) -&gt; (Size -&gt; Size -&gt; Bool) -&gt; Eq Size
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: Size -&gt; Size -&gt; Bool
+$c/= :: Size -&gt; Size -&gt; Bool
+== :: Size -&gt; Size -&gt; Bool
+$c== :: Size -&gt; Size -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679370911"><span id="local-6989586621679370913"><span id="local-6989586621679370915"><span id="local-6989586621679370917"><span id="local-6989586621679370919"><span id="local-6989586621679370921"><span id="local-6989586621679370923"><span class="annot"><span class="annottext">Eq Size
+Eq Size
+-&gt; (Size -&gt; Size -&gt; Ordering)
+-&gt; (Size -&gt; Size -&gt; Bool)
+-&gt; (Size -&gt; Size -&gt; Bool)
+-&gt; (Size -&gt; Size -&gt; Bool)
+-&gt; (Size -&gt; Size -&gt; Bool)
+-&gt; (Size -&gt; Size -&gt; Size)
+-&gt; (Size -&gt; Size -&gt; Size)
+-&gt; Ord Size
+Size -&gt; Size -&gt; Bool
+Size -&gt; Size -&gt; Ordering
+Size -&gt; Size -&gt; Size
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: Size -&gt; Size -&gt; Size
+$cmin :: Size -&gt; Size -&gt; Size
+max :: Size -&gt; Size -&gt; Size
+$cmax :: Size -&gt; Size -&gt; Size
+&gt;= :: Size -&gt; Size -&gt; Bool
+$c&gt;= :: Size -&gt; Size -&gt; Bool
+&gt; :: Size -&gt; Size -&gt; Bool
+$c&gt; :: Size -&gt; Size -&gt; Bool
+&lt;= :: Size -&gt; Size -&gt; Bool
+$c&lt;= :: Size -&gt; Size -&gt; Bool
+&lt; :: Size -&gt; Size -&gt; Bool
+$c&lt; :: Size -&gt; Size -&gt; Bool
+compare :: Size -&gt; Size -&gt; Ordering
+$ccompare :: Size -&gt; Size -&gt; Ordering
+$cp1Ord :: Eq Size
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-154"></span><span>
+</span><span id="line-155"></span><span class="hs-comment">-- | The type of widgets.</span><span>
+</span><span id="line-156"></span><span class="hs-keyword">data</span><span> </span><span id="Widget"><span class="annot"><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-var">Widget</span></a></span></span><span> </span><span id="local-6989586621679370909"><span class="annot"><a href="#local-6989586621679370909"><span class="hs-identifier hs-type">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-157"></span><span>    </span><span id="Widget"><span class="annot"><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-var">Widget</span></a></span></span><span> </span><span class="hs-special">{</span><span> </span><span id="hSize"><span class="annot"><span class="annottext">Widget n -&gt; Size
+</span><a href="Brick.Types.html#hSize"><span class="hs-identifier hs-var hs-var">hSize</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Types.html#Size"><span class="hs-identifier hs-type">Size</span></a></span><span>
+</span><span id="line-158"></span><span>           </span><span class="hs-comment">-- ^ This widget's horizontal growth policy</span><span>
+</span><span id="line-159"></span><span>           </span><span class="hs-special">,</span><span> </span><span id="vSize"><span class="annot"><span class="annottext">Widget n -&gt; Size
+</span><a href="Brick.Types.html#vSize"><span class="hs-identifier hs-var hs-var">vSize</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Types.html#Size"><span class="hs-identifier hs-type">Size</span></a></span><span>
+</span><span id="line-160"></span><span>           </span><span class="hs-comment">-- ^ This widget's vertical growth policy</span><span>
+</span><span id="line-161"></span><span>           </span><span class="hs-special">,</span><span> </span><span id="render"><span class="annot"><span class="annottext">Widget n -&gt; RenderM n (Result n)
+</span><a href="Brick.Types.html#render"><span class="hs-identifier hs-var hs-var">render</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Types.html#RenderM"><span class="hs-identifier hs-type">RenderM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679370909"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Brick.Types.Internal.html#Result"><span class="hs-identifier hs-type">Result</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679370909"><span class="hs-identifier hs-type">n</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-162"></span><span>           </span><span class="hs-comment">-- ^ This widget's rendering function</span><span>
+</span><span id="line-163"></span><span>           </span><span class="hs-special">}</span><span>
+</span><span id="line-164"></span><span>
+</span><span id="line-165"></span><span class="hs-comment">-- | The type of the rendering monad. This monad is used by the</span><span>
+</span><span id="line-166"></span><span class="hs-comment">-- library's rendering routines to manage rendering state and</span><span>
+</span><span id="line-167"></span><span class="hs-comment">-- communicate rendering parameters to widgets' rendering functions.</span><span>
+</span><span id="line-168"></span><span class="hs-keyword">type</span><span> </span><span id="RenderM"><span class="annot"><a href="Brick.Types.html#RenderM"><span class="hs-identifier hs-var">RenderM</span></a></span></span><span> </span><span id="local-6989586621679370904"><span class="annot"><a href="#local-6989586621679370904"><span class="hs-identifier hs-type">n</span></a></span></span><span> </span><span id="local-6989586621679370903"><span class="annot"><a href="#local-6989586621679370903"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ReaderT</span></span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#Context"><span class="hs-identifier hs-type">Context</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">State</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Brick.Types.Internal.html#RenderState"><span class="hs-identifier hs-type">RenderState</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679370904"><span class="hs-identifier hs-type">n</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679370903"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-169"></span><span>
+</span><span id="line-170"></span><span class="hs-comment">-- | Get the current rendering context.</span><span>
+</span><span id="line-171"></span><span id="local-6989586621679371069"><span class="annot"><a href="Brick.Types.html#getContext"><span class="hs-identifier hs-type">getContext</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Types.html#RenderM"><span class="hs-identifier hs-type">RenderM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679371069"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#Context"><span class="hs-identifier hs-type">Context</span></a></span></span><span>
+</span><span id="line-172"></span><span id="getContext"><span class="annot"><span class="annottext">getContext :: RenderM n Context
+</span><a href="Brick.Types.html#getContext"><span class="hs-identifier hs-var hs-var">getContext</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">RenderM n Context
+forall (m :: * -&gt; *) r. Monad m =&gt; ReaderT r m r
+</span><span class="hs-identifier hs-var">ask</span></span><span>
+</span><span id="line-173"></span><span>
+</span><span id="line-174"></span><span id="ctxDynBordersL"><span id="ctxBorderStyleL"><span id="ctxAttrNameL"><span id="ctxAttrMapL"><span id="windowHeightL"><span id="windowWidthL"><span id="availHeightL"><span id="availWidthL"><span class="hs-identifier">suffixLenses</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">Context</span></span></span></span></span></span></span></span></span><span>
+</span><span id="line-175"></span><span>
+</span><span id="line-176"></span><span class="hs-comment">-- | The rendering context's current drawing attribute.</span><span>
+</span><span id="line-177"></span><span class="annot"><a href="Brick.Types.html#attrL"><span class="hs-identifier hs-type">attrL</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679370900"><span class="annot"><a href="#local-6989586621679370900"><span class="hs-identifier hs-type">r</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Getting</span></span><span> </span><span class="annot"><a href="#local-6989586621679370900"><span class="hs-identifier hs-type">r</span></a></span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#Context"><span class="hs-identifier hs-type">Context</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Attr</span></span><span>
+</span><span id="line-178"></span><span id="attrL"><span class="annot"><span class="annottext">attrL :: Getting r Context Attr
+</span><a href="Brick.Types.html#attrL"><span class="hs-identifier hs-var hs-var">attrL</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Context -&gt; Attr) -&gt; SimpleGetter Context Attr
+forall s a. (s -&gt; a) -&gt; SimpleGetter s a
+</span><span class="hs-identifier hs-var">to</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679370899"><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679370899"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">AttrName -&gt; AttrMap -&gt; Attr
+</span><a href="Brick.AttrMap.html#attrMapLookup"><span class="hs-identifier hs-var">attrMapLookup</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679370899"><span class="hs-identifier hs-var">c</span></a></span><span class="annot"><span class="annottext">Context -&gt; Getting AttrName Context AttrName -&gt; AttrName
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting AttrName Context AttrName
+Lens' Context AttrName
+</span><a href="Brick.Types.html#ctxAttrNameL"><span class="hs-identifier hs-var">ctxAttrNameL</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679370899"><span class="hs-identifier hs-var">c</span></a></span><span class="annot"><span class="annottext">Context -&gt; Getting AttrMap Context AttrMap -&gt; AttrMap
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting AttrMap Context AttrMap
+Lens' Context AttrMap
+</span><a href="Brick.Types.html#ctxAttrMapL"><span class="hs-identifier hs-var">ctxAttrMapL</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-179"></span><span>
+</span><span id="line-180"></span><span id="local-6989586621679370898"><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#TerminalLocation"><span class="hs-identifier hs-type">TerminalLocation</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Brick.Types.Internal.html#CursorLocation"><span class="hs-identifier hs-type">CursorLocation</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679370898"><span class="hs-identifier hs-type">n</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-181"></span><span>    </span><span id="local-6989586621679370892"><span class="annot"><span class="annottext">locationColumnL :: (Int -&gt; f Int) -&gt; CursorLocation n -&gt; f (CursorLocation n)
+</span><a href="Brick.Types.Internal.html#locationColumnL"><span class="hs-identifier hs-var hs-var hs-var hs-var">locationColumnL</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Location -&gt; f Location)
+-&gt; CursorLocation n -&gt; f (CursorLocation n)
+forall n. Lens' (CursorLocation n) Location
+</span><a href="Brick.Types.Internal.html#cursorLocationL"><span class="hs-identifier hs-var">cursorLocationL</span></a></span><span class="annot"><span class="annottext">((Location -&gt; f Location)
+ -&gt; CursorLocation n -&gt; f (CursorLocation n))
+-&gt; ((Int -&gt; f Int) -&gt; Location -&gt; f Location)
+-&gt; (Int -&gt; f Int)
+-&gt; CursorLocation n
+-&gt; f (CursorLocation n)
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span class="annot"><span class="annottext">(Int -&gt; f Int) -&gt; Location -&gt; f Location
+forall s t a b. Field1 s t a b =&gt; Lens s t a b
+</span><span class="hs-identifier hs-var">_1</span></span><span>
+</span><span id="line-182"></span><span>    </span><span id="local-6989586621679370889"><span class="annot"><span class="annottext">locationColumn :: CursorLocation n -&gt; Int
+</span><a href="Brick.Types.Internal.html#locationColumn"><span class="hs-identifier hs-var hs-var hs-var hs-var">locationColumn</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Location -&gt; Int
+forall a. TerminalLocation a =&gt; a -&gt; Int
+</span><a href="Brick.Types.Internal.html#locationColumn"><span class="hs-identifier hs-var">locationColumn</span></a></span><span> </span><span class="annot"><span class="annottext">(Location -&gt; Int)
+-&gt; (CursorLocation n -&gt; Location) -&gt; CursorLocation n -&gt; Int
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">CursorLocation n -&gt; Location
+forall n. CursorLocation n -&gt; Location
+</span><a href="Brick.Types.Internal.html#cursorLocation"><span class="hs-identifier hs-var hs-var">cursorLocation</span></a></span><span>
+</span><span id="line-183"></span><span>    </span><span id="local-6989586621679370886"><span class="annot"><span class="annottext">locationRowL :: (Int -&gt; f Int) -&gt; CursorLocation n -&gt; f (CursorLocation n)
+</span><a href="Brick.Types.Internal.html#locationRowL"><span class="hs-identifier hs-var hs-var hs-var hs-var">locationRowL</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Location -&gt; f Location)
+-&gt; CursorLocation n -&gt; f (CursorLocation n)
+forall n. Lens' (CursorLocation n) Location
+</span><a href="Brick.Types.Internal.html#cursorLocationL"><span class="hs-identifier hs-var">cursorLocationL</span></a></span><span class="annot"><span class="annottext">((Location -&gt; f Location)
+ -&gt; CursorLocation n -&gt; f (CursorLocation n))
+-&gt; ((Int -&gt; f Int) -&gt; Location -&gt; f Location)
+-&gt; (Int -&gt; f Int)
+-&gt; CursorLocation n
+-&gt; f (CursorLocation n)
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span class="annot"><span class="annottext">(Int -&gt; f Int) -&gt; Location -&gt; f Location
+forall s t a b. Field2 s t a b =&gt; Lens s t a b
+</span><span class="hs-identifier hs-var">_2</span></span><span>
+</span><span id="line-184"></span><span>    </span><span id="local-6989586621679370884"><span class="annot"><span class="annottext">locationRow :: CursorLocation n -&gt; Int
+</span><a href="Brick.Types.Internal.html#locationRow"><span class="hs-identifier hs-var hs-var hs-var hs-var">locationRow</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Location -&gt; Int
+forall a. TerminalLocation a =&gt; a -&gt; Int
+</span><a href="Brick.Types.Internal.html#locationRow"><span class="hs-identifier hs-var">locationRow</span></a></span><span> </span><span class="annot"><span class="annottext">(Location -&gt; Int)
+-&gt; (CursorLocation n -&gt; Location) -&gt; CursorLocation n -&gt; Int
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">CursorLocation n -&gt; Location
+forall n. CursorLocation n -&gt; Location
+</span><a href="Brick.Types.Internal.html#cursorLocation"><span class="hs-identifier hs-var hs-var">cursorLocation</span></a></span></span><span>
+</span><span id="line-185"></span><span>
+</span><span id="line-186"></span><span class="hs-comment">-- | Given an attribute name, obtain the attribute for the attribute</span><span>
+</span><span id="line-187"></span><span class="hs-comment">-- name by consulting the context's attribute map.</span><span>
+</span><span id="line-188"></span><span id="local-6989586621679370882"><span class="annot"><a href="Brick.Types.html#lookupAttrName"><span class="hs-identifier hs-type">lookupAttrName</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.AttrMap.html#AttrName"><span class="hs-identifier hs-type">AttrName</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Types.html#RenderM"><span class="hs-identifier hs-type">RenderM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679370882"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Attr</span></span></span><span>
+</span><span id="line-189"></span><span id="lookupAttrName"><span class="annot"><span class="annottext">lookupAttrName :: AttrName -&gt; RenderM n Attr
+</span><a href="Brick.Types.html#lookupAttrName"><span class="hs-identifier hs-var hs-var">lookupAttrName</span></a></span></span><span> </span><span id="local-6989586621679370881"><span class="annot"><span class="annottext">AttrName
+</span><a href="#local-6989586621679370881"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-190"></span><span>    </span><span id="local-6989586621679370880"><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679370880"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">RenderM n Context
+forall n. RenderM n Context
+</span><a href="Brick.Types.html#getContext"><span class="hs-identifier hs-var">getContext</span></a></span><span>
+</span><span id="line-191"></span><span>    </span><span class="annot"><span class="annottext">Attr -&gt; RenderM n Attr
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(Attr -&gt; RenderM n Attr) -&gt; Attr -&gt; RenderM n Attr
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">AttrName -&gt; AttrMap -&gt; Attr
+</span><a href="Brick.AttrMap.html#attrMapLookup"><span class="hs-identifier hs-var">attrMapLookup</span></a></span><span> </span><span class="annot"><span class="annottext">AttrName
+</span><a href="#local-6989586621679370881"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679370880"><span class="hs-identifier hs-var">c</span></a></span><span class="annot"><span class="annottext">Context -&gt; Getting AttrMap Context AttrMap -&gt; AttrMap
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting AttrMap Context AttrMap
+Lens' Context AttrMap
+</span><a href="Brick.Types.html#ctxAttrMapL"><span class="hs-identifier hs-var">ctxAttrMapL</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-192"></span></pre></body></html>

@@ -1,0 +1,375 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DeriveFunctor #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE MultiParamTypeClasses #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE TemplateHaskell #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE DeriveGeneric #-}</span><span>
+</span><span id="line-5"></span><span class="hs-pragma">{-# LANGUAGE DeriveAnyClass #-}</span><span>
+</span><span id="line-6"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Brick.Types.Common</span><span>
+</span><span id="line-7"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#Location"><span class="hs-identifier">Location</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-8"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#locL"><span class="hs-identifier">locL</span></a></span><span>
+</span><span id="line-9"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#origin"><span class="hs-identifier">origin</span></a></span><span>
+</span><span id="line-10"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier">Edges</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#eTopL"><span class="hs-identifier">eTopL</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#eBottomL"><span class="hs-identifier">eBottomL</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#eRightL"><span class="hs-identifier">eRightL</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#eLeftL"><span class="hs-identifier">eLeftL</span></a></span><span>
+</span><span id="line-12"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-13"></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Brick.Types.TH.html"><span class="hs-identifier">Brick.Types.TH</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Brick.Types.TH.html#suffixLenses"><span class="hs-identifier">suffixLenses</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Semigroup</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Sem</span></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">GHC.Generics</span></span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.DeepSeq</span></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Lens.Micro</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">_1</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">_2</span></span><span class="hs-special">)</span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Lens.Micro.Internal</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Field1</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">Field2</span></span><span class="hs-special">)</span><span>
+</span><span id="line-20"></span><span>
+</span><span id="line-21"></span><span class="hs-comment">-- | A terminal screen location.</span><span>
+</span><span id="line-22"></span><span id="local-6989586621679368755"><span id="local-6989586621679368756"></span></span><span class="hs-keyword">data</span><span> </span><span id="Location"><span class="annot"><a href="Brick.Types.Common.html#Location"><span class="hs-identifier hs-var">Location</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="Location"><span class="annot"><a href="Brick.Types.Common.html#Location"><span class="hs-identifier hs-var">Location</span></a></span></span><span> </span><span class="hs-special">{</span><span> </span><span id="loc"><span class="annot"><span class="annottext">Location -&gt; (Int, Int)
+</span><a href="Brick.Types.Common.html#loc"><span class="hs-identifier hs-var hs-var">loc</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span>
+</span><span id="line-23"></span><span>                         </span><span class="hs-comment">-- ^ (Column, Row)</span><span>
+</span><span id="line-24"></span><span>                         </span><span class="hs-special">}</span><span>
+</span><span id="line-25"></span><span>                </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679368747"><span id="local-6989586621679368749"><span id="local-6989586621679368751"><span class="annot"><span class="annottext">Int -&gt; Location -&gt; ShowS
+[Location] -&gt; ShowS
+Location -&gt; String
+(Int -&gt; Location -&gt; ShowS)
+-&gt; (Location -&gt; String) -&gt; ([Location] -&gt; ShowS) -&gt; Show Location
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [Location] -&gt; ShowS
+$cshowList :: [Location] -&gt; ShowS
+show :: Location -&gt; String
+$cshow :: Location -&gt; String
+showsPrec :: Int -&gt; Location -&gt; ShowS
+$cshowsPrec :: Int -&gt; Location -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679368742"><span id="local-6989586621679368744"><span class="annot"><span class="annottext">Location -&gt; Location -&gt; Bool
+(Location -&gt; Location -&gt; Bool)
+-&gt; (Location -&gt; Location -&gt; Bool) -&gt; Eq Location
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: Location -&gt; Location -&gt; Bool
+$c/= :: Location -&gt; Location -&gt; Bool
+== :: Location -&gt; Location -&gt; Bool
+$c== :: Location -&gt; Location -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679368726"><span id="local-6989586621679368728"><span id="local-6989586621679368730"><span id="local-6989586621679368732"><span id="local-6989586621679368734"><span id="local-6989586621679368736"><span id="local-6989586621679368738"><span class="annot"><span class="annottext">Eq Location
+Eq Location
+-&gt; (Location -&gt; Location -&gt; Ordering)
+-&gt; (Location -&gt; Location -&gt; Bool)
+-&gt; (Location -&gt; Location -&gt; Bool)
+-&gt; (Location -&gt; Location -&gt; Bool)
+-&gt; (Location -&gt; Location -&gt; Bool)
+-&gt; (Location -&gt; Location -&gt; Location)
+-&gt; (Location -&gt; Location -&gt; Location)
+-&gt; Ord Location
+Location -&gt; Location -&gt; Bool
+Location -&gt; Location -&gt; Ordering
+Location -&gt; Location -&gt; Location
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: Location -&gt; Location -&gt; Location
+$cmin :: Location -&gt; Location -&gt; Location
+max :: Location -&gt; Location -&gt; Location
+$cmax :: Location -&gt; Location -&gt; Location
+&gt;= :: Location -&gt; Location -&gt; Bool
+$c&gt;= :: Location -&gt; Location -&gt; Bool
+&gt; :: Location -&gt; Location -&gt; Bool
+$c&gt; :: Location -&gt; Location -&gt; Bool
+&lt;= :: Location -&gt; Location -&gt; Bool
+$c&lt;= :: Location -&gt; Location -&gt; Bool
+&lt; :: Location -&gt; Location -&gt; Bool
+$c&lt; :: Location -&gt; Location -&gt; Bool
+compare :: Location -&gt; Location -&gt; Ordering
+$ccompare :: Location -&gt; Location -&gt; Ordering
+$cp1Ord :: Eq Location
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679368717"><span id="local-6989586621679368719"><span id="local-6989586621679368721"><span id="local-6989586621679368723"><span class="annot"><span class="annottext">ReadPrec [Location]
+ReadPrec Location
+Int -&gt; ReadS Location
+ReadS [Location]
+(Int -&gt; ReadS Location)
+-&gt; ReadS [Location]
+-&gt; ReadPrec Location
+-&gt; ReadPrec [Location]
+-&gt; Read Location
+forall a.
+(Int -&gt; ReadS a)
+-&gt; ReadS [a] -&gt; ReadPrec a -&gt; ReadPrec [a] -&gt; Read a
+readListPrec :: ReadPrec [Location]
+$creadListPrec :: ReadPrec [Location]
+readPrec :: ReadPrec Location
+$creadPrec :: ReadPrec Location
+readList :: ReadS [Location]
+$creadList :: ReadS [Location]
+readsPrec :: Int -&gt; ReadS Location
+$creadsPrec :: Int -&gt; ReadS Location
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Read</span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(forall x. Location -&gt; Rep Location x)
+-&gt; (forall x. Rep Location x -&gt; Location) -&gt; Generic Location
+forall x. Rep Location x -&gt; Location
+forall x. Location -&gt; Rep Location x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+$cto :: forall x. Rep Location x -&gt; Location
+$cfrom :: forall x. Location -&gt; Rep Location x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679368711"><span class="annot"><span class="annottext">Location -&gt; ()
+(Location -&gt; ()) -&gt; NFData Location
+forall a. (a -&gt; ()) -&gt; NFData a
+rnf :: Location -&gt; ()
+$crnf :: Location -&gt; ()
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">NFData</span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-26"></span><span>
+</span><span id="line-27"></span><span id="locL"><span class="hs-identifier">suffixLenses</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">Location</span></span><span>
+</span><span id="line-28"></span><span>
+</span><span id="line-29"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Field1</span></span><span> </span><span class="annot"><a href="Brick.Types.Common.html#Location"><span class="hs-identifier hs-type">Location</span></a></span><span> </span><span class="annot"><a href="Brick.Types.Common.html#Location"><span class="hs-identifier hs-type">Location</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-30"></span><span>    </span><span id="local-6989586621679368707"><span class="annot"><span class="annottext">_1 :: (Int -&gt; f Int) -&gt; Location -&gt; f Location
+</span><a href="#local-6989586621679368707"><span class="hs-identifier hs-var hs-var hs-var hs-var">_1</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">((Int, Int) -&gt; f (Int, Int)) -&gt; Location -&gt; f Location
+Lens' Location (Int, Int)
+</span><a href="Brick.Types.Common.html#locL"><span class="hs-identifier hs-var">locL</span></a></span><span class="annot"><span class="annottext">(((Int, Int) -&gt; f (Int, Int)) -&gt; Location -&gt; f Location)
+-&gt; ((Int -&gt; f Int) -&gt; (Int, Int) -&gt; f (Int, Int))
+-&gt; (Int -&gt; f Int)
+-&gt; Location
+-&gt; f Location
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span class="annot"><span class="annottext">(Int -&gt; f Int) -&gt; (Int, Int) -&gt; f (Int, Int)
+forall s t a b. Field1 s t a b =&gt; Lens s t a b
+</span><span class="hs-identifier hs-var">_1</span></span><span>
+</span><span id="line-31"></span><span>
+</span><span id="line-32"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Field2</span></span><span> </span><span class="annot"><a href="Brick.Types.Common.html#Location"><span class="hs-identifier hs-type">Location</span></a></span><span> </span><span class="annot"><a href="Brick.Types.Common.html#Location"><span class="hs-identifier hs-type">Location</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-33"></span><span>    </span><span id="local-6989586621679368703"><span class="annot"><span class="annottext">_2 :: (Int -&gt; f Int) -&gt; Location -&gt; f Location
+</span><a href="#local-6989586621679368703"><span class="hs-identifier hs-var hs-var hs-var hs-var">_2</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">((Int, Int) -&gt; f (Int, Int)) -&gt; Location -&gt; f Location
+Lens' Location (Int, Int)
+</span><a href="Brick.Types.Common.html#locL"><span class="hs-identifier hs-var">locL</span></a></span><span class="annot"><span class="annottext">(((Int, Int) -&gt; f (Int, Int)) -&gt; Location -&gt; f Location)
+-&gt; ((Int -&gt; f Int) -&gt; (Int, Int) -&gt; f (Int, Int))
+-&gt; (Int -&gt; f Int)
+-&gt; Location
+-&gt; f Location
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span class="annot"><span class="annottext">(Int -&gt; f Int) -&gt; (Int, Int) -&gt; f (Int, Int)
+forall s t a b. Field2 s t a b =&gt; Lens s t a b
+</span><span class="hs-identifier hs-var">_2</span></span><span>
+</span><span id="line-34"></span><span>
+</span><span id="line-35"></span><span class="hs-comment">-- | The origin (upper-left corner).</span><span>
+</span><span id="line-36"></span><span class="annot"><a href="Brick.Types.Common.html#origin"><span class="hs-identifier hs-type">origin</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#Location"><span class="hs-identifier hs-type">Location</span></a></span><span>
+</span><span id="line-37"></span><span id="origin"><span class="annot"><span class="annottext">origin :: Location
+</span><a href="Brick.Types.Common.html#origin"><span class="hs-identifier hs-var hs-var">origin</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int, Int) -&gt; Location
+</span><a href="Brick.Types.Common.html#Location"><span class="hs-identifier hs-var">Location</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span>
+</span><span id="line-38"></span><span>
+</span><span id="line-39"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679368698"><span id="local-6989586621679368700"><span class="annot"><span class="hs-identifier hs-type">Sem.Semigroup</span></span><span> </span><span class="annot"><a href="Brick.Types.Common.html#Location"><span class="hs-identifier hs-type">Location</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-40"></span><span>    </span><span class="hs-special">(</span><span class="annot"><a href="Brick.Types.Common.html#Location"><span class="hs-identifier hs-type">Location</span></a></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679368696"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368696"><span class="hs-identifier hs-var">w1</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679368695"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368695"><span class="hs-identifier hs-var">h1</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span id="local-6989586621679368694"><span class="annot"><span class="annottext">&lt;&gt; :: Location -&gt; Location -&gt; Location
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">&lt;&gt;</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Brick.Types.Common.html#Location"><span class="hs-identifier hs-type">Location</span></a></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679368693"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368693"><span class="hs-identifier hs-var">w2</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679368692"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368692"><span class="hs-identifier hs-var">h2</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int, Int) -&gt; Location
+</span><a href="Brick.Types.Common.html#Location"><span class="hs-identifier hs-var">Location</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368696"><span class="hs-identifier hs-var">w1</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368693"><span class="hs-identifier hs-var">w2</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368695"><span class="hs-identifier hs-var">h1</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368692"><span class="hs-identifier hs-var">h2</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-41"></span><span>
+</span><span id="line-42"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679368686"><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="Brick.Types.Common.html#Location"><span class="hs-identifier hs-type">Location</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-43"></span><span>    </span><span id="local-6989586621679368684"><span class="annot"><span class="annottext">mempty :: Location
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">mempty</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Location
+</span><a href="Brick.Types.Common.html#origin"><span class="hs-identifier hs-var">origin</span></a></span><span>
+</span><span id="line-44"></span><span>    </span><span id="local-6989586621679368683"><span class="annot"><span class="annottext">mappend :: Location -&gt; Location -&gt; Location
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">mappend</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Location -&gt; Location -&gt; Location
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">(Sem.&lt;&gt;)</span></span><span>
+</span><span id="line-45"></span><span>
+</span><span id="line-46"></span><span id="local-6989586621679368681"><span id="local-6989586621679368682"></span></span><span class="hs-keyword">data</span><span> </span><span id="Edges"><span class="annot"><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier hs-var">Edges</span></a></span></span><span> </span><span id="local-6989586621679368779"><span class="annot"><a href="#local-6989586621679368779"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="Edges"><span class="annot"><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier hs-var">Edges</span></a></span></span><span> </span><span class="hs-special">{</span><span> </span><span id="eTop"><span class="annot"><span class="annottext">Edges a -&gt; a
+</span><a href="Brick.Types.Common.html#eTop"><span class="hs-identifier hs-var hs-var">eTop</span></a></span></span><span class="hs-special">,</span><span> </span><span id="eBottom"><span class="annot"><span class="annottext">Edges a -&gt; a
+</span><a href="Brick.Types.Common.html#eBottom"><span class="hs-identifier hs-var hs-var">eBottom</span></a></span></span><span class="hs-special">,</span><span> </span><span id="eLeft"><span class="annot"><span class="annottext">Edges a -&gt; a
+</span><a href="Brick.Types.Common.html#eLeft"><span class="hs-identifier hs-var hs-var">eLeft</span></a></span></span><span class="hs-special">,</span><span> </span><span id="eRight"><span class="annot"><span class="annottext">Edges a -&gt; a
+</span><a href="Brick.Types.Common.html#eRight"><span class="hs-identifier hs-var hs-var">eRight</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679368779"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-special">}</span><span>
+</span><span id="line-47"></span><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679368672"><span id="local-6989586621679368674"><span class="annot"><span class="annottext">Edges a -&gt; Edges a -&gt; Bool
+(Edges a -&gt; Edges a -&gt; Bool)
+-&gt; (Edges a -&gt; Edges a -&gt; Bool) -&gt; Eq (Edges a)
+forall a. Eq a =&gt; Edges a -&gt; Edges a -&gt; Bool
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: Edges a -&gt; Edges a -&gt; Bool
+$c/= :: forall a. Eq a =&gt; Edges a -&gt; Edges a -&gt; Bool
+== :: Edges a -&gt; Edges a -&gt; Bool
+$c== :: forall a. Eq a =&gt; Edges a -&gt; Edges a -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679368657"><span id="local-6989586621679368659"><span id="local-6989586621679368661"><span id="local-6989586621679368663"><span id="local-6989586621679368665"><span id="local-6989586621679368667"><span id="local-6989586621679368669"><span class="annot"><span class="annottext">Eq (Edges a)
+Eq (Edges a)
+-&gt; (Edges a -&gt; Edges a -&gt; Ordering)
+-&gt; (Edges a -&gt; Edges a -&gt; Bool)
+-&gt; (Edges a -&gt; Edges a -&gt; Bool)
+-&gt; (Edges a -&gt; Edges a -&gt; Bool)
+-&gt; (Edges a -&gt; Edges a -&gt; Bool)
+-&gt; (Edges a -&gt; Edges a -&gt; Edges a)
+-&gt; (Edges a -&gt; Edges a -&gt; Edges a)
+-&gt; Ord (Edges a)
+Edges a -&gt; Edges a -&gt; Bool
+Edges a -&gt; Edges a -&gt; Ordering
+Edges a -&gt; Edges a -&gt; Edges a
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+forall a. Ord a =&gt; Eq (Edges a)
+forall a. Ord a =&gt; Edges a -&gt; Edges a -&gt; Bool
+forall a. Ord a =&gt; Edges a -&gt; Edges a -&gt; Ordering
+forall a. Ord a =&gt; Edges a -&gt; Edges a -&gt; Edges a
+min :: Edges a -&gt; Edges a -&gt; Edges a
+$cmin :: forall a. Ord a =&gt; Edges a -&gt; Edges a -&gt; Edges a
+max :: Edges a -&gt; Edges a -&gt; Edges a
+$cmax :: forall a. Ord a =&gt; Edges a -&gt; Edges a -&gt; Edges a
+&gt;= :: Edges a -&gt; Edges a -&gt; Bool
+$c&gt;= :: forall a. Ord a =&gt; Edges a -&gt; Edges a -&gt; Bool
+&gt; :: Edges a -&gt; Edges a -&gt; Bool
+$c&gt; :: forall a. Ord a =&gt; Edges a -&gt; Edges a -&gt; Bool
+&lt;= :: Edges a -&gt; Edges a -&gt; Bool
+$c&lt;= :: forall a. Ord a =&gt; Edges a -&gt; Edges a -&gt; Bool
+&lt; :: Edges a -&gt; Edges a -&gt; Bool
+$c&lt; :: forall a. Ord a =&gt; Edges a -&gt; Edges a -&gt; Bool
+compare :: Edges a -&gt; Edges a -&gt; Ordering
+$ccompare :: forall a. Ord a =&gt; Edges a -&gt; Edges a -&gt; Ordering
+$cp1Ord :: forall a. Ord a =&gt; Eq (Edges a)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679368649"><span id="local-6989586621679368651"><span id="local-6989586621679368653"><span id="local-6989586621679368655"><span class="annot"><span class="annottext">ReadPrec [Edges a]
+ReadPrec (Edges a)
+Int -&gt; ReadS (Edges a)
+ReadS [Edges a]
+(Int -&gt; ReadS (Edges a))
+-&gt; ReadS [Edges a]
+-&gt; ReadPrec (Edges a)
+-&gt; ReadPrec [Edges a]
+-&gt; Read (Edges a)
+forall a. Read a =&gt; ReadPrec [Edges a]
+forall a. Read a =&gt; ReadPrec (Edges a)
+forall a. Read a =&gt; Int -&gt; ReadS (Edges a)
+forall a. Read a =&gt; ReadS [Edges a]
+forall a.
+(Int -&gt; ReadS a)
+-&gt; ReadS [a] -&gt; ReadPrec a -&gt; ReadPrec [a] -&gt; Read a
+readListPrec :: ReadPrec [Edges a]
+$creadListPrec :: forall a. Read a =&gt; ReadPrec [Edges a]
+readPrec :: ReadPrec (Edges a)
+$creadPrec :: forall a. Read a =&gt; ReadPrec (Edges a)
+readList :: ReadS [Edges a]
+$creadList :: forall a. Read a =&gt; ReadS [Edges a]
+readsPrec :: Int -&gt; ReadS (Edges a)
+$creadsPrec :: forall a. Read a =&gt; Int -&gt; ReadS (Edges a)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Read</span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679368643"><span id="local-6989586621679368645"><span id="local-6989586621679368647"><span class="annot"><span class="annottext">Int -&gt; Edges a -&gt; ShowS
+[Edges a] -&gt; ShowS
+Edges a -&gt; String
+(Int -&gt; Edges a -&gt; ShowS)
+-&gt; (Edges a -&gt; String) -&gt; ([Edges a] -&gt; ShowS) -&gt; Show (Edges a)
+forall a. Show a =&gt; Int -&gt; Edges a -&gt; ShowS
+forall a. Show a =&gt; [Edges a] -&gt; ShowS
+forall a. Show a =&gt; Edges a -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [Edges a] -&gt; ShowS
+$cshowList :: forall a. Show a =&gt; [Edges a] -&gt; ShowS
+show :: Edges a -&gt; String
+$cshow :: forall a. Show a =&gt; Edges a -&gt; String
+showsPrec :: Int -&gt; Edges a -&gt; ShowS
+$cshowsPrec :: forall a. Show a =&gt; Int -&gt; Edges a -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679368639"><span id="local-6989586621679368641"><span class="annot"><span class="annottext">a -&gt; Edges b -&gt; Edges a
+(a -&gt; b) -&gt; Edges a -&gt; Edges b
+(forall a b. (a -&gt; b) -&gt; Edges a -&gt; Edges b)
+-&gt; (forall a b. a -&gt; Edges b -&gt; Edges a) -&gt; Functor Edges
+forall a b. a -&gt; Edges b -&gt; Edges a
+forall a b. (a -&gt; b) -&gt; Edges a -&gt; Edges b
+forall (f :: * -&gt; *).
+(forall a b. (a -&gt; b) -&gt; f a -&gt; f b)
+-&gt; (forall a b. a -&gt; f b -&gt; f a) -&gt; Functor f
+&lt;$ :: a -&gt; Edges b -&gt; Edges a
+$c&lt;$ :: forall a b. a -&gt; Edges b -&gt; Edges a
+fmap :: (a -&gt; b) -&gt; Edges a -&gt; Edges b
+$cfmap :: forall a b. (a -&gt; b) -&gt; Edges a -&gt; Edges b
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Functor</span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(forall x. Edges a -&gt; Rep (Edges a) x)
+-&gt; (forall x. Rep (Edges a) x -&gt; Edges a) -&gt; Generic (Edges a)
+forall x. Rep (Edges a) x -&gt; Edges a
+forall x. Edges a -&gt; Rep (Edges a) x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+forall a x. Rep (Edges a) x -&gt; Edges a
+forall a x. Edges a -&gt; Rep (Edges a) x
+$cto :: forall a x. Rep (Edges a) x -&gt; Edges a
+$cfrom :: forall a x. Edges a -&gt; Rep (Edges a) x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679368634"><span class="annot"><span class="annottext">Edges a -&gt; ()
+(Edges a -&gt; ()) -&gt; NFData (Edges a)
+forall a. NFData a =&gt; Edges a -&gt; ()
+forall a. (a -&gt; ()) -&gt; NFData a
+rnf :: Edges a -&gt; ()
+$crnf :: forall a. NFData a =&gt; Edges a -&gt; ()
+</span><a href="#local-6989586621679368634"><span class="hs-identifier hs-var hs-var hs-var hs-var">NFData</span></a></span></span><span class="hs-special">)</span><span>
+</span><span id="line-48"></span><span>
+</span><span id="line-49"></span><span id="eLeftL"><span id="eRightL"><span id="eBottomL"><span id="eTopL"><span id="local-6989586621679368779"><span class="hs-identifier">suffixLenses</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">Edges</span></span></span></span></span></span><span>
+</span><span id="line-50"></span><span>
+</span><span id="line-51"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679368625"><span id="local-6989586621679368627"><span id="local-6989586621679368629"><span class="annot"><span class="hs-identifier hs-type">Applicative</span></span><span> </span><span class="annot"><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier hs-type">Edges</span></a></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-52"></span><span>    </span><span id="local-6989586621679368623"><span class="annot"><span class="annottext">pure :: a -&gt; Edges a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">pure</span></span></span><span> </span><span id="local-6989586621679368622"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679368622"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a -&gt; a -&gt; Edges a
+forall a. a -&gt; a -&gt; a -&gt; a -&gt; Edges a
+</span><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier hs-var">Edges</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679368622"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679368622"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679368622"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679368622"><span class="hs-identifier hs-var">a</span></a></span><span>
+</span><span id="line-53"></span><span>    </span><span class="annot"><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier hs-type">Edges</span></a></span><span> </span><span id="local-6989586621679368621"><span class="annot"><span class="annottext">a -&gt; b
+</span><a href="#local-6989586621679368621"><span class="hs-identifier hs-var">ft</span></a></span></span><span> </span><span id="local-6989586621679368620"><span class="annot"><span class="annottext">a -&gt; b
+</span><a href="#local-6989586621679368620"><span class="hs-identifier hs-var">fb</span></a></span></span><span> </span><span id="local-6989586621679368619"><span class="annot"><span class="annottext">a -&gt; b
+</span><a href="#local-6989586621679368619"><span class="hs-identifier hs-var">fl</span></a></span></span><span> </span><span id="local-6989586621679368618"><span class="annot"><span class="annottext">a -&gt; b
+</span><a href="#local-6989586621679368618"><span class="hs-identifier hs-var">fr</span></a></span></span><span> </span><span id="local-6989586621679368617"><span class="annot"><span class="annottext">&lt;*&gt; :: Edges (a -&gt; b) -&gt; Edges a -&gt; Edges b
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">&lt;*&gt;</span></span></span><span> </span><span class="annot"><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier hs-type">Edges</span></a></span><span> </span><span id="local-6989586621679368616"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679368616"><span class="hs-identifier hs-var">vt</span></a></span></span><span> </span><span id="local-6989586621679368615"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679368615"><span class="hs-identifier hs-var">vb</span></a></span></span><span> </span><span id="local-6989586621679368614"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679368614"><span class="hs-identifier hs-var">vl</span></a></span></span><span> </span><span id="local-6989586621679368613"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679368613"><span class="hs-identifier hs-var">vr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-54"></span><span>        </span><span class="annot"><span class="annottext">b -&gt; b -&gt; b -&gt; b -&gt; Edges b
+forall a. a -&gt; a -&gt; a -&gt; a -&gt; Edges a
+</span><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier hs-var">Edges</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; b
+</span><a href="#local-6989586621679368621"><span class="hs-identifier hs-var">ft</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679368616"><span class="hs-identifier hs-var">vt</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; b
+</span><a href="#local-6989586621679368620"><span class="hs-identifier hs-var">fb</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679368615"><span class="hs-identifier hs-var">vb</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; b
+</span><a href="#local-6989586621679368619"><span class="hs-identifier hs-var">fl</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679368614"><span class="hs-identifier hs-var">vl</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; b
+</span><a href="#local-6989586621679368618"><span class="hs-identifier hs-var">fr</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679368613"><span class="hs-identifier hs-var">vr</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-55"></span><span>
+</span><span id="line-56"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679368607"><span id="local-6989586621679368609"><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier hs-type">Edges</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-57"></span><span>    </span><span class="annot"><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier hs-type">Edges</span></a></span><span> </span><span id="local-6989586621679368605"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679368605"><span class="hs-identifier hs-var">vt</span></a></span></span><span> </span><span id="local-6989586621679368604"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679368604"><span class="hs-identifier hs-var">vb</span></a></span></span><span> </span><span id="local-6989586621679368603"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679368603"><span class="hs-identifier hs-var">vl</span></a></span></span><span> </span><span id="local-6989586621679368602"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679368602"><span class="hs-identifier hs-var">vr</span></a></span></span><span> </span><span id="local-6989586621679368601"><span class="annot"><span class="annottext">&gt;&gt;= :: Edges a -&gt; (a -&gt; Edges b) -&gt; Edges b
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">&gt;&gt;=</span></span></span><span> </span><span id="local-6989586621679368600"><span class="annot"><span class="annottext">a -&gt; Edges b
+</span><a href="#local-6989586621679368600"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">b -&gt; b -&gt; b -&gt; b -&gt; Edges b
+forall a. a -&gt; a -&gt; a -&gt; a -&gt; Edges a
+</span><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier hs-var">Edges</span></a></span><span>
+</span><span id="line-58"></span><span>        </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Edges b -&gt; b
+forall a. Edges a -&gt; a
+</span><a href="Brick.Types.Common.html#eTop"><span class="hs-identifier hs-var hs-var">eTop</span></a></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; Edges b
+</span><a href="#local-6989586621679368600"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679368605"><span class="hs-identifier hs-var">vt</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-59"></span><span>        </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Edges b -&gt; b
+forall a. Edges a -&gt; a
+</span><a href="Brick.Types.Common.html#eBottom"><span class="hs-identifier hs-var hs-var">eBottom</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; Edges b
+</span><a href="#local-6989586621679368600"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679368604"><span class="hs-identifier hs-var">vb</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-60"></span><span>        </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Edges b -&gt; b
+forall a. Edges a -&gt; a
+</span><a href="Brick.Types.Common.html#eLeft"><span class="hs-identifier hs-var hs-var">eLeft</span></a></span><span>   </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; Edges b
+</span><a href="#local-6989586621679368600"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679368603"><span class="hs-identifier hs-var">vl</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-61"></span><span>        </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Edges b -&gt; b
+forall a. Edges a -&gt; a
+</span><a href="Brick.Types.Common.html#eRight"><span class="hs-identifier hs-var hs-var">eRight</span></a></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; Edges b
+</span><a href="#local-6989586621679368600"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679368602"><span class="hs-identifier hs-var">vr</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-62"></span></pre></body></html>

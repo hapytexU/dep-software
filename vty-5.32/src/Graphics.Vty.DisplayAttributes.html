@@ -1,0 +1,525 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span id="%24con2tag_J6pWL3vVQlmBHGQntQqL6P"></span><span class="hs-comment">-- Copyright 2009-2010 Corey O'Connor</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE BangPatterns #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE CPP #-}</span><span>
+</span><span id="line-4"></span><span>
+</span><span id="line-5"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Graphics.Vty.DisplayAttributes</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-6"></span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html"><span class="hs-identifier">Graphics.Vty.Attributes</span></a></span><span>
+</span><span id="line-8"></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Bits</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-operator">(.&amp;.)</span></span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.ByteString</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ByteString</span></span><span class="hs-special">)</span><span class="hs-cpp">
+#if !(MIN_VERSION_base(4,11,0))
+</span><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Data.Semigroup</span><span> </span><span class="hs-special">(</span><span class="hs-identifier">Semigroup</span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-cpp">
+#endif
+</span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Text</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Text</span></span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Text.Encoding</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">encodeUtf8</span></span><span class="hs-special">)</span><span>
+</span><span id="line-16"></span><span>
+</span><span id="line-17"></span><span class="hs-comment">-- | Given the previously applied display attributes as a FixedAttr and</span><span>
+</span><span id="line-18"></span><span class="hs-comment">-- the current display attributes as an Attr produces a FixedAttr that</span><span>
+</span><span id="line-19"></span><span class="hs-comment">-- represents the current display attributes. This is done by using the</span><span>
+</span><span id="line-20"></span><span class="hs-comment">-- previously applied display attributes to remove the &quot;KeepCurrent&quot;</span><span>
+</span><span id="line-21"></span><span class="hs-comment">-- abstraction.</span><span>
+</span><span id="line-22"></span><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#fixDisplayAttr"><span class="hs-identifier hs-type">fixDisplayAttr</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#FixedAttr"><span class="hs-identifier hs-type">FixedAttr</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#Attr"><span class="hs-identifier hs-type">Attr</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#FixedAttr"><span class="hs-identifier hs-type">FixedAttr</span></a></span><span>
+</span><span id="line-23"></span><span id="fixDisplayAttr"><span class="annot"><span class="annottext">fixDisplayAttr :: FixedAttr -&gt; Attr -&gt; FixedAttr
+</span><a href="Graphics.Vty.DisplayAttributes.html#fixDisplayAttr"><span class="hs-identifier hs-var hs-var">fixDisplayAttr</span></a></span></span><span> </span><span id="local-6989586621679365158"><span class="annot"><span class="annottext">FixedAttr
+</span><a href="#local-6989586621679365158"><span class="hs-identifier hs-var">fattr</span></a></span></span><span> </span><span id="local-6989586621679365157"><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679365157"><span class="hs-identifier hs-var">attr</span></a></span></span><span>
+</span><span id="line-24"></span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Style -&gt; Maybe Color -&gt; Maybe Color -&gt; Maybe Text -&gt; FixedAttr
+</span><a href="Graphics.Vty.Attributes.html#FixedAttr"><span class="hs-identifier hs-var">FixedAttr</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Style -&gt; MaybeDefault Style -&gt; Style
+</span><a href="#local-6989586621679365155"><span class="hs-identifier hs-var">fixStyle</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">FixedAttr -&gt; Style
+</span><a href="Graphics.Vty.Attributes.html#fixedStyle"><span class="hs-identifier hs-var hs-var">fixedStyle</span></a></span><span> </span><span class="annot"><span class="annottext">FixedAttr
+</span><a href="#local-6989586621679365158"><span class="hs-identifier hs-var">fattr</span></a></span><span class="hs-special">)</span><span>     </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Attr -&gt; MaybeDefault Style
+</span><a href="Graphics.Vty.Attributes.html#attrStyle"><span class="hs-identifier hs-var hs-var">attrStyle</span></a></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679365157"><span class="hs-identifier hs-var">attr</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-25"></span><span>                </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Maybe Color -&gt; MaybeDefault Color -&gt; Maybe Color
+forall a. Maybe a -&gt; MaybeDefault a -&gt; Maybe a
+</span><a href="#local-6989586621679365152"><span class="hs-identifier hs-var">fixColor</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">FixedAttr -&gt; Maybe Color
+</span><a href="Graphics.Vty.Attributes.html#fixedForeColor"><span class="hs-identifier hs-var hs-var">fixedForeColor</span></a></span><span> </span><span class="annot"><span class="annottext">FixedAttr
+</span><a href="#local-6989586621679365158"><span class="hs-identifier hs-var">fattr</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Attr -&gt; MaybeDefault Color
+</span><a href="Graphics.Vty.Attributes.html#attrForeColor"><span class="hs-identifier hs-var hs-var">attrForeColor</span></a></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679365157"><span class="hs-identifier hs-var">attr</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-26"></span><span>                </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Maybe Color -&gt; MaybeDefault Color -&gt; Maybe Color
+forall a. Maybe a -&gt; MaybeDefault a -&gt; Maybe a
+</span><a href="#local-6989586621679365152"><span class="hs-identifier hs-var">fixColor</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">FixedAttr -&gt; Maybe Color
+</span><a href="Graphics.Vty.Attributes.html#fixedBackColor"><span class="hs-identifier hs-var hs-var">fixedBackColor</span></a></span><span> </span><span class="annot"><span class="annottext">FixedAttr
+</span><a href="#local-6989586621679365158"><span class="hs-identifier hs-var">fattr</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Attr -&gt; MaybeDefault Color
+</span><a href="Graphics.Vty.Attributes.html#attrBackColor"><span class="hs-identifier hs-var hs-var">attrBackColor</span></a></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679365157"><span class="hs-identifier hs-var">attr</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-27"></span><span>                </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Maybe Text -&gt; MaybeDefault Text -&gt; Maybe Text
+forall a. Maybe a -&gt; MaybeDefault a -&gt; Maybe a
+</span><a href="#local-6989586621679365147"><span class="hs-identifier hs-var">fixURL</span></a></span><span>   </span><span class="hs-special">(</span><span class="annot"><span class="annottext">FixedAttr -&gt; Maybe Text
+</span><a href="Graphics.Vty.Attributes.html#fixedURL"><span class="hs-identifier hs-var hs-var">fixedURL</span></a></span><span> </span><span class="annot"><span class="annottext">FixedAttr
+</span><a href="#local-6989586621679365158"><span class="hs-identifier hs-var">fattr</span></a></span><span class="hs-special">)</span><span>       </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Attr -&gt; MaybeDefault Text
+</span><a href="Graphics.Vty.Attributes.html#attrURL"><span class="hs-identifier hs-var hs-var">attrURL</span></a></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679365157"><span class="hs-identifier hs-var">attr</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-28"></span><span>    </span><span class="hs-keyword">where</span><span>
+</span><span id="line-29"></span><span>        </span><span id="local-6989586621679365155"><span class="annot"><span class="annottext">fixStyle :: Style -&gt; MaybeDefault Style -&gt; Style
+</span><a href="#local-6989586621679365155"><span class="hs-identifier hs-var hs-var">fixStyle</span></a></span></span><span> </span><span id="local-6989586621679365144"><span class="annot"><span class="annottext">Style
+</span><a href="#local-6989586621679365144"><span class="hs-identifier hs-var">_s</span></a></span></span><span> </span><span class="annot"><span class="annottext">MaybeDefault Style
+</span><a href="Graphics.Vty.Attributes.html#Default"><span class="hs-identifier hs-var">Default</span></a></span><span>           </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Style
+</span><a href="Graphics.Vty.Attributes.html#defaultStyleMask"><span class="hs-identifier hs-var">defaultStyleMask</span></a></span><span>
+</span><span id="line-30"></span><span>        </span><span class="annot"><a href="#local-6989586621679365155"><span class="hs-identifier hs-var">fixStyle</span></a></span><span> </span><span id="local-6989586621679365141"><span class="annot"><span class="annottext">Style
+</span><a href="#local-6989586621679365141"><span class="hs-identifier hs-var">s</span></a></span></span><span> </span><span class="annot"><span class="annottext">MaybeDefault Style
+</span><a href="Graphics.Vty.Attributes.html#KeepCurrent"><span class="hs-identifier hs-var">KeepCurrent</span></a></span><span>        </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Style
+</span><a href="#local-6989586621679365141"><span class="hs-identifier hs-var">s</span></a></span><span>
+</span><span id="line-31"></span><span>        </span><span class="annot"><a href="#local-6989586621679365155"><span class="hs-identifier hs-var">fixStyle</span></a></span><span> </span><span id="local-6989586621679365139"><span class="annot"><span class="annottext">Style
+</span><a href="#local-6989586621679365139"><span class="hs-identifier hs-var">_s</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Graphics.Vty.Attributes.html#SetTo"><span class="hs-identifier hs-type">SetTo</span></a></span><span> </span><span id="local-6989586621679365137"><span class="annot"><span class="annottext">Style
+</span><a href="#local-6989586621679365137"><span class="hs-identifier hs-var">newStyle</span></a></span></span><span class="hs-special">)</span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Style
+</span><a href="#local-6989586621679365137"><span class="hs-identifier hs-var">newStyle</span></a></span><span>
+</span><span id="line-32"></span><span>        </span><span id="local-6989586621679365152"><span class="annot"><span class="annottext">fixColor :: Maybe a -&gt; MaybeDefault a -&gt; Maybe a
+</span><a href="#local-6989586621679365152"><span class="hs-identifier hs-var hs-var">fixColor</span></a></span></span><span> </span><span id="local-6989586621679365136"><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679365136"><span class="hs-identifier hs-var">_c</span></a></span></span><span> </span><span class="annot"><span class="annottext">MaybeDefault a
+</span><a href="Graphics.Vty.Attributes.html#Default"><span class="hs-identifier hs-var">Default</span></a></span><span>           </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe a
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-33"></span><span>        </span><span class="annot"><a href="#local-6989586621679365152"><span class="hs-identifier hs-var">fixColor</span></a></span><span> </span><span id="local-6989586621679365135"><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679365135"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="annot"><span class="annottext">MaybeDefault a
+</span><a href="Graphics.Vty.Attributes.html#KeepCurrent"><span class="hs-identifier hs-var">KeepCurrent</span></a></span><span>        </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679365135"><span class="hs-identifier hs-var">c</span></a></span><span>
+</span><span id="line-34"></span><span>        </span><span class="annot"><a href="#local-6989586621679365152"><span class="hs-identifier hs-var">fixColor</span></a></span><span> </span><span id="local-6989586621679365134"><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679365134"><span class="hs-identifier hs-var">_c</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Graphics.Vty.Attributes.html#SetTo"><span class="hs-identifier hs-type">SetTo</span></a></span><span> </span><span id="local-6989586621679365133"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679365133"><span class="hs-identifier hs-var">c</span></a></span></span><span class="hs-special">)</span><span>         </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; Maybe a
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679365133"><span class="hs-identifier hs-var">c</span></a></span><span>
+</span><span id="line-35"></span><span>        </span><span id="local-6989586621679365147"><span class="annot"><span class="annottext">fixURL :: Maybe a -&gt; MaybeDefault a -&gt; Maybe a
+</span><a href="#local-6989586621679365147"><span class="hs-identifier hs-var hs-var">fixURL</span></a></span></span><span> </span><span id="local-6989586621679365132"><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679365132"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="annot"><span class="annottext">MaybeDefault a
+</span><a href="Graphics.Vty.Attributes.html#KeepCurrent"><span class="hs-identifier hs-var">KeepCurrent</span></a></span><span>          </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679365132"><span class="hs-identifier hs-var">c</span></a></span><span>
+</span><span id="line-36"></span><span>        </span><span class="annot"><a href="#local-6989586621679365147"><span class="hs-identifier hs-var">fixURL</span></a></span><span> </span><span id="local-6989586621679365131"><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679365131"><span class="hs-identifier hs-var">_c</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Graphics.Vty.Attributes.html#SetTo"><span class="hs-identifier hs-type">SetTo</span></a></span><span> </span><span id="local-6989586621679365130"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679365130"><span class="hs-identifier hs-var">n</span></a></span></span><span class="hs-special">)</span><span>           </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; Maybe a
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679365130"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-37"></span><span>        </span><span class="annot"><a href="#local-6989586621679365147"><span class="hs-identifier hs-var">fixURL</span></a></span><span> </span><span id="local-6989586621679365129"><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679365129"><span class="hs-identifier hs-var">_c</span></a></span></span><span> </span><span class="annot"><span class="annottext">MaybeDefault a
+</span><a href="Graphics.Vty.Attributes.html#Default"><span class="hs-identifier hs-var">Default</span></a></span><span>             </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe a
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-38"></span><span>
+</span><span id="line-39"></span><span class="hs-comment">-- | difference between two display attributes. Used in the calculation</span><span>
+</span><span id="line-40"></span><span class="hs-comment">-- of the operations required to go from one display attribute to the</span><span>
+</span><span id="line-41"></span><span class="hs-comment">-- next.</span><span>
+</span><span id="line-42"></span><span class="hs-comment">--</span><span>
+</span><span id="line-43"></span><span class="hs-comment">-- Previously, vty would reset display attributes to default then apply</span><span>
+</span><span id="line-44"></span><span class="hs-comment">-- the new display attributes. This turned out to be very expensive: A</span><span>
+</span><span id="line-45"></span><span class="hs-comment">-- *lot* more data would be sent to the terminal than required.</span><span>
+</span><span id="line-46"></span><span class="hs-keyword">data</span><span> </span><span id="DisplayAttrDiff"><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#DisplayAttrDiff"><span class="hs-identifier hs-var">DisplayAttrDiff</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="DisplayAttrDiff"><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#DisplayAttrDiff"><span class="hs-identifier hs-var">DisplayAttrDiff</span></a></span></span><span>
+</span><span id="line-47"></span><span>    </span><span class="hs-special">{</span><span> </span><span id="styleDiffs"><span class="annot"><span class="annottext">DisplayAttrDiff -&gt; [StyleStateChange]
+</span><a href="Graphics.Vty.DisplayAttributes.html#styleDiffs"><span class="hs-identifier hs-var hs-var">styleDiffs</span></a></span></span><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#StyleStateChange"><span class="hs-identifier hs-type">StyleStateChange</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-48"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="foreColorDiff"><span class="annot"><span class="annottext">DisplayAttrDiff -&gt; DisplayColorDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#foreColorDiff"><span class="hs-identifier hs-var hs-var">foreColorDiff</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#DisplayColorDiff"><span class="hs-identifier hs-type">DisplayColorDiff</span></a></span><span>
+</span><span id="line-49"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="backColorDiff"><span class="annot"><span class="annottext">DisplayAttrDiff -&gt; DisplayColorDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#backColorDiff"><span class="hs-identifier hs-var hs-var">backColorDiff</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#DisplayColorDiff"><span class="hs-identifier hs-type">DisplayColorDiff</span></a></span><span>
+</span><span id="line-50"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="urlDiff"><span class="annot"><span class="annottext">DisplayAttrDiff -&gt; URLDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#urlDiff"><span class="hs-identifier hs-var hs-var">urlDiff</span></a></span></span><span>       </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#URLDiff"><span class="hs-identifier hs-type">URLDiff</span></a></span><span>
+</span><span id="line-51"></span><span>    </span><span class="hs-special">}</span><span>
+</span><span id="line-52"></span><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679365118"><span id="local-6989586621679365120"><span id="local-6989586621679365122"><span class="annot"><span class="annottext">Int -&gt; DisplayAttrDiff -&gt; ShowS
+[DisplayAttrDiff] -&gt; ShowS
+DisplayAttrDiff -&gt; String
+(Int -&gt; DisplayAttrDiff -&gt; ShowS)
+-&gt; (DisplayAttrDiff -&gt; String)
+-&gt; ([DisplayAttrDiff] -&gt; ShowS)
+-&gt; Show DisplayAttrDiff
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [DisplayAttrDiff] -&gt; ShowS
+$cshowList :: [DisplayAttrDiff] -&gt; ShowS
+show :: DisplayAttrDiff -&gt; String
+$cshow :: DisplayAttrDiff -&gt; String
+showsPrec :: Int -&gt; DisplayAttrDiff -&gt; ShowS
+$cshowsPrec :: Int -&gt; DisplayAttrDiff -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-53"></span><span>
+</span><span id="line-54"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679365112"><span id="local-6989586621679365114"><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#DisplayAttrDiff"><span class="hs-identifier hs-type">DisplayAttrDiff</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-55"></span><span>    </span><span id="local-6989586621679365110"><span class="annot"><span class="annottext">DisplayAttrDiff
+</span><a href="#local-6989586621679365110"><span class="hs-identifier hs-var">d0</span></a></span></span><span> </span><span id="local-6989586621679365109"><span class="annot"><span class="annottext">&lt;&gt; :: DisplayAttrDiff -&gt; DisplayAttrDiff -&gt; DisplayAttrDiff
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">&lt;&gt;</span></span></span><span> </span><span id="local-6989586621679365108"><span class="annot"><span class="annottext">DisplayAttrDiff
+</span><a href="#local-6989586621679365108"><span class="hs-identifier hs-var">d1</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-56"></span><span>        </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679365107"><span class="annot"><span class="annottext">ds :: [StyleStateChange]
+</span><a href="#local-6989586621679365107"><span class="hs-identifier hs-var hs-var">ds</span></a></span></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[StyleStateChange] -&gt; [StyleStateChange] -&gt; [StyleStateChange]
+</span><a href="Graphics.Vty.DisplayAttributes.html#simplifyStyleDiffs"><span class="hs-identifier hs-var">simplifyStyleDiffs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DisplayAttrDiff -&gt; [StyleStateChange]
+</span><a href="Graphics.Vty.DisplayAttributes.html#styleDiffs"><span class="hs-identifier hs-var hs-var">styleDiffs</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayAttrDiff
+</span><a href="#local-6989586621679365110"><span class="hs-identifier hs-var">d0</span></a></span><span class="hs-special">)</span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DisplayAttrDiff -&gt; [StyleStateChange]
+</span><a href="Graphics.Vty.DisplayAttributes.html#styleDiffs"><span class="hs-identifier hs-var hs-var">styleDiffs</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayAttrDiff
+</span><a href="#local-6989586621679365108"><span class="hs-identifier hs-var">d1</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-57"></span><span>            </span><span id="local-6989586621679365105"><span class="annot"><span class="annottext">fcd :: DisplayColorDiff
+</span><a href="#local-6989586621679365105"><span class="hs-identifier hs-var hs-var">fcd</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DisplayColorDiff -&gt; DisplayColorDiff -&gt; DisplayColorDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#simplifyColorDiffs"><span class="hs-identifier hs-var">simplifyColorDiffs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DisplayAttrDiff -&gt; DisplayColorDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#foreColorDiff"><span class="hs-identifier hs-var hs-var">foreColorDiff</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayAttrDiff
+</span><a href="#local-6989586621679365110"><span class="hs-identifier hs-var">d0</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DisplayAttrDiff -&gt; DisplayColorDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#foreColorDiff"><span class="hs-identifier hs-var hs-var">foreColorDiff</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayAttrDiff
+</span><a href="#local-6989586621679365108"><span class="hs-identifier hs-var">d1</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-58"></span><span>            </span><span id="local-6989586621679365103"><span class="annot"><span class="annottext">bcd :: DisplayColorDiff
+</span><a href="#local-6989586621679365103"><span class="hs-identifier hs-var hs-var">bcd</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DisplayColorDiff -&gt; DisplayColorDiff -&gt; DisplayColorDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#simplifyColorDiffs"><span class="hs-identifier hs-var">simplifyColorDiffs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DisplayAttrDiff -&gt; DisplayColorDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#backColorDiff"><span class="hs-identifier hs-var hs-var">backColorDiff</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayAttrDiff
+</span><a href="#local-6989586621679365110"><span class="hs-identifier hs-var">d0</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DisplayAttrDiff -&gt; DisplayColorDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#backColorDiff"><span class="hs-identifier hs-var hs-var">backColorDiff</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayAttrDiff
+</span><a href="#local-6989586621679365108"><span class="hs-identifier hs-var">d1</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-59"></span><span>            </span><span id="local-6989586621679365102"><span class="annot"><span class="annottext">ud :: URLDiff
+</span><a href="#local-6989586621679365102"><span class="hs-identifier hs-var hs-var">ud</span></a></span></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">URLDiff -&gt; URLDiff -&gt; URLDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#simplifyUrlDiffs"><span class="hs-identifier hs-var">simplifyUrlDiffs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DisplayAttrDiff -&gt; URLDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#urlDiff"><span class="hs-identifier hs-var hs-var">urlDiff</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayAttrDiff
+</span><a href="#local-6989586621679365110"><span class="hs-identifier hs-var">d0</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DisplayAttrDiff -&gt; URLDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#urlDiff"><span class="hs-identifier hs-var hs-var">urlDiff</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayAttrDiff
+</span><a href="#local-6989586621679365108"><span class="hs-identifier hs-var">d1</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-60"></span><span>        </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">[StyleStateChange]
+-&gt; DisplayColorDiff
+-&gt; DisplayColorDiff
+-&gt; URLDiff
+-&gt; DisplayAttrDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#DisplayAttrDiff"><span class="hs-identifier hs-var">DisplayAttrDiff</span></a></span><span> </span><span class="annot"><span class="annottext">[StyleStateChange]
+</span><a href="#local-6989586621679365107"><span class="hs-identifier hs-var">ds</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayColorDiff
+</span><a href="#local-6989586621679365105"><span class="hs-identifier hs-var">fcd</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayColorDiff
+</span><a href="#local-6989586621679365103"><span class="hs-identifier hs-var">bcd</span></a></span><span> </span><span class="annot"><span class="annottext">URLDiff
+</span><a href="#local-6989586621679365102"><span class="hs-identifier hs-var">ud</span></a></span><span>
+</span><span id="line-61"></span><span>
+</span><span id="line-62"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679365095"><span id="local-6989586621679365097"><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#DisplayAttrDiff"><span class="hs-identifier hs-type">DisplayAttrDiff</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-63"></span><span>    </span><span id="local-6989586621679365093"><span class="annot"><span class="annottext">mempty :: DisplayAttrDiff
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">mempty</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[StyleStateChange]
+-&gt; DisplayColorDiff
+-&gt; DisplayColorDiff
+-&gt; URLDiff
+-&gt; DisplayAttrDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#DisplayAttrDiff"><span class="hs-identifier hs-var">DisplayAttrDiff</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="annot"><span class="annottext">DisplayColorDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#NoColorChange"><span class="hs-identifier hs-var">NoColorChange</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayColorDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#NoColorChange"><span class="hs-identifier hs-var">NoColorChange</span></a></span><span> </span><span class="annot"><span class="annottext">URLDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#NoLinkChange"><span class="hs-identifier hs-var">NoLinkChange</span></a></span><span class="hs-cpp">
+#if !(MIN_VERSION_base(4,11,0))
+</span><span>    </span><span class="hs-identifier">mappend</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="hs-operator">&lt;&gt;</span><span class="hs-special">)</span><span class="hs-cpp">
+#endif
+</span><span>
+</span><span id="line-68"></span><span class="hs-comment">-- | Used in the computation of a final style attribute change.</span><span>
+</span><span id="line-69"></span><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#simplifyStyleDiffs"><span class="hs-identifier hs-type">simplifyStyleDiffs</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#StyleStateChange"><span class="hs-identifier hs-type">StyleStateChange</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#StyleStateChange"><span class="hs-identifier hs-type">StyleStateChange</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#StyleStateChange"><span class="hs-identifier hs-type">StyleStateChange</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-70"></span><span id="simplifyStyleDiffs"><span class="annot"><span class="annottext">simplifyStyleDiffs :: [StyleStateChange] -&gt; [StyleStateChange] -&gt; [StyleStateChange]
+</span><a href="Graphics.Vty.DisplayAttributes.html#simplifyStyleDiffs"><span class="hs-identifier hs-var hs-var">simplifyStyleDiffs</span></a></span></span><span> </span><span id="local-6989586621679365090"><span class="annot"><span class="annottext">[StyleStateChange]
+</span><a href="#local-6989586621679365090"><span class="hs-identifier hs-var">cs0</span></a></span></span><span> </span><span id="local-6989586621679365089"><span class="annot"><span class="annottext">[StyleStateChange]
+</span><a href="#local-6989586621679365089"><span class="hs-identifier hs-var">cs1</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[StyleStateChange]
+</span><a href="#local-6989586621679365090"><span class="hs-identifier hs-var">cs0</span></a></span><span> </span><span class="annot"><span class="annottext">[StyleStateChange] -&gt; [StyleStateChange] -&gt; [StyleStateChange]
+forall a. Monoid a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">`mappend`</span></span><span> </span><span class="annot"><span class="annottext">[StyleStateChange]
+</span><a href="#local-6989586621679365089"><span class="hs-identifier hs-var">cs1</span></a></span><span>
+</span><span id="line-71"></span><span>
+</span><span id="line-72"></span><span class="hs-comment">-- | Consider two display color attributes diffs. What display color</span><span>
+</span><span id="line-73"></span><span class="hs-comment">-- attribute diff are these equivalent to?</span><span>
+</span><span id="line-74"></span><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#simplifyColorDiffs"><span class="hs-identifier hs-type">simplifyColorDiffs</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#DisplayColorDiff"><span class="hs-identifier hs-type">DisplayColorDiff</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#DisplayColorDiff"><span class="hs-identifier hs-type">DisplayColorDiff</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#DisplayColorDiff"><span class="hs-identifier hs-type">DisplayColorDiff</span></a></span><span>
+</span><span id="line-75"></span><span id="simplifyColorDiffs"><span class="annot"><span class="annottext">simplifyColorDiffs :: DisplayColorDiff -&gt; DisplayColorDiff -&gt; DisplayColorDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#simplifyColorDiffs"><span class="hs-identifier hs-var hs-var">simplifyColorDiffs</span></a></span></span><span> </span><span id="local-6989586621679365088"><span class="annot"><span class="annottext">DisplayColorDiff
+</span><a href="#local-6989586621679365088"><span class="hs-identifier hs-var">_cd</span></a></span></span><span>             </span><span class="annot"><span class="annottext">DisplayColorDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#ColorToDefault"><span class="hs-identifier hs-var">ColorToDefault</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DisplayColorDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#ColorToDefault"><span class="hs-identifier hs-var">ColorToDefault</span></a></span><span>
+</span><span id="line-76"></span><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#simplifyColorDiffs"><span class="hs-identifier hs-var">simplifyColorDiffs</span></a></span><span> </span><span id="local-6989586621679365086"><span class="annot"><span class="annottext">DisplayColorDiff
+</span><a href="#local-6989586621679365086"><span class="hs-identifier hs-var">cd</span></a></span></span><span>              </span><span class="annot"><span class="annottext">DisplayColorDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#NoColorChange"><span class="hs-identifier hs-var">NoColorChange</span></a></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DisplayColorDiff
+</span><a href="#local-6989586621679365086"><span class="hs-identifier hs-var">cd</span></a></span><span>
+</span><span id="line-77"></span><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#simplifyColorDiffs"><span class="hs-identifier hs-var">simplifyColorDiffs</span></a></span><span> </span><span id="local-6989586621679365085"><span class="annot"><span class="annottext">DisplayColorDiff
+</span><a href="#local-6989586621679365085"><span class="hs-identifier hs-var">_cd</span></a></span></span><span>             </span><span class="hs-special">(</span><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#SetColor"><span class="hs-identifier hs-type">SetColor</span></a></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679365083"><span class="annot"><span class="annottext">Color
+</span><a href="#local-6989586621679365083"><span class="hs-identifier hs-var">c</span></a></span></span><span class="hs-special">)</span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Color -&gt; DisplayColorDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#SetColor"><span class="hs-identifier hs-var">SetColor</span></a></span><span> </span><span class="annot"><span class="annottext">Color
+</span><a href="#local-6989586621679365083"><span class="hs-identifier hs-var">c</span></a></span><span>
+</span><span id="line-78"></span><span>
+</span><span id="line-79"></span><span class="hs-comment">-- | Consider two URL changes, which are mostly going to be the latter</span><span>
+</span><span id="line-80"></span><span class="hs-comment">-- unless the latter specifies no change.</span><span>
+</span><span id="line-81"></span><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#simplifyUrlDiffs"><span class="hs-identifier hs-type">simplifyUrlDiffs</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#URLDiff"><span class="hs-identifier hs-type">URLDiff</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#URLDiff"><span class="hs-identifier hs-type">URLDiff</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#URLDiff"><span class="hs-identifier hs-type">URLDiff</span></a></span><span>
+</span><span id="line-82"></span><span id="simplifyUrlDiffs"><span class="annot"><span class="annottext">simplifyUrlDiffs :: URLDiff -&gt; URLDiff -&gt; URLDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#simplifyUrlDiffs"><span class="hs-identifier hs-var hs-var">simplifyUrlDiffs</span></a></span></span><span> </span><span id="local-6989586621679365082"><span class="annot"><span class="annottext">URLDiff
+</span><a href="#local-6989586621679365082"><span class="hs-identifier hs-var">ud</span></a></span></span><span> </span><span class="annot"><span class="annottext">URLDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#NoLinkChange"><span class="hs-identifier hs-var">NoLinkChange</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">URLDiff
+</span><a href="#local-6989586621679365082"><span class="hs-identifier hs-var">ud</span></a></span><span>
+</span><span id="line-83"></span><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#simplifyUrlDiffs"><span class="hs-identifier hs-var">simplifyUrlDiffs</span></a></span><span> </span><span class="annot"><span class="annottext">URLDiff
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679365081"><span class="annot"><span class="annottext">URLDiff
+</span><a href="#local-6989586621679365081"><span class="hs-identifier hs-var">ud</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">URLDiff
+</span><a href="#local-6989586621679365081"><span class="hs-identifier hs-var">ud</span></a></span><span>
+</span><span id="line-84"></span><span>
+</span><span id="line-85"></span><span class="hs-comment">-- | Difference between two display color attribute changes.</span><span>
+</span><span id="line-86"></span><span class="hs-keyword">data</span><span> </span><span id="DisplayColorDiff"><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#DisplayColorDiff"><span class="hs-identifier hs-var">DisplayColorDiff</span></a></span></span><span>
+</span><span id="line-87"></span><span>    </span><span class="hs-glyph">=</span><span> </span><span id="ColorToDefault"><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#ColorToDefault"><span class="hs-identifier hs-var">ColorToDefault</span></a></span></span><span>
+</span><span id="line-88"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span id="NoColorChange"><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#NoColorChange"><span class="hs-identifier hs-var">NoColorChange</span></a></span></span><span>
+</span><span id="line-89"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span id="SetColor"><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#SetColor"><span class="hs-identifier hs-var">SetColor</span></a></span></span><span> </span><span class="hs-glyph">!</span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#Color"><span class="hs-identifier hs-type">Color</span></a></span><span>
+</span><span id="line-90"></span><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679365075"><span id="local-6989586621679365077"><span id="local-6989586621679365079"><span class="annot"><span class="annottext">Int -&gt; DisplayColorDiff -&gt; ShowS
+[DisplayColorDiff] -&gt; ShowS
+DisplayColorDiff -&gt; String
+(Int -&gt; DisplayColorDiff -&gt; ShowS)
+-&gt; (DisplayColorDiff -&gt; String)
+-&gt; ([DisplayColorDiff] -&gt; ShowS)
+-&gt; Show DisplayColorDiff
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [DisplayColorDiff] -&gt; ShowS
+$cshowList :: [DisplayColorDiff] -&gt; ShowS
+show :: DisplayColorDiff -&gt; String
+$cshow :: DisplayColorDiff -&gt; String
+showsPrec :: Int -&gt; DisplayColorDiff -&gt; ShowS
+$cshowsPrec :: Int -&gt; DisplayColorDiff -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679365071"><span id="local-6989586621679365073"><span class="annot"><span class="annottext">DisplayColorDiff -&gt; DisplayColorDiff -&gt; Bool
+(DisplayColorDiff -&gt; DisplayColorDiff -&gt; Bool)
+-&gt; (DisplayColorDiff -&gt; DisplayColorDiff -&gt; Bool)
+-&gt; Eq DisplayColorDiff
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: DisplayColorDiff -&gt; DisplayColorDiff -&gt; Bool
+$c/= :: DisplayColorDiff -&gt; DisplayColorDiff -&gt; Bool
+== :: DisplayColorDiff -&gt; DisplayColorDiff -&gt; Bool
+$c== :: DisplayColorDiff -&gt; DisplayColorDiff -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-91"></span><span>
+</span><span id="line-92"></span><span class="hs-comment">-- | Style attribute changes are transformed into a sequence of</span><span>
+</span><span id="line-93"></span><span class="hs-comment">-- apply/removes of the individual attributes.</span><span>
+</span><span id="line-94"></span><span class="hs-keyword">data</span><span> </span><span id="StyleStateChange"><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#StyleStateChange"><span class="hs-identifier hs-var">StyleStateChange</span></a></span></span><span>
+</span><span id="line-95"></span><span>    </span><span class="hs-glyph">=</span><span> </span><span id="ApplyStandout"><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#ApplyStandout"><span class="hs-identifier hs-var">ApplyStandout</span></a></span></span><span>
+</span><span id="line-96"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span id="RemoveStandout"><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#RemoveStandout"><span class="hs-identifier hs-var">RemoveStandout</span></a></span></span><span>
+</span><span id="line-97"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span id="ApplyItalic"><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#ApplyItalic"><span class="hs-identifier hs-var">ApplyItalic</span></a></span></span><span>
+</span><span id="line-98"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span id="RemoveItalic"><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#RemoveItalic"><span class="hs-identifier hs-var">RemoveItalic</span></a></span></span><span>
+</span><span id="line-99"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span id="ApplyStrikethrough"><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#ApplyStrikethrough"><span class="hs-identifier hs-var">ApplyStrikethrough</span></a></span></span><span>
+</span><span id="line-100"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span id="RemoveStrikethrough"><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#RemoveStrikethrough"><span class="hs-identifier hs-var">RemoveStrikethrough</span></a></span></span><span>
+</span><span id="line-101"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span id="ApplyUnderline"><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#ApplyUnderline"><span class="hs-identifier hs-var">ApplyUnderline</span></a></span></span><span>
+</span><span id="line-102"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span id="RemoveUnderline"><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#RemoveUnderline"><span class="hs-identifier hs-var">RemoveUnderline</span></a></span></span><span>
+</span><span id="line-103"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span id="ApplyReverseVideo"><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#ApplyReverseVideo"><span class="hs-identifier hs-var">ApplyReverseVideo</span></a></span></span><span>
+</span><span id="line-104"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span id="RemoveReverseVideo"><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#RemoveReverseVideo"><span class="hs-identifier hs-var">RemoveReverseVideo</span></a></span></span><span>
+</span><span id="line-105"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span id="ApplyBlink"><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#ApplyBlink"><span class="hs-identifier hs-var">ApplyBlink</span></a></span></span><span>
+</span><span id="line-106"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span id="RemoveBlink"><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#RemoveBlink"><span class="hs-identifier hs-var">RemoveBlink</span></a></span></span><span>
+</span><span id="line-107"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span id="ApplyDim"><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#ApplyDim"><span class="hs-identifier hs-var">ApplyDim</span></a></span></span><span>
+</span><span id="line-108"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span id="RemoveDim"><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#RemoveDim"><span class="hs-identifier hs-var">RemoveDim</span></a></span></span><span>
+</span><span id="line-109"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span id="ApplyBold"><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#ApplyBold"><span class="hs-identifier hs-var">ApplyBold</span></a></span></span><span>
+</span><span id="line-110"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span id="RemoveBold"><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#RemoveBold"><span class="hs-identifier hs-var">RemoveBold</span></a></span></span><span>
+</span><span id="line-111"></span><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679365048"><span id="local-6989586621679365050"><span id="local-6989586621679365052"><span class="annot"><span class="annottext">Int -&gt; StyleStateChange -&gt; ShowS
+[StyleStateChange] -&gt; ShowS
+StyleStateChange -&gt; String
+(Int -&gt; StyleStateChange -&gt; ShowS)
+-&gt; (StyleStateChange -&gt; String)
+-&gt; ([StyleStateChange] -&gt; ShowS)
+-&gt; Show StyleStateChange
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [StyleStateChange] -&gt; ShowS
+$cshowList :: [StyleStateChange] -&gt; ShowS
+show :: StyleStateChange -&gt; String
+$cshow :: StyleStateChange -&gt; String
+showsPrec :: Int -&gt; StyleStateChange -&gt; ShowS
+$cshowsPrec :: Int -&gt; StyleStateChange -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679365044"><span id="local-6989586621679365046"><span class="annot"><span class="annottext">StyleStateChange -&gt; StyleStateChange -&gt; Bool
+(StyleStateChange -&gt; StyleStateChange -&gt; Bool)
+-&gt; (StyleStateChange -&gt; StyleStateChange -&gt; Bool)
+-&gt; Eq StyleStateChange
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: StyleStateChange -&gt; StyleStateChange -&gt; Bool
+$c/= :: StyleStateChange -&gt; StyleStateChange -&gt; Bool
+== :: StyleStateChange -&gt; StyleStateChange -&gt; Bool
+$c== :: StyleStateChange -&gt; StyleStateChange -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-112"></span><span>
+</span><span id="line-113"></span><span class="hs-comment">-- Setting and unsetting hyperlinks</span><span>
+</span><span id="line-114"></span><span class="hs-keyword">data</span><span> </span><span id="URLDiff"><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#URLDiff"><span class="hs-identifier hs-var">URLDiff</span></a></span></span><span>
+</span><span id="line-115"></span><span>    </span><span class="hs-glyph">=</span><span> </span><span id="LinkTo"><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#LinkTo"><span class="hs-identifier hs-var">LinkTo</span></a></span></span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="hs-identifier hs-type">ByteString</span></span><span>
+</span><span id="line-116"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span id="NoLinkChange"><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#NoLinkChange"><span class="hs-identifier hs-var">NoLinkChange</span></a></span></span><span>
+</span><span id="line-117"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span id="EndLink"><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#EndLink"><span class="hs-identifier hs-var">EndLink</span></a></span></span><span>
+</span><span id="line-118"></span><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679365036"><span id="local-6989586621679365038"><span id="local-6989586621679365040"><span class="annot"><span class="annottext">Int -&gt; URLDiff -&gt; ShowS
+[URLDiff] -&gt; ShowS
+URLDiff -&gt; String
+(Int -&gt; URLDiff -&gt; ShowS)
+-&gt; (URLDiff -&gt; String) -&gt; ([URLDiff] -&gt; ShowS) -&gt; Show URLDiff
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [URLDiff] -&gt; ShowS
+$cshowList :: [URLDiff] -&gt; ShowS
+show :: URLDiff -&gt; String
+$cshow :: URLDiff -&gt; String
+showsPrec :: Int -&gt; URLDiff -&gt; ShowS
+$cshowsPrec :: Int -&gt; URLDiff -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679365032"><span id="local-6989586621679365034"><span class="annot"><span class="annottext">URLDiff -&gt; URLDiff -&gt; Bool
+(URLDiff -&gt; URLDiff -&gt; Bool)
+-&gt; (URLDiff -&gt; URLDiff -&gt; Bool) -&gt; Eq URLDiff
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: URLDiff -&gt; URLDiff -&gt; Bool
+$c/= :: URLDiff -&gt; URLDiff -&gt; Bool
+== :: URLDiff -&gt; URLDiff -&gt; Bool
+$c== :: URLDiff -&gt; URLDiff -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-119"></span><span>
+</span><span id="line-120"></span><span class="hs-comment">-- | Determines the diff between two display&amp;color attributes. This diff</span><span>
+</span><span id="line-121"></span><span class="hs-comment">-- determines the operations that actually get output to the terminal.</span><span>
+</span><span id="line-122"></span><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#displayAttrDiffs"><span class="hs-identifier hs-type">displayAttrDiffs</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#FixedAttr"><span class="hs-identifier hs-type">FixedAttr</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#FixedAttr"><span class="hs-identifier hs-type">FixedAttr</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#DisplayAttrDiff"><span class="hs-identifier hs-type">DisplayAttrDiff</span></a></span><span>
+</span><span id="line-123"></span><span id="displayAttrDiffs"><span class="annot"><span class="annottext">displayAttrDiffs :: FixedAttr -&gt; FixedAttr -&gt; DisplayAttrDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#displayAttrDiffs"><span class="hs-identifier hs-var hs-var">displayAttrDiffs</span></a></span></span><span> </span><span id="local-6989586621679365030"><span class="annot"><span class="annottext">FixedAttr
+</span><a href="#local-6989586621679365030"><span class="hs-identifier hs-var">attr</span></a></span></span><span> </span><span id="local-6989586621679365029"><span class="annot"><span class="annottext">FixedAttr
+</span><a href="#local-6989586621679365029"><span class="hs-identifier hs-var">attr'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DisplayAttrDiff :: [StyleStateChange]
+-&gt; DisplayColorDiff
+-&gt; DisplayColorDiff
+-&gt; URLDiff
+-&gt; DisplayAttrDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#DisplayAttrDiff"><span class="hs-identifier hs-type">DisplayAttrDiff</span></a></span><span>
+</span><span id="line-124"></span><span>    </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">styleDiffs :: [StyleStateChange]
+</span><a href="Graphics.Vty.DisplayAttributes.html#styleDiffs"><span class="hs-identifier hs-var">styleDiffs</span></a></span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Style -&gt; Style -&gt; [StyleStateChange]
+</span><a href="Graphics.Vty.DisplayAttributes.html#diffStyles"><span class="hs-identifier hs-var">diffStyles</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">FixedAttr -&gt; Style
+</span><a href="Graphics.Vty.Attributes.html#fixedStyle"><span class="hs-identifier hs-var hs-var">fixedStyle</span></a></span><span> </span><span class="annot"><span class="annottext">FixedAttr
+</span><a href="#local-6989586621679365030"><span class="hs-identifier hs-var">attr</span></a></span><span class="hs-special">)</span><span>      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">FixedAttr -&gt; Style
+</span><a href="Graphics.Vty.Attributes.html#fixedStyle"><span class="hs-identifier hs-var hs-var">fixedStyle</span></a></span><span> </span><span class="annot"><span class="annottext">FixedAttr
+</span><a href="#local-6989586621679365029"><span class="hs-identifier hs-var">attr'</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-125"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">foreColorDiff :: DisplayColorDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#foreColorDiff"><span class="hs-identifier hs-var">foreColorDiff</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe Color -&gt; Maybe Color -&gt; DisplayColorDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#diffColor"><span class="hs-identifier hs-var">diffColor</span></a></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">FixedAttr -&gt; Maybe Color
+</span><a href="Graphics.Vty.Attributes.html#fixedForeColor"><span class="hs-identifier hs-var hs-var">fixedForeColor</span></a></span><span> </span><span class="annot"><span class="annottext">FixedAttr
+</span><a href="#local-6989586621679365030"><span class="hs-identifier hs-var">attr</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">FixedAttr -&gt; Maybe Color
+</span><a href="Graphics.Vty.Attributes.html#fixedForeColor"><span class="hs-identifier hs-var hs-var">fixedForeColor</span></a></span><span> </span><span class="annot"><span class="annottext">FixedAttr
+</span><a href="#local-6989586621679365029"><span class="hs-identifier hs-var">attr'</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-126"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">backColorDiff :: DisplayColorDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#backColorDiff"><span class="hs-identifier hs-var">backColorDiff</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe Color -&gt; Maybe Color -&gt; DisplayColorDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#diffColor"><span class="hs-identifier hs-var">diffColor</span></a></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">FixedAttr -&gt; Maybe Color
+</span><a href="Graphics.Vty.Attributes.html#fixedBackColor"><span class="hs-identifier hs-var hs-var">fixedBackColor</span></a></span><span> </span><span class="annot"><span class="annottext">FixedAttr
+</span><a href="#local-6989586621679365030"><span class="hs-identifier hs-var">attr</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">FixedAttr -&gt; Maybe Color
+</span><a href="Graphics.Vty.Attributes.html#fixedBackColor"><span class="hs-identifier hs-var hs-var">fixedBackColor</span></a></span><span> </span><span class="annot"><span class="annottext">FixedAttr
+</span><a href="#local-6989586621679365029"><span class="hs-identifier hs-var">attr'</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-127"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">urlDiff :: URLDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#urlDiff"><span class="hs-identifier hs-var">urlDiff</span></a></span><span>       </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe Text -&gt; Maybe Text -&gt; URLDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#diffURL"><span class="hs-identifier hs-var">diffURL</span></a></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">FixedAttr -&gt; Maybe Text
+</span><a href="Graphics.Vty.Attributes.html#fixedURL"><span class="hs-identifier hs-var hs-var">fixedURL</span></a></span><span> </span><span class="annot"><span class="annottext">FixedAttr
+</span><a href="#local-6989586621679365030"><span class="hs-identifier hs-var">attr</span></a></span><span class="hs-special">)</span><span>       </span><span class="hs-special">(</span><span class="annot"><span class="annottext">FixedAttr -&gt; Maybe Text
+</span><a href="Graphics.Vty.Attributes.html#fixedURL"><span class="hs-identifier hs-var hs-var">fixedURL</span></a></span><span> </span><span class="annot"><span class="annottext">FixedAttr
+</span><a href="#local-6989586621679365029"><span class="hs-identifier hs-var">attr'</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-128"></span><span>    </span><span class="hs-special">}</span><span>
+</span><span id="line-129"></span><span>
+</span><span id="line-130"></span><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#diffURL"><span class="hs-identifier hs-type">diffURL</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#URLDiff"><span class="hs-identifier hs-type">URLDiff</span></a></span><span>
+</span><span id="line-131"></span><span id="diffURL"><span class="annot"><span class="annottext">diffURL :: Maybe Text -&gt; Maybe Text -&gt; URLDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#diffURL"><span class="hs-identifier hs-var hs-var">diffURL</span></a></span></span><span> </span><span class="annot"><span class="annottext">Maybe Text
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="annot"><span class="annottext">Maybe Text
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">URLDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#NoLinkChange"><span class="hs-identifier hs-var">NoLinkChange</span></a></span><span>
+</span><span id="line-132"></span><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#diffURL"><span class="hs-identifier hs-var">diffURL</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Maybe Text
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">URLDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#EndLink"><span class="hs-identifier hs-var">EndLink</span></a></span><span>
+</span><span id="line-133"></span><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#diffURL"><span class="hs-identifier hs-var">diffURL</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe Text
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679365025"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679365025"><span class="hs-identifier hs-var">url</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; URLDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#LinkTo"><span class="hs-identifier hs-var">LinkTo</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Text -&gt; ByteString
+</span><span class="hs-identifier hs-var">encodeUtf8</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679365025"><span class="hs-identifier hs-var">url</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-134"></span><span>
+</span><span id="line-135"></span><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#diffColor"><span class="hs-identifier hs-type">diffColor</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#Color"><span class="hs-identifier hs-type">Color</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#Color"><span class="hs-identifier hs-type">Color</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#DisplayColorDiff"><span class="hs-identifier hs-type">DisplayColorDiff</span></a></span><span>
+</span><span id="line-136"></span><span id="diffColor"><span class="annot"><span class="annottext">diffColor :: Maybe Color -&gt; Maybe Color -&gt; DisplayColorDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#diffColor"><span class="hs-identifier hs-var hs-var">diffColor</span></a></span></span><span> </span><span class="annot"><span class="annottext">Maybe Color
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679365024"><span class="annot"><span class="annottext">Color
+</span><a href="#local-6989586621679365024"><span class="hs-identifier hs-var">c'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Color -&gt; DisplayColorDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#SetColor"><span class="hs-identifier hs-var">SetColor</span></a></span><span> </span><span class="annot"><span class="annottext">Color
+</span><a href="#local-6989586621679365024"><span class="hs-identifier hs-var">c'</span></a></span><span>
+</span><span id="line-137"></span><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#diffColor"><span class="hs-identifier hs-var">diffColor</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679365023"><span class="annot"><span class="annottext">Color
+</span><a href="#local-6989586621679365023"><span class="hs-identifier hs-var">c</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679365022"><span class="annot"><span class="annottext">Color
+</span><a href="#local-6989586621679365022"><span class="hs-identifier hs-var">c'</span></a></span></span><span class="hs-special">)</span><span>
+</span><span id="line-138"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Color
+</span><a href="#local-6989586621679365023"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="annot"><span class="annottext">Color -&gt; Color -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Color
+</span><a href="#local-6989586621679365022"><span class="hs-identifier hs-var">c'</span></a></span><span>   </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DisplayColorDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#NoColorChange"><span class="hs-identifier hs-var">NoColorChange</span></a></span><span>
+</span><span id="line-139"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Color -&gt; DisplayColorDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#SetColor"><span class="hs-identifier hs-var">SetColor</span></a></span><span> </span><span class="annot"><span class="annottext">Color
+</span><a href="#local-6989586621679365022"><span class="hs-identifier hs-var">c'</span></a></span><span>
+</span><span id="line-140"></span><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#diffColor"><span class="hs-identifier hs-var">diffColor</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe Color
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>  </span><span class="annot"><span class="annottext">Maybe Color
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DisplayColorDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#NoColorChange"><span class="hs-identifier hs-var">NoColorChange</span></a></span><span>
+</span><span id="line-141"></span><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#diffColor"><span class="hs-identifier hs-var">diffColor</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="annot"><span class="annottext">Color
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Maybe Color
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DisplayColorDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#ColorToDefault"><span class="hs-identifier hs-var">ColorToDefault</span></a></span><span>
+</span><span id="line-142"></span><span>
+</span><span id="line-143"></span><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#diffStyles"><span class="hs-identifier hs-type">diffStyles</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#Style"><span class="hs-identifier hs-type">Style</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#Style"><span class="hs-identifier hs-type">Style</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#StyleStateChange"><span class="hs-identifier hs-type">StyleStateChange</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-144"></span><span id="diffStyles"><span class="annot"><span class="annottext">diffStyles :: Style -&gt; Style -&gt; [StyleStateChange]
+</span><a href="Graphics.Vty.DisplayAttributes.html#diffStyles"><span class="hs-identifier hs-var hs-var">diffStyles</span></a></span></span><span> </span><span id="local-6989586621679365021"><span class="annot"><span class="annottext">Style
+</span><a href="#local-6989586621679365021"><span class="hs-identifier hs-var">prev</span></a></span></span><span> </span><span id="local-6989586621679365020"><span class="annot"><span class="annottext">Style
+</span><a href="#local-6989586621679365020"><span class="hs-identifier hs-var">cur</span></a></span></span><span>
+</span><span id="line-145"></span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[[StyleStateChange]] -&gt; [StyleStateChange]
+forall a. Monoid a =&gt; [a] -&gt; a
+</span><span class="hs-identifier hs-var">mconcat</span></span><span>
+</span><span id="line-146"></span><span>    </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">Style -&gt; StyleStateChange -&gt; StyleStateChange -&gt; [StyleStateChange]
+forall a. Style -&gt; a -&gt; a -&gt; [a]
+</span><a href="#local-6989586621679365019"><span class="hs-identifier hs-var">styleDiff</span></a></span><span> </span><span class="annot"><span class="annottext">Style
+</span><a href="Graphics.Vty.Attributes.html#standout"><span class="hs-identifier hs-var">standout</span></a></span><span>      </span><span class="annot"><span class="annottext">StyleStateChange
+</span><a href="Graphics.Vty.DisplayAttributes.html#ApplyStandout"><span class="hs-identifier hs-var">ApplyStandout</span></a></span><span>     </span><span class="annot"><span class="annottext">StyleStateChange
+</span><a href="Graphics.Vty.DisplayAttributes.html#RemoveStandout"><span class="hs-identifier hs-var">RemoveStandout</span></a></span><span>
+</span><span id="line-147"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Style -&gt; StyleStateChange -&gt; StyleStateChange -&gt; [StyleStateChange]
+forall a. Style -&gt; a -&gt; a -&gt; [a]
+</span><a href="#local-6989586621679365019"><span class="hs-identifier hs-var">styleDiff</span></a></span><span> </span><span class="annot"><span class="annottext">Style
+</span><a href="Graphics.Vty.Attributes.html#underline"><span class="hs-identifier hs-var">underline</span></a></span><span>     </span><span class="annot"><span class="annottext">StyleStateChange
+</span><a href="Graphics.Vty.DisplayAttributes.html#ApplyUnderline"><span class="hs-identifier hs-var">ApplyUnderline</span></a></span><span>    </span><span class="annot"><span class="annottext">StyleStateChange
+</span><a href="Graphics.Vty.DisplayAttributes.html#RemoveUnderline"><span class="hs-identifier hs-var">RemoveUnderline</span></a></span><span>
+</span><span id="line-148"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Style -&gt; StyleStateChange -&gt; StyleStateChange -&gt; [StyleStateChange]
+forall a. Style -&gt; a -&gt; a -&gt; [a]
+</span><a href="#local-6989586621679365019"><span class="hs-identifier hs-var">styleDiff</span></a></span><span> </span><span class="annot"><span class="annottext">Style
+</span><a href="Graphics.Vty.Attributes.html#italic"><span class="hs-identifier hs-var">italic</span></a></span><span>        </span><span class="annot"><span class="annottext">StyleStateChange
+</span><a href="Graphics.Vty.DisplayAttributes.html#ApplyItalic"><span class="hs-identifier hs-var">ApplyItalic</span></a></span><span>       </span><span class="annot"><span class="annottext">StyleStateChange
+</span><a href="Graphics.Vty.DisplayAttributes.html#RemoveItalic"><span class="hs-identifier hs-var">RemoveItalic</span></a></span><span>
+</span><span id="line-149"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Style -&gt; StyleStateChange -&gt; StyleStateChange -&gt; [StyleStateChange]
+forall a. Style -&gt; a -&gt; a -&gt; [a]
+</span><a href="#local-6989586621679365019"><span class="hs-identifier hs-var">styleDiff</span></a></span><span> </span><span class="annot"><span class="annottext">Style
+</span><a href="Graphics.Vty.Attributes.html#strikethrough"><span class="hs-identifier hs-var">strikethrough</span></a></span><span> </span><span class="annot"><span class="annottext">StyleStateChange
+</span><a href="Graphics.Vty.DisplayAttributes.html#ApplyStrikethrough"><span class="hs-identifier hs-var">ApplyStrikethrough</span></a></span><span> </span><span class="annot"><span class="annottext">StyleStateChange
+</span><a href="Graphics.Vty.DisplayAttributes.html#RemoveStrikethrough"><span class="hs-identifier hs-var">RemoveStrikethrough</span></a></span><span>
+</span><span id="line-150"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Style -&gt; StyleStateChange -&gt; StyleStateChange -&gt; [StyleStateChange]
+forall a. Style -&gt; a -&gt; a -&gt; [a]
+</span><a href="#local-6989586621679365019"><span class="hs-identifier hs-var">styleDiff</span></a></span><span> </span><span class="annot"><span class="annottext">Style
+</span><a href="Graphics.Vty.Attributes.html#reverseVideo"><span class="hs-identifier hs-var">reverseVideo</span></a></span><span>  </span><span class="annot"><span class="annottext">StyleStateChange
+</span><a href="Graphics.Vty.DisplayAttributes.html#ApplyReverseVideo"><span class="hs-identifier hs-var">ApplyReverseVideo</span></a></span><span> </span><span class="annot"><span class="annottext">StyleStateChange
+</span><a href="Graphics.Vty.DisplayAttributes.html#RemoveReverseVideo"><span class="hs-identifier hs-var">RemoveReverseVideo</span></a></span><span>
+</span><span id="line-151"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Style -&gt; StyleStateChange -&gt; StyleStateChange -&gt; [StyleStateChange]
+forall a. Style -&gt; a -&gt; a -&gt; [a]
+</span><a href="#local-6989586621679365019"><span class="hs-identifier hs-var">styleDiff</span></a></span><span> </span><span class="annot"><span class="annottext">Style
+</span><a href="Graphics.Vty.Attributes.html#blink"><span class="hs-identifier hs-var">blink</span></a></span><span>         </span><span class="annot"><span class="annottext">StyleStateChange
+</span><a href="Graphics.Vty.DisplayAttributes.html#ApplyBlink"><span class="hs-identifier hs-var">ApplyBlink</span></a></span><span>        </span><span class="annot"><span class="annottext">StyleStateChange
+</span><a href="Graphics.Vty.DisplayAttributes.html#RemoveBlink"><span class="hs-identifier hs-var">RemoveBlink</span></a></span><span>
+</span><span id="line-152"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Style -&gt; StyleStateChange -&gt; StyleStateChange -&gt; [StyleStateChange]
+forall a. Style -&gt; a -&gt; a -&gt; [a]
+</span><a href="#local-6989586621679365019"><span class="hs-identifier hs-var">styleDiff</span></a></span><span> </span><span class="annot"><span class="annottext">Style
+</span><a href="Graphics.Vty.Attributes.html#dim"><span class="hs-identifier hs-var">dim</span></a></span><span>           </span><span class="annot"><span class="annottext">StyleStateChange
+</span><a href="Graphics.Vty.DisplayAttributes.html#ApplyDim"><span class="hs-identifier hs-var">ApplyDim</span></a></span><span>          </span><span class="annot"><span class="annottext">StyleStateChange
+</span><a href="Graphics.Vty.DisplayAttributes.html#RemoveDim"><span class="hs-identifier hs-var">RemoveDim</span></a></span><span>
+</span><span id="line-153"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Style -&gt; StyleStateChange -&gt; StyleStateChange -&gt; [StyleStateChange]
+forall a. Style -&gt; a -&gt; a -&gt; [a]
+</span><a href="#local-6989586621679365019"><span class="hs-identifier hs-var">styleDiff</span></a></span><span> </span><span class="annot"><span class="annottext">Style
+</span><a href="Graphics.Vty.Attributes.html#bold"><span class="hs-identifier hs-var">bold</span></a></span><span>          </span><span class="annot"><span class="annottext">StyleStateChange
+</span><a href="Graphics.Vty.DisplayAttributes.html#ApplyBold"><span class="hs-identifier hs-var">ApplyBold</span></a></span><span>         </span><span class="annot"><span class="annottext">StyleStateChange
+</span><a href="Graphics.Vty.DisplayAttributes.html#RemoveBold"><span class="hs-identifier hs-var">RemoveBold</span></a></span><span>
+</span><span id="line-154"></span><span>    </span><span class="hs-special">]</span><span>
+</span><span id="line-155"></span><span>    </span><span class="hs-keyword">where</span><span>
+</span><span id="line-156"></span><span>        </span><span id="local-6989586621679365019"><span class="annot"><span class="annottext">styleDiff :: Style -&gt; a -&gt; a -&gt; [a]
+</span><a href="#local-6989586621679365019"><span class="hs-identifier hs-var hs-var">styleDiff</span></a></span></span><span> </span><span id="local-6989586621679365010"><span class="annot"><span class="annottext">Style
+</span><a href="#local-6989586621679365010"><span class="hs-identifier hs-var">s</span></a></span></span><span> </span><span id="local-6989586621679365009"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679365009"><span class="hs-identifier hs-var">sm</span></a></span></span><span> </span><span id="local-6989586621679365008"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679365008"><span class="hs-identifier hs-var">rm</span></a></span></span><span>
+</span><span id="line-157"></span><span>            </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Style
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Style -&gt; Style -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Style
+</span><a href="#local-6989586621679365021"><span class="hs-identifier hs-var">prev</span></a></span><span> </span><span class="annot"><span class="annottext">Style -&gt; Style -&gt; Style
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.&amp;.</span></span><span> </span><span class="annot"><span class="annottext">Style
+</span><a href="#local-6989586621679365010"><span class="hs-identifier hs-var">s</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Style
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Style -&gt; Style -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Style
+</span><a href="#local-6989586621679365020"><span class="hs-identifier hs-var">cur</span></a></span><span> </span><span class="annot"><span class="annottext">Style -&gt; Style -&gt; Style
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.&amp;.</span></span><span> </span><span class="annot"><span class="annottext">Style
+</span><a href="#local-6989586621679365010"><span class="hs-identifier hs-var">s</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-158"></span><span>                </span><span class="hs-comment">-- not set in either</span><span>
+</span><span id="line-159"></span><span>                </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span class="hs-special">)</span><span>   </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><span id="line-160"></span><span>                </span><span class="hs-comment">-- set in both</span><span>
+</span><span id="line-161"></span><span>                </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><span id="line-162"></span><span>                </span><span class="hs-comment">-- now set</span><span>
+</span><span id="line-163"></span><span>                </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span class="hs-special">)</span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679365009"><span class="hs-identifier hs-var">sm</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-164"></span><span>                </span><span class="hs-comment">-- now unset</span><span>
+</span><span id="line-165"></span><span>                </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span class="hs-special">)</span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679365008"><span class="hs-identifier hs-var">rm</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-166"></span></pre></body></html>

@@ -1,0 +1,129 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- Copyright 2009-2010 Corey O'Connor</span><span>
+</span><span id="line-2"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Graphics.Vty.Debug</span><span>
+</span><span id="line-3"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="hs-keyword">module</span><span> </span><span class="annot"><a href="Graphics.Vty.Debug.html"><span class="hs-identifier">Graphics.Vty.Debug</span></a></span><span>
+</span><span id="line-4"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="hs-keyword">module</span><span> </span><span class="annot"><a href="Graphics.Vty.Debug.Image.html"><span class="hs-identifier">Graphics.Vty.Debug.Image</span></a></span><span>
+</span><span id="line-5"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-6"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-7"></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html"><span class="hs-identifier">Graphics.Vty.Attributes</span></a></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html"><span class="hs-identifier">Graphics.Vty.Image</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Graphics.Vty.Image.html#DisplayRegion"><span class="hs-identifier">DisplayRegion</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Graphics.Vty.Debug.Image.html"><span class="hs-identifier">Graphics.Vty.Debug.Image</span></a></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Graphics.Vty.Span.html"><span class="hs-identifier">Graphics.Vty.Span</span></a></span><span>
+</span><span id="line-12"></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Vector</span></span><span>
+</span><span id="line-14"></span><span>
+</span><span id="line-15"></span><span class="annot"><a href="Graphics.Vty.Debug.html#rowOpsAffectedColumns"><span class="hs-identifier hs-type">rowOpsAffectedColumns</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Span.html#DisplayOps"><span class="hs-identifier hs-type">DisplayOps</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">]</span><span>
+</span><span id="line-16"></span><span id="rowOpsAffectedColumns"><span class="annot"><span class="annottext">rowOpsAffectedColumns :: DisplayOps -&gt; [Int]
+</span><a href="Graphics.Vty.Debug.html#rowOpsAffectedColumns"><span class="hs-identifier hs-var hs-var">rowOpsAffectedColumns</span></a></span></span><span> </span><span id="local-6989586621679369026"><span class="annot"><span class="annottext">DisplayOps
+</span><a href="#local-6989586621679369026"><span class="hs-identifier hs-var">ops</span></a></span></span><span>
+</span><span id="line-17"></span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Vector Int -&gt; [Int]
+forall a. Vector a -&gt; [a]
+</span><span class="hs-identifier hs-var">Vector.toList</span></span><span> </span><span class="annot"><span class="annottext">(Vector Int -&gt; [Int]) -&gt; Vector Int -&gt; [Int]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(SpanOps -&gt; Int) -&gt; DisplayOps -&gt; Vector Int
+forall a b. (a -&gt; b) -&gt; Vector a -&gt; Vector b
+</span><span class="hs-identifier hs-var">Vector.map</span></span><span> </span><span class="annot"><span class="annottext">SpanOps -&gt; Int
+</span><a href="Graphics.Vty.Span.html#spanOpsAffectedColumns"><span class="hs-identifier hs-var">spanOpsAffectedColumns</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayOps
+</span><a href="#local-6989586621679369026"><span class="hs-identifier hs-var">ops</span></a></span><span>
+</span><span id="line-18"></span><span>
+</span><span id="line-19"></span><span class="annot"><a href="Graphics.Vty.Debug.html#allSpansHaveWidth"><span class="hs-identifier hs-type">allSpansHaveWidth</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Span.html#DisplayOps"><span class="hs-identifier hs-type">DisplayOps</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-20"></span><span id="allSpansHaveWidth"><span class="annot"><span class="annottext">allSpansHaveWidth :: DisplayOps -&gt; Int -&gt; Bool
+</span><a href="Graphics.Vty.Debug.html#allSpansHaveWidth"><span class="hs-identifier hs-var hs-var">allSpansHaveWidth</span></a></span></span><span> </span><span id="local-6989586621679369021"><span class="annot"><span class="annottext">DisplayOps
+</span><a href="#local-6989586621679369021"><span class="hs-identifier hs-var">ops</span></a></span></span><span> </span><span id="local-6989586621679369020"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369020"><span class="hs-identifier hs-var">expected</span></a></span></span><span>
+</span><span id="line-21"></span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Bool) -&gt; [Int] -&gt; Bool
+forall (t :: * -&gt; *) a. Foldable t =&gt; (a -&gt; Bool) -&gt; t a -&gt; Bool
+</span><span class="hs-identifier hs-var">all</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369020"><span class="hs-identifier hs-var">expected</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">([Int] -&gt; Bool) -&gt; [Int] -&gt; Bool
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Vector Int -&gt; [Int]
+forall a. Vector a -&gt; [a]
+</span><span class="hs-identifier hs-var">Vector.toList</span></span><span> </span><span class="annot"><span class="annottext">(Vector Int -&gt; [Int]) -&gt; Vector Int -&gt; [Int]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(SpanOps -&gt; Int) -&gt; DisplayOps -&gt; Vector Int
+forall a b. (a -&gt; b) -&gt; Vector a -&gt; Vector b
+</span><span class="hs-identifier hs-var">Vector.map</span></span><span> </span><span class="annot"><span class="annottext">SpanOps -&gt; Int
+</span><a href="Graphics.Vty.Span.html#spanOpsAffectedColumns"><span class="hs-identifier hs-var">spanOpsAffectedColumns</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayOps
+</span><a href="#local-6989586621679369021"><span class="hs-identifier hs-var">ops</span></a></span><span>
+</span><span id="line-22"></span><span>
+</span><span id="line-23"></span><span class="annot"><a href="Graphics.Vty.Debug.html#spanOpsAffectedRows"><span class="hs-identifier hs-type">spanOpsAffectedRows</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Span.html#DisplayOps"><span class="hs-identifier hs-type">DisplayOps</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-24"></span><span id="spanOpsAffectedRows"><span class="annot"><span class="annottext">spanOpsAffectedRows :: DisplayOps -&gt; Int
+</span><a href="Graphics.Vty.Debug.html#spanOpsAffectedRows"><span class="hs-identifier hs-var hs-var">spanOpsAffectedRows</span></a></span></span><span> </span><span id="local-6989586621679369017"><span class="annot"><span class="annottext">DisplayOps
+</span><a href="#local-6989586621679369017"><span class="hs-identifier hs-var">ops</span></a></span></span><span>
+</span><span id="line-25"></span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int
+forall a. Enum a =&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">toEnum</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Int) -&gt; Int -&gt; Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[SpanOps] -&gt; Int
+forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Int
+</span><span class="hs-identifier hs-var">length</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(SpanOps -&gt; Bool) -&gt; [SpanOps] -&gt; [SpanOps]
+forall a. (a -&gt; Bool) -&gt; [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">filter</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool -&gt; Bool
+</span><span class="hs-identifier hs-var">not</span></span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; Bool) -&gt; (SpanOps -&gt; Bool) -&gt; SpanOps -&gt; Bool
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">[SpanOp] -&gt; Bool
+forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Bool
+</span><span class="hs-identifier hs-var">null</span></span><span> </span><span class="annot"><span class="annottext">([SpanOp] -&gt; Bool) -&gt; (SpanOps -&gt; [SpanOp]) -&gt; SpanOps -&gt; Bool
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">SpanOps -&gt; [SpanOp]
+forall a. Vector a -&gt; [a]
+</span><span class="hs-identifier hs-var">Vector.toList</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DisplayOps -&gt; [SpanOps]
+forall a. Vector a -&gt; [a]
+</span><span class="hs-identifier hs-var">Vector.toList</span></span><span> </span><span class="annot"><span class="annottext">DisplayOps
+</span><a href="#local-6989586621679369017"><span class="hs-identifier hs-var">ops</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-26"></span><span>
+</span><span id="line-27"></span><span class="hs-keyword">type</span><span> </span><span id="SpanConstructLog"><span class="annot"><a href="Graphics.Vty.Debug.html#SpanConstructLog"><span class="hs-identifier hs-var">SpanConstructLog</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Graphics.Vty.Debug.html#SpanConstructEvent"><span class="hs-identifier hs-type">SpanConstructEvent</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-28"></span><span class="hs-keyword">data</span><span> </span><span id="SpanConstructEvent"><span class="annot"><a href="Graphics.Vty.Debug.html#SpanConstructEvent"><span class="hs-identifier hs-var">SpanConstructEvent</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="SpanSetAttr"><span class="annot"><a href="Graphics.Vty.Debug.html#SpanSetAttr"><span class="hs-identifier hs-var">SpanSetAttr</span></a></span></span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#Attr"><span class="hs-identifier hs-type">Attr</span></a></span><span>
+</span><span id="line-29"></span><span>
+</span><span id="line-30"></span><span class="annot"><a href="Graphics.Vty.Debug.html#isSetAttr"><span class="hs-identifier hs-type">isSetAttr</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#Attr"><span class="hs-identifier hs-type">Attr</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Debug.html#SpanConstructEvent"><span class="hs-identifier hs-type">SpanConstructEvent</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-31"></span><span id="isSetAttr"><span class="annot"><span class="annottext">isSetAttr :: Attr -&gt; SpanConstructEvent -&gt; Bool
+</span><a href="Graphics.Vty.Debug.html#isSetAttr"><span class="hs-identifier hs-var hs-var">isSetAttr</span></a></span></span><span> </span><span id="local-6989586621679369008"><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679369008"><span class="hs-identifier hs-var">expectedAttr</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Graphics.Vty.Debug.html#SpanSetAttr"><span class="hs-identifier hs-type">SpanSetAttr</span></a></span><span> </span><span id="local-6989586621679369007"><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679369007"><span class="hs-identifier hs-var">inAttr</span></a></span></span><span class="hs-special">)</span><span>
+</span><span id="line-32"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679369007"><span class="hs-identifier hs-var">inAttr</span></a></span><span> </span><span class="annot"><span class="annottext">Attr -&gt; Attr -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679369008"><span class="hs-identifier hs-var">expectedAttr</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span>
+</span><span id="line-33"></span><span class="annot"><a href="Graphics.Vty.Debug.html#isSetAttr"><span class="hs-identifier hs-var">isSetAttr</span></a></span><span> </span><span id="local-6989586621679369006"><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679369006"><span class="hs-identifier hs-var">_attr</span></a></span></span><span> </span><span id="local-6989586621679369005"><span class="annot"><span class="annottext">SpanConstructEvent
+</span><a href="#local-6989586621679369005"><span class="hs-identifier hs-var">_event</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span>
+</span><span id="line-34"></span><span>
+</span><span id="line-35"></span><span class="hs-keyword">data</span><span> </span><span id="MockWindow"><span class="annot"><a href="Graphics.Vty.Debug.html#MockWindow"><span class="hs-identifier hs-var">MockWindow</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="MockWindow"><span class="annot"><a href="Graphics.Vty.Debug.html#MockWindow"><span class="hs-identifier hs-var">MockWindow</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-36"></span><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679368998"><span id="local-6989586621679369000"><span id="local-6989586621679369002"><span class="annot"><span class="annottext">Int -&gt; MockWindow -&gt; ShowS
+[MockWindow] -&gt; ShowS
+MockWindow -&gt; String
+(Int -&gt; MockWindow -&gt; ShowS)
+-&gt; (MockWindow -&gt; String)
+-&gt; ([MockWindow] -&gt; ShowS)
+-&gt; Show MockWindow
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [MockWindow] -&gt; ShowS
+$cshowList :: [MockWindow] -&gt; ShowS
+show :: MockWindow -&gt; String
+$cshow :: MockWindow -&gt; String
+showsPrec :: Int -&gt; MockWindow -&gt; ShowS
+$cshowsPrec :: Int -&gt; MockWindow -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679368993"><span id="local-6989586621679368995"><span class="annot"><span class="annottext">MockWindow -&gt; MockWindow -&gt; Bool
+(MockWindow -&gt; MockWindow -&gt; Bool)
+-&gt; (MockWindow -&gt; MockWindow -&gt; Bool) -&gt; Eq MockWindow
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: MockWindow -&gt; MockWindow -&gt; Bool
+$c/= :: MockWindow -&gt; MockWindow -&gt; Bool
+== :: MockWindow -&gt; MockWindow -&gt; Bool
+$c== :: MockWindow -&gt; MockWindow -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-37"></span><span>
+</span><span id="line-38"></span><span class="annot"><a href="Graphics.Vty.Debug.html#regionForWindow"><span class="hs-identifier hs-type">regionForWindow</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Debug.html#MockWindow"><span class="hs-identifier hs-type">MockWindow</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html#DisplayRegion"><span class="hs-identifier hs-type">DisplayRegion</span></a></span><span>
+</span><span id="line-39"></span><span id="regionForWindow"><span class="annot"><span class="annottext">regionForWindow :: MockWindow -&gt; DisplayRegion
+</span><a href="Graphics.Vty.Debug.html#regionForWindow"><span class="hs-identifier hs-var hs-var">regionForWindow</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Graphics.Vty.Debug.html#MockWindow"><span class="hs-identifier hs-type">MockWindow</span></a></span><span> </span><span id="local-6989586621679368990"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368990"><span class="hs-identifier hs-var">w</span></a></span></span><span> </span><span id="local-6989586621679368989"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368989"><span class="hs-identifier hs-var">h</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368990"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">,</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368989"><span class="hs-identifier hs-var">h</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-40"></span></pre></body></html>

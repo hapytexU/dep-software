@@ -1,0 +1,856 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- | This module provides combinators for centering other widgets.</span><span>
+</span><span id="line-2"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Brick.Widgets.Center</span><span>
+</span><span id="line-3"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-comment">-- * Centering horizontally</span></span><span>
+</span><span id="line-4"></span><span>    </span><span class="annot"><a href="Brick.Widgets.Center.html#hCenter"><span class="hs-identifier">hCenter</span></a></span><span>
+</span><span id="line-5"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Widgets.Center.html#hCenterWith"><span class="hs-identifier">hCenterWith</span></a></span><span>
+</span><span id="line-6"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Widgets.Center.html#hCenterLayer"><span class="hs-identifier">hCenterLayer</span></a></span><span>
+</span><span id="line-7"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Centering vertically</span></span><span>
+</span><span id="line-8"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Widgets.Center.html#vCenter"><span class="hs-identifier">vCenter</span></a></span><span>
+</span><span id="line-9"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Widgets.Center.html#vCenterWith"><span class="hs-identifier">vCenterWith</span></a></span><span>
+</span><span id="line-10"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Widgets.Center.html#vCenterLayer"><span class="hs-identifier">vCenterLayer</span></a></span><span>
+</span><span id="line-11"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Centering both horizontally and vertically</span></span><span>
+</span><span id="line-12"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Widgets.Center.html#center"><span class="hs-identifier">center</span></a></span><span>
+</span><span id="line-13"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Widgets.Center.html#centerWith"><span class="hs-identifier">centerWith</span></a></span><span>
+</span><span id="line-14"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Widgets.Center.html#centerLayer"><span class="hs-identifier">centerLayer</span></a></span><span>
+</span><span id="line-15"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Centering about an arbitrary origin</span></span><span>
+</span><span id="line-16"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Widgets.Center.html#centerAbout"><span class="hs-identifier">centerAbout</span></a></span><span>
+</span><span id="line-17"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-18"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-19"></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Lens.Micro</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-operator">(^.)</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-operator">(&amp;)</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-operator">(.~)</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">to</span></span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">fromMaybe</span></span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Graphics.Vty</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">imageWidth</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">imageHeight</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">horizCat</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">charFill</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">vertCat</span></span><span class="hs-special">,</span><span>
+</span><span id="line-23"></span><span>                    </span><span class="annot"><span class="hs-identifier">translateX</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">translateY</span></span><span class="hs-special">)</span><span>
+</span><span id="line-24"></span><span>
+</span><span id="line-25"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Brick.Types.html"><span class="hs-identifier">Brick.Types</span></a></span><span>
+</span><span id="line-26"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Brick.Widgets.Core.html"><span class="hs-identifier">Brick.Widgets.Core</span></a></span><span>
+</span><span id="line-27"></span><span>
+</span><span id="line-28"></span><span class="hs-comment">-- | Center the specified widget horizontally. Consumes all available</span><span>
+</span><span id="line-29"></span><span class="hs-comment">-- horizontal space.</span><span>
+</span><span id="line-30"></span><span id="local-6989586621679372975"><span class="annot"><a href="Brick.Widgets.Center.html#hCenter"><span class="hs-identifier hs-type">hCenter</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-type">Widget</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679372975"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-type">Widget</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679372975"><span class="hs-identifier hs-type">n</span></a></span></span><span>
+</span><span id="line-31"></span><span id="hCenter"><span class="annot"><span class="annottext">hCenter :: Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Center.html#hCenter"><span class="hs-identifier hs-var hs-var">hCenter</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe Char -&gt; Widget n -&gt; Widget n
+forall n. Maybe Char -&gt; Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Center.html#hCenterWith"><span class="hs-identifier hs-var">hCenterWith</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe Char
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-32"></span><span>
+</span><span id="line-33"></span><span class="hs-comment">-- | Center the specified widget horizontally using a Vty image</span><span>
+</span><span id="line-34"></span><span class="hs-comment">-- translation. Consumes all available horizontal space. Unlike hCenter,</span><span>
+</span><span id="line-35"></span><span class="hs-comment">-- this does not fill the surrounding space so it is suitable for use</span><span>
+</span><span id="line-36"></span><span class="hs-comment">-- as a layer. Layers underneath this widget will be visible in regions</span><span>
+</span><span id="line-37"></span><span class="hs-comment">-- surrounding the centered widget.</span><span>
+</span><span id="line-38"></span><span id="local-6989586621679372974"><span class="annot"><a href="Brick.Widgets.Center.html#hCenterLayer"><span class="hs-identifier hs-type">hCenterLayer</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-type">Widget</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679372974"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-type">Widget</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679372974"><span class="hs-identifier hs-type">n</span></a></span></span><span>
+</span><span id="line-39"></span><span id="hCenterLayer"><span class="annot"><span class="annottext">hCenterLayer :: Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Center.html#hCenterLayer"><span class="hs-identifier hs-var hs-var">hCenterLayer</span></a></span></span><span> </span><span id="local-6989586621679372973"><span class="annot"><span class="annottext">Widget n
+</span><a href="#local-6989586621679372973"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-40"></span><span>    </span><span class="annot"><span class="annottext">Size -&gt; Size -&gt; RenderM n (Result n) -&gt; Widget n
+forall n. Size -&gt; Size -&gt; RenderM n (Result n) -&gt; Widget n
+</span><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-var">Widget</span></a></span><span> </span><span class="annot"><span class="annottext">Size
+</span><a href="Brick.Types.html#Greedy"><span class="hs-identifier hs-var">Greedy</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Widget n -&gt; Size
+forall n. Widget n -&gt; Size
+</span><a href="Brick.Types.html#vSize"><span class="hs-identifier hs-var hs-var">vSize</span></a></span><span> </span><span class="annot"><span class="annottext">Widget n
+</span><a href="#local-6989586621679372973"><span class="hs-identifier hs-var">p</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(RenderM n (Result n) -&gt; Widget n)
+-&gt; RenderM n (Result n) -&gt; Widget n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-41"></span><span>        </span><span id="local-6989586621679372969"><span class="annot"><span class="annottext">Result n
+</span><a href="#local-6989586621679372969"><span class="hs-identifier hs-var">result</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Widget n -&gt; RenderM n (Result n)
+forall n. Widget n -&gt; RenderM n (Result n)
+</span><a href="Brick.Types.html#render"><span class="hs-identifier hs-var hs-var">render</span></a></span><span> </span><span class="annot"><span class="annottext">Widget n
+</span><a href="#local-6989586621679372973"><span class="hs-identifier hs-var">p</span></a></span><span>
+</span><span id="line-42"></span><span>        </span><span id="local-6989586621679372967"><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679372967"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">RenderM n Context
+forall n. RenderM n Context
+</span><a href="Brick.Types.html#getContext"><span class="hs-identifier hs-var">getContext</span></a></span><span>
+</span><span id="line-43"></span><span>        </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679372965"><span class="annot"><span class="annottext">rWidth :: Int
+</span><a href="#local-6989586621679372965"><span class="hs-identifier hs-var hs-var">rWidth</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Result n
+</span><a href="#local-6989586621679372969"><span class="hs-identifier hs-var">result</span></a></span><span class="annot"><span class="annottext">Result n -&gt; Getting Int (Result n) Int -&gt; Int
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">(Image -&gt; Const Int Image) -&gt; Result n -&gt; Const Int (Result n)
+forall n. Lens' (Result n) Image
+</span><a href="Brick.Types.Internal.html#imageL"><span class="hs-identifier hs-var">imageL</span></a></span><span class="annot"><span class="annottext">((Image -&gt; Const Int Image) -&gt; Result n -&gt; Const Int (Result n))
+-&gt; ((Int -&gt; Const Int Int) -&gt; Image -&gt; Const Int Image)
+-&gt; Getting Int (Result n) Int
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span class="annot"><span class="annottext">(Image -&gt; Int) -&gt; SimpleGetter Image Int
+forall s a. (s -&gt; a) -&gt; SimpleGetter s a
+</span><span class="hs-identifier hs-var">to</span></span><span> </span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><span class="hs-identifier hs-var">imageWidth</span></span><span>
+</span><span id="line-44"></span><span>            </span><span id="local-6989586621679372962"><span class="annot"><span class="annottext">leftPaddingAmount :: Int
+</span><a href="#local-6989586621679372962"><span class="hs-identifier hs-var hs-var">leftPaddingAmount</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">max</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Int) -&gt; Int -&gt; Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679372967"><span class="hs-identifier hs-var">c</span></a></span><span class="annot"><span class="annottext">Context -&gt; Getting Int Context Int -&gt; Int
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting Int Context Int
+Lens' Context Int
+</span><a href="Brick.Types.html#availWidthL"><span class="hs-identifier hs-var">availWidthL</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372965"><span class="hs-identifier hs-var">rWidth</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Integral a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">`div`</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">2</span></span><span>
+</span><span id="line-45"></span><span>            </span><span id="local-6989586621679372958"><span class="annot"><span class="annottext">paddedImage :: Image
+</span><a href="#local-6989586621679372958"><span class="hs-identifier hs-var hs-var">paddedImage</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Image -&gt; Image
+</span><span class="hs-identifier hs-var">translateX</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372962"><span class="hs-identifier hs-var">leftPaddingAmount</span></a></span><span> </span><span class="annot"><span class="annottext">(Image -&gt; Image) -&gt; Image -&gt; Image
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Result n
+</span><a href="#local-6989586621679372969"><span class="hs-identifier hs-var">result</span></a></span><span class="annot"><span class="annottext">Result n -&gt; Getting Image (Result n) Image -&gt; Image
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting Image (Result n) Image
+forall n. Lens' (Result n) Image
+</span><a href="Brick.Types.Internal.html#imageL"><span class="hs-identifier hs-var">imageL</span></a></span><span>
+</span><span id="line-46"></span><span>            </span><span id="local-6989586621679372957"><span class="annot"><span class="annottext">off :: Location
+</span><a href="#local-6989586621679372957"><span class="hs-identifier hs-var hs-var">off</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int, Int) -&gt; Location
+</span><a href="Brick.Types.Common.html#Location"><span class="hs-identifier hs-var">Location</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372962"><span class="hs-identifier hs-var">leftPaddingAmount</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span>
+</span><span id="line-47"></span><span>        </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372962"><span class="hs-identifier hs-var">leftPaddingAmount</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="hs-keyword">then</span><span>
+</span><span id="line-48"></span><span>            </span><span class="annot"><span class="annottext">Result n -&gt; RenderM n (Result n)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Result n
+</span><a href="#local-6989586621679372969"><span class="hs-identifier hs-var">result</span></a></span><span> </span><span class="hs-keyword">else</span><span>
+</span><span id="line-49"></span><span>            </span><span class="annot"><span class="annottext">Result n -&gt; RenderM n (Result n)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(Result n -&gt; RenderM n (Result n))
+-&gt; Result n -&gt; RenderM n (Result n)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Location -&gt; Result n -&gt; Result n
+forall n. Location -&gt; Result n -&gt; Result n
+</span><a href="Brick.Widgets.Core.html#addResultOffset"><span class="hs-identifier hs-var">addResultOffset</span></a></span><span> </span><span class="annot"><span class="annottext">Location
+</span><a href="#local-6989586621679372957"><span class="hs-identifier hs-var">off</span></a></span><span>
+</span><span id="line-50"></span><span>                   </span><span class="annot"><span class="annottext">(Result n -&gt; Result n) -&gt; Result n -&gt; Result n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Result n
+</span><a href="#local-6989586621679372969"><span class="hs-identifier hs-var">result</span></a></span><span> </span><span class="annot"><span class="annottext">Result n -&gt; (Result n -&gt; Result n) -&gt; Result n
+forall a b. a -&gt; (a -&gt; b) -&gt; b
+</span><span class="hs-operator hs-var">&amp;</span></span><span> </span><span class="annot"><span class="annottext">(Image -&gt; Identity Image) -&gt; Result n -&gt; Identity (Result n)
+forall n. Lens' (Result n) Image
+</span><a href="Brick.Types.Internal.html#imageL"><span class="hs-identifier hs-var">imageL</span></a></span><span> </span><span class="annot"><span class="annottext">((Image -&gt; Identity Image) -&gt; Result n -&gt; Identity (Result n))
+-&gt; Image -&gt; Result n -&gt; Result n
+forall s t a b. ASetter s t a b -&gt; b -&gt; s -&gt; t
+</span><span class="hs-operator hs-var">.~</span></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679372958"><span class="hs-identifier hs-var">paddedImage</span></a></span><span>
+</span><span id="line-51"></span><span>
+</span><span id="line-52"></span><span class="hs-comment">-- | Center the specified widget horizontally. Consumes all available</span><span>
+</span><span id="line-53"></span><span class="hs-comment">-- horizontal space. Uses the specified character to fill in the space</span><span>
+</span><span id="line-54"></span><span class="hs-comment">-- to either side of the centered widget (defaults to space).</span><span>
+</span><span id="line-55"></span><span id="local-6989586621679373054"><span class="annot"><a href="Brick.Widgets.Center.html#hCenterWith"><span class="hs-identifier hs-type">hCenterWith</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-type">Widget</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373054"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-type">Widget</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373054"><span class="hs-identifier hs-type">n</span></a></span></span><span>
+</span><span id="line-56"></span><span id="hCenterWith"><span class="annot"><span class="annottext">hCenterWith :: Maybe Char -&gt; Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Center.html#hCenterWith"><span class="hs-identifier hs-var hs-var">hCenterWith</span></a></span></span><span> </span><span id="local-6989586621679372954"><span class="annot"><span class="annottext">Maybe Char
+</span><a href="#local-6989586621679372954"><span class="hs-identifier hs-var">mChar</span></a></span></span><span> </span><span id="local-6989586621679372953"><span class="annot"><span class="annottext">Widget n
+</span><a href="#local-6989586621679372953"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-57"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679372952"><span class="annot"><span class="annottext">ch :: Char
+</span><a href="#local-6989586621679372952"><span class="hs-identifier hs-var hs-var">ch</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Maybe Char -&gt; Char
+forall a. a -&gt; Maybe a -&gt; a
+</span><span class="hs-identifier hs-var">fromMaybe</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">' '</span></span><span> </span><span class="annot"><span class="annottext">Maybe Char
+</span><a href="#local-6989586621679372954"><span class="hs-identifier hs-var">mChar</span></a></span><span>
+</span><span id="line-58"></span><span>    </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">Size -&gt; Size -&gt; RenderM n (Result n) -&gt; Widget n
+forall n. Size -&gt; Size -&gt; RenderM n (Result n) -&gt; Widget n
+</span><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-var">Widget</span></a></span><span> </span><span class="annot"><span class="annottext">Size
+</span><a href="Brick.Types.html#Greedy"><span class="hs-identifier hs-var">Greedy</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Widget n -&gt; Size
+forall n. Widget n -&gt; Size
+</span><a href="Brick.Types.html#vSize"><span class="hs-identifier hs-var hs-var">vSize</span></a></span><span> </span><span class="annot"><span class="annottext">Widget n
+</span><a href="#local-6989586621679372953"><span class="hs-identifier hs-var">p</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(RenderM n (Result n) -&gt; Widget n)
+-&gt; RenderM n (Result n) -&gt; Widget n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-59"></span><span>           </span><span id="local-6989586621679372951"><span class="annot"><span class="annottext">Result n
+</span><a href="#local-6989586621679372951"><span class="hs-identifier hs-var">result</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Widget n -&gt; RenderM n (Result n)
+forall n. Widget n -&gt; RenderM n (Result n)
+</span><a href="Brick.Types.html#render"><span class="hs-identifier hs-var hs-var">render</span></a></span><span> </span><span class="annot"><span class="annottext">Widget n
+</span><a href="#local-6989586621679372953"><span class="hs-identifier hs-var">p</span></a></span><span>
+</span><span id="line-60"></span><span>           </span><span id="local-6989586621679372950"><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679372950"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">RenderM n Context
+forall n. RenderM n Context
+</span><a href="Brick.Types.html#getContext"><span class="hs-identifier hs-var">getContext</span></a></span><span>
+</span><span id="line-61"></span><span>           </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679372949"><span class="annot"><span class="annottext">rWidth :: Int
+</span><a href="#local-6989586621679372949"><span class="hs-identifier hs-var hs-var">rWidth</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Result n
+</span><a href="#local-6989586621679372951"><span class="hs-identifier hs-var">result</span></a></span><span class="annot"><span class="annottext">Result n -&gt; Getting Int (Result n) Int -&gt; Int
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">(Image -&gt; Const Int Image) -&gt; Result n -&gt; Const Int (Result n)
+forall n. Lens' (Result n) Image
+</span><a href="Brick.Types.Internal.html#imageL"><span class="hs-identifier hs-var">imageL</span></a></span><span class="annot"><span class="annottext">((Image -&gt; Const Int Image) -&gt; Result n -&gt; Const Int (Result n))
+-&gt; ((Int -&gt; Const Int Int) -&gt; Image -&gt; Const Int Image)
+-&gt; Getting Int (Result n) Int
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span class="annot"><span class="annottext">(Image -&gt; Int) -&gt; SimpleGetter Image Int
+forall s a. (s -&gt; a) -&gt; SimpleGetter s a
+</span><span class="hs-identifier hs-var">to</span></span><span> </span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><span class="hs-identifier hs-var">imageWidth</span></span><span>
+</span><span id="line-62"></span><span>               </span><span id="local-6989586621679372948"><span class="annot"><span class="annottext">rHeight :: Int
+</span><a href="#local-6989586621679372948"><span class="hs-identifier hs-var hs-var">rHeight</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Result n
+</span><a href="#local-6989586621679372951"><span class="hs-identifier hs-var">result</span></a></span><span class="annot"><span class="annottext">Result n -&gt; Getting Int (Result n) Int -&gt; Int
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">(Image -&gt; Const Int Image) -&gt; Result n -&gt; Const Int (Result n)
+forall n. Lens' (Result n) Image
+</span><a href="Brick.Types.Internal.html#imageL"><span class="hs-identifier hs-var">imageL</span></a></span><span class="annot"><span class="annottext">((Image -&gt; Const Int Image) -&gt; Result n -&gt; Const Int (Result n))
+-&gt; ((Int -&gt; Const Int Int) -&gt; Image -&gt; Const Int Image)
+-&gt; Getting Int (Result n) Int
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span class="annot"><span class="annottext">(Image -&gt; Int) -&gt; SimpleGetter Image Int
+forall s a. (s -&gt; a) -&gt; SimpleGetter s a
+</span><span class="hs-identifier hs-var">to</span></span><span> </span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><span class="hs-identifier hs-var">imageHeight</span></span><span>
+</span><span id="line-63"></span><span>               </span><span id="local-6989586621679372947"><span class="annot"><span class="annottext">remainder :: Int
+</span><a href="#local-6989586621679372947"><span class="hs-identifier hs-var hs-var">remainder</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">max</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Int) -&gt; Int -&gt; Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679372950"><span class="hs-identifier hs-var">c</span></a></span><span class="annot"><span class="annottext">Context -&gt; Getting Int Context Int -&gt; Int
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting Int Context Int
+Lens' Context Int
+</span><a href="Brick.Types.html#availWidthL"><span class="hs-identifier hs-var">availWidthL</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372946"><span class="hs-identifier hs-var">leftPaddingAmount</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">2</span></span><span class="hs-special">)</span><span>
+</span><span id="line-64"></span><span>               </span><span id="local-6989586621679372946"><span class="annot"><span class="annottext">leftPaddingAmount :: Int
+</span><a href="#local-6989586621679372946"><span class="hs-identifier hs-var hs-var">leftPaddingAmount</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">max</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Int) -&gt; Int -&gt; Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679372950"><span class="hs-identifier hs-var">c</span></a></span><span class="annot"><span class="annottext">Context -&gt; Getting Int Context Int -&gt; Int
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting Int Context Int
+Lens' Context Int
+</span><a href="Brick.Types.html#availWidthL"><span class="hs-identifier hs-var">availWidthL</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372949"><span class="hs-identifier hs-var">rWidth</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Integral a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">`div`</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">2</span></span><span>
+</span><span id="line-65"></span><span>               </span><span id="local-6989586621679372944"><span class="annot"><span class="annottext">rightPaddingAmount :: Int
+</span><a href="#local-6989586621679372944"><span class="hs-identifier hs-var hs-var">rightPaddingAmount</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">max</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Int) -&gt; Int -&gt; Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372946"><span class="hs-identifier hs-var">leftPaddingAmount</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372947"><span class="hs-identifier hs-var">remainder</span></a></span><span>
+</span><span id="line-66"></span><span>               </span><span id="local-6989586621679372942"><span class="annot"><span class="annottext">leftPadding :: Image
+</span><a href="#local-6989586621679372942"><span class="hs-identifier hs-var hs-var">leftPadding</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Attr -&gt; Char -&gt; Int -&gt; Int -&gt; Image
+forall d. Integral d =&gt; Attr -&gt; Char -&gt; d -&gt; d -&gt; Image
+</span><span class="hs-identifier hs-var">charFill</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679372950"><span class="hs-identifier hs-var">c</span></a></span><span class="annot"><span class="annottext">Context -&gt; Getting Attr Context Attr -&gt; Attr
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting Attr Context Attr
+forall r. Getting r Context Attr
+</span><a href="Brick.Types.html#attrL"><span class="hs-identifier hs-var">attrL</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679372952"><span class="hs-identifier hs-var">ch</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372946"><span class="hs-identifier hs-var">leftPaddingAmount</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372948"><span class="hs-identifier hs-var">rHeight</span></a></span><span>
+</span><span id="line-67"></span><span>               </span><span id="local-6989586621679372940"><span class="annot"><span class="annottext">rightPadding :: Image
+</span><a href="#local-6989586621679372940"><span class="hs-identifier hs-var hs-var">rightPadding</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Attr -&gt; Char -&gt; Int -&gt; Int -&gt; Image
+forall d. Integral d =&gt; Attr -&gt; Char -&gt; d -&gt; d -&gt; Image
+</span><span class="hs-identifier hs-var">charFill</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679372950"><span class="hs-identifier hs-var">c</span></a></span><span class="annot"><span class="annottext">Context -&gt; Getting Attr Context Attr -&gt; Attr
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting Attr Context Attr
+forall r. Getting r Context Attr
+</span><a href="Brick.Types.html#attrL"><span class="hs-identifier hs-var">attrL</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679372952"><span class="hs-identifier hs-var">ch</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372944"><span class="hs-identifier hs-var">rightPaddingAmount</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372948"><span class="hs-identifier hs-var">rHeight</span></a></span><span>
+</span><span id="line-68"></span><span>               </span><span id="local-6989586621679372939"><span class="annot"><span class="annottext">paddedImage :: Image
+</span><a href="#local-6989586621679372939"><span class="hs-identifier hs-var hs-var">paddedImage</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Image] -&gt; Image
+</span><span class="hs-identifier hs-var">horizCat</span></span><span> </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679372942"><span class="hs-identifier hs-var">leftPadding</span></a></span><span>
+</span><span id="line-69"></span><span>                                      </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Result n
+</span><a href="#local-6989586621679372951"><span class="hs-identifier hs-var">result</span></a></span><span class="annot"><span class="annottext">Result n -&gt; Getting Image (Result n) Image -&gt; Image
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting Image (Result n) Image
+forall n. Lens' (Result n) Image
+</span><a href="Brick.Types.Internal.html#imageL"><span class="hs-identifier hs-var">imageL</span></a></span><span>
+</span><span id="line-70"></span><span>                                      </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679372940"><span class="hs-identifier hs-var">rightPadding</span></a></span><span>
+</span><span id="line-71"></span><span>                                      </span><span class="hs-special">]</span><span>
+</span><span id="line-72"></span><span>               </span><span id="local-6989586621679372938"><span class="annot"><span class="annottext">off :: Location
+</span><a href="#local-6989586621679372938"><span class="hs-identifier hs-var hs-var">off</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int, Int) -&gt; Location
+</span><a href="Brick.Types.Common.html#Location"><span class="hs-identifier hs-var">Location</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372946"><span class="hs-identifier hs-var">leftPaddingAmount</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span>
+</span><span id="line-73"></span><span>           </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372946"><span class="hs-identifier hs-var">leftPaddingAmount</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372944"><span class="hs-identifier hs-var">rightPaddingAmount</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="hs-keyword">then</span><span>
+</span><span id="line-74"></span><span>               </span><span class="annot"><span class="annottext">Result n -&gt; RenderM n (Result n)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Result n
+</span><a href="#local-6989586621679372951"><span class="hs-identifier hs-var">result</span></a></span><span> </span><span class="hs-keyword">else</span><span>
+</span><span id="line-75"></span><span>               </span><span class="annot"><span class="annottext">Result n -&gt; RenderM n (Result n)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(Result n -&gt; RenderM n (Result n))
+-&gt; Result n -&gt; RenderM n (Result n)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Location -&gt; Result n -&gt; Result n
+forall n. Location -&gt; Result n -&gt; Result n
+</span><a href="Brick.Widgets.Core.html#addResultOffset"><span class="hs-identifier hs-var">addResultOffset</span></a></span><span> </span><span class="annot"><span class="annottext">Location
+</span><a href="#local-6989586621679372938"><span class="hs-identifier hs-var">off</span></a></span><span>
+</span><span id="line-76"></span><span>                      </span><span class="annot"><span class="annottext">(Result n -&gt; Result n) -&gt; Result n -&gt; Result n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Result n
+</span><a href="#local-6989586621679372951"><span class="hs-identifier hs-var">result</span></a></span><span> </span><span class="annot"><span class="annottext">Result n -&gt; (Result n -&gt; Result n) -&gt; Result n
+forall a b. a -&gt; (a -&gt; b) -&gt; b
+</span><span class="hs-operator hs-var">&amp;</span></span><span> </span><span class="annot"><span class="annottext">(Image -&gt; Identity Image) -&gt; Result n -&gt; Identity (Result n)
+forall n. Lens' (Result n) Image
+</span><a href="Brick.Types.Internal.html#imageL"><span class="hs-identifier hs-var">imageL</span></a></span><span> </span><span class="annot"><span class="annottext">((Image -&gt; Identity Image) -&gt; Result n -&gt; Identity (Result n))
+-&gt; Image -&gt; Result n -&gt; Result n
+forall s t a b. ASetter s t a b -&gt; b -&gt; s -&gt; t
+</span><span class="hs-operator hs-var">.~</span></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679372939"><span class="hs-identifier hs-var">paddedImage</span></a></span><span>
+</span><span id="line-77"></span><span>
+</span><span id="line-78"></span><span class="hs-comment">-- | Center a widget vertically.  Consumes all vertical space.</span><span>
+</span><span id="line-79"></span><span id="local-6989586621679372936"><span class="annot"><a href="Brick.Widgets.Center.html#vCenter"><span class="hs-identifier hs-type">vCenter</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-type">Widget</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679372936"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-type">Widget</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679372936"><span class="hs-identifier hs-type">n</span></a></span></span><span>
+</span><span id="line-80"></span><span id="vCenter"><span class="annot"><span class="annottext">vCenter :: Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Center.html#vCenter"><span class="hs-identifier hs-var hs-var">vCenter</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe Char -&gt; Widget n -&gt; Widget n
+forall n. Maybe Char -&gt; Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Center.html#vCenterWith"><span class="hs-identifier hs-var">vCenterWith</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe Char
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-81"></span><span>
+</span><span id="line-82"></span><span class="hs-comment">-- | Center the specified widget vertically using a Vty image</span><span>
+</span><span id="line-83"></span><span class="hs-comment">-- translation. Consumes all available vertical space. Unlike vCenter,</span><span>
+</span><span id="line-84"></span><span class="hs-comment">-- this does not fill the surrounding space so it is suitable for use</span><span>
+</span><span id="line-85"></span><span class="hs-comment">-- as a layer. Layers underneath this widget will be visible in regions</span><span>
+</span><span id="line-86"></span><span class="hs-comment">-- surrounding the centered widget.</span><span>
+</span><span id="line-87"></span><span id="local-6989586621679373002"><span class="annot"><a href="Brick.Widgets.Center.html#vCenterLayer"><span class="hs-identifier hs-type">vCenterLayer</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-type">Widget</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373002"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-type">Widget</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373002"><span class="hs-identifier hs-type">n</span></a></span></span><span>
+</span><span id="line-88"></span><span id="vCenterLayer"><span class="annot"><span class="annottext">vCenterLayer :: Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Center.html#vCenterLayer"><span class="hs-identifier hs-var hs-var">vCenterLayer</span></a></span></span><span> </span><span id="local-6989586621679372935"><span class="annot"><span class="annottext">Widget n
+</span><a href="#local-6989586621679372935"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-89"></span><span>    </span><span class="annot"><span class="annottext">Size -&gt; Size -&gt; RenderM n (Result n) -&gt; Widget n
+forall n. Size -&gt; Size -&gt; RenderM n (Result n) -&gt; Widget n
+</span><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-var">Widget</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Widget n -&gt; Size
+forall n. Widget n -&gt; Size
+</span><a href="Brick.Types.html#hSize"><span class="hs-identifier hs-var hs-var">hSize</span></a></span><span> </span><span class="annot"><span class="annottext">Widget n
+</span><a href="#local-6989586621679372935"><span class="hs-identifier hs-var">p</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Size
+</span><a href="Brick.Types.html#Greedy"><span class="hs-identifier hs-var">Greedy</span></a></span><span> </span><span class="annot"><span class="annottext">(RenderM n (Result n) -&gt; Widget n)
+-&gt; RenderM n (Result n) -&gt; Widget n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-90"></span><span>        </span><span id="local-6989586621679372933"><span class="annot"><span class="annottext">Result n
+</span><a href="#local-6989586621679372933"><span class="hs-identifier hs-var">result</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Widget n -&gt; RenderM n (Result n)
+forall n. Widget n -&gt; RenderM n (Result n)
+</span><a href="Brick.Types.html#render"><span class="hs-identifier hs-var hs-var">render</span></a></span><span> </span><span class="annot"><span class="annottext">Widget n
+</span><a href="#local-6989586621679372935"><span class="hs-identifier hs-var">p</span></a></span><span>
+</span><span id="line-91"></span><span>        </span><span id="local-6989586621679372932"><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679372932"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">RenderM n Context
+forall n. RenderM n Context
+</span><a href="Brick.Types.html#getContext"><span class="hs-identifier hs-var">getContext</span></a></span><span>
+</span><span id="line-92"></span><span>        </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679372931"><span class="annot"><span class="annottext">rHeight :: Int
+</span><a href="#local-6989586621679372931"><span class="hs-identifier hs-var hs-var">rHeight</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Result n
+</span><a href="#local-6989586621679372933"><span class="hs-identifier hs-var">result</span></a></span><span class="annot"><span class="annottext">Result n -&gt; Getting Int (Result n) Int -&gt; Int
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">(Image -&gt; Const Int Image) -&gt; Result n -&gt; Const Int (Result n)
+forall n. Lens' (Result n) Image
+</span><a href="Brick.Types.Internal.html#imageL"><span class="hs-identifier hs-var">imageL</span></a></span><span class="annot"><span class="annottext">((Image -&gt; Const Int Image) -&gt; Result n -&gt; Const Int (Result n))
+-&gt; ((Int -&gt; Const Int Int) -&gt; Image -&gt; Const Int Image)
+-&gt; Getting Int (Result n) Int
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span class="annot"><span class="annottext">(Image -&gt; Int) -&gt; SimpleGetter Image Int
+forall s a. (s -&gt; a) -&gt; SimpleGetter s a
+</span><span class="hs-identifier hs-var">to</span></span><span> </span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><span class="hs-identifier hs-var">imageHeight</span></span><span>
+</span><span id="line-93"></span><span>            </span><span id="local-6989586621679372930"><span class="annot"><span class="annottext">topPaddingAmount :: Int
+</span><a href="#local-6989586621679372930"><span class="hs-identifier hs-var hs-var">topPaddingAmount</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">max</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Int) -&gt; Int -&gt; Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679372932"><span class="hs-identifier hs-var">c</span></a></span><span class="annot"><span class="annottext">Context -&gt; Getting Int Context Int -&gt; Int
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting Int Context Int
+Lens' Context Int
+</span><a href="Brick.Types.html#availHeightL"><span class="hs-identifier hs-var">availHeightL</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372931"><span class="hs-identifier hs-var">rHeight</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Integral a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">`div`</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">2</span></span><span>
+</span><span id="line-94"></span><span>            </span><span id="local-6989586621679372928"><span class="annot"><span class="annottext">paddedImage :: Image
+</span><a href="#local-6989586621679372928"><span class="hs-identifier hs-var hs-var">paddedImage</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Image -&gt; Image
+</span><span class="hs-identifier hs-var">translateY</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372930"><span class="hs-identifier hs-var">topPaddingAmount</span></a></span><span> </span><span class="annot"><span class="annottext">(Image -&gt; Image) -&gt; Image -&gt; Image
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Result n
+</span><a href="#local-6989586621679372933"><span class="hs-identifier hs-var">result</span></a></span><span class="annot"><span class="annottext">Result n -&gt; Getting Image (Result n) Image -&gt; Image
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting Image (Result n) Image
+forall n. Lens' (Result n) Image
+</span><a href="Brick.Types.Internal.html#imageL"><span class="hs-identifier hs-var">imageL</span></a></span><span>
+</span><span id="line-95"></span><span>            </span><span id="local-6989586621679372927"><span class="annot"><span class="annottext">off :: Location
+</span><a href="#local-6989586621679372927"><span class="hs-identifier hs-var hs-var">off</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int, Int) -&gt; Location
+</span><a href="Brick.Types.Common.html#Location"><span class="hs-identifier hs-var">Location</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372930"><span class="hs-identifier hs-var">topPaddingAmount</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-96"></span><span>        </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372930"><span class="hs-identifier hs-var">topPaddingAmount</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="hs-keyword">then</span><span>
+</span><span id="line-97"></span><span>            </span><span class="annot"><span class="annottext">Result n -&gt; RenderM n (Result n)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Result n
+</span><a href="#local-6989586621679372933"><span class="hs-identifier hs-var">result</span></a></span><span> </span><span class="hs-keyword">else</span><span>
+</span><span id="line-98"></span><span>            </span><span class="annot"><span class="annottext">Result n -&gt; RenderM n (Result n)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(Result n -&gt; RenderM n (Result n))
+-&gt; Result n -&gt; RenderM n (Result n)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Location -&gt; Result n -&gt; Result n
+forall n. Location -&gt; Result n -&gt; Result n
+</span><a href="Brick.Widgets.Core.html#addResultOffset"><span class="hs-identifier hs-var">addResultOffset</span></a></span><span> </span><span class="annot"><span class="annottext">Location
+</span><a href="#local-6989586621679372927"><span class="hs-identifier hs-var">off</span></a></span><span>
+</span><span id="line-99"></span><span>                   </span><span class="annot"><span class="annottext">(Result n -&gt; Result n) -&gt; Result n -&gt; Result n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Result n
+</span><a href="#local-6989586621679372933"><span class="hs-identifier hs-var">result</span></a></span><span> </span><span class="annot"><span class="annottext">Result n -&gt; (Result n -&gt; Result n) -&gt; Result n
+forall a b. a -&gt; (a -&gt; b) -&gt; b
+</span><span class="hs-operator hs-var">&amp;</span></span><span> </span><span class="annot"><span class="annottext">(Image -&gt; Identity Image) -&gt; Result n -&gt; Identity (Result n)
+forall n. Lens' (Result n) Image
+</span><a href="Brick.Types.Internal.html#imageL"><span class="hs-identifier hs-var">imageL</span></a></span><span> </span><span class="annot"><span class="annottext">((Image -&gt; Identity Image) -&gt; Result n -&gt; Identity (Result n))
+-&gt; Image -&gt; Result n -&gt; Result n
+forall s t a b. ASetter s t a b -&gt; b -&gt; s -&gt; t
+</span><span class="hs-operator hs-var">.~</span></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679372928"><span class="hs-identifier hs-var">paddedImage</span></a></span><span>
+</span><span id="line-100"></span><span>
+</span><span id="line-101"></span><span class="hs-comment">-- | Center a widget vertically. Consumes all vertical space. Uses the</span><span>
+</span><span id="line-102"></span><span class="hs-comment">-- specified character to fill in the space above and below the centered</span><span>
+</span><span id="line-103"></span><span class="hs-comment">-- widget (defaults to space).</span><span>
+</span><span id="line-104"></span><span id="local-6989586621679372926"><span class="annot"><a href="Brick.Widgets.Center.html#vCenterWith"><span class="hs-identifier hs-type">vCenterWith</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-type">Widget</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679372926"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-type">Widget</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679372926"><span class="hs-identifier hs-type">n</span></a></span></span><span>
+</span><span id="line-105"></span><span id="vCenterWith"><span class="annot"><span class="annottext">vCenterWith :: Maybe Char -&gt; Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Center.html#vCenterWith"><span class="hs-identifier hs-var hs-var">vCenterWith</span></a></span></span><span> </span><span id="local-6989586621679372925"><span class="annot"><span class="annottext">Maybe Char
+</span><a href="#local-6989586621679372925"><span class="hs-identifier hs-var">mChar</span></a></span></span><span> </span><span id="local-6989586621679372924"><span class="annot"><span class="annottext">Widget n
+</span><a href="#local-6989586621679372924"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-106"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679372923"><span class="annot"><span class="annottext">ch :: Char
+</span><a href="#local-6989586621679372923"><span class="hs-identifier hs-var hs-var">ch</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Maybe Char -&gt; Char
+forall a. a -&gt; Maybe a -&gt; a
+</span><span class="hs-identifier hs-var">fromMaybe</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">' '</span></span><span> </span><span class="annot"><span class="annottext">Maybe Char
+</span><a href="#local-6989586621679372925"><span class="hs-identifier hs-var">mChar</span></a></span><span>
+</span><span id="line-107"></span><span>    </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">Size -&gt; Size -&gt; RenderM n (Result n) -&gt; Widget n
+forall n. Size -&gt; Size -&gt; RenderM n (Result n) -&gt; Widget n
+</span><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-var">Widget</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Widget n -&gt; Size
+forall n. Widget n -&gt; Size
+</span><a href="Brick.Types.html#hSize"><span class="hs-identifier hs-var hs-var">hSize</span></a></span><span> </span><span class="annot"><span class="annottext">Widget n
+</span><a href="#local-6989586621679372924"><span class="hs-identifier hs-var">p</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Size
+</span><a href="Brick.Types.html#Greedy"><span class="hs-identifier hs-var">Greedy</span></a></span><span> </span><span class="annot"><span class="annottext">(RenderM n (Result n) -&gt; Widget n)
+-&gt; RenderM n (Result n) -&gt; Widget n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-108"></span><span>           </span><span id="local-6989586621679372922"><span class="annot"><span class="annottext">Result n
+</span><a href="#local-6989586621679372922"><span class="hs-identifier hs-var">result</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Widget n -&gt; RenderM n (Result n)
+forall n. Widget n -&gt; RenderM n (Result n)
+</span><a href="Brick.Types.html#render"><span class="hs-identifier hs-var hs-var">render</span></a></span><span> </span><span class="annot"><span class="annottext">Widget n
+</span><a href="#local-6989586621679372924"><span class="hs-identifier hs-var">p</span></a></span><span>
+</span><span id="line-109"></span><span>           </span><span id="local-6989586621679372921"><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679372921"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">RenderM n Context
+forall n. RenderM n Context
+</span><a href="Brick.Types.html#getContext"><span class="hs-identifier hs-var">getContext</span></a></span><span>
+</span><span id="line-110"></span><span>           </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679372920"><span class="annot"><span class="annottext">rWidth :: Int
+</span><a href="#local-6989586621679372920"><span class="hs-identifier hs-var hs-var">rWidth</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Result n
+</span><a href="#local-6989586621679372922"><span class="hs-identifier hs-var">result</span></a></span><span class="annot"><span class="annottext">Result n -&gt; Getting Int (Result n) Int -&gt; Int
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">(Image -&gt; Const Int Image) -&gt; Result n -&gt; Const Int (Result n)
+forall n. Lens' (Result n) Image
+</span><a href="Brick.Types.Internal.html#imageL"><span class="hs-identifier hs-var">imageL</span></a></span><span class="annot"><span class="annottext">((Image -&gt; Const Int Image) -&gt; Result n -&gt; Const Int (Result n))
+-&gt; ((Int -&gt; Const Int Int) -&gt; Image -&gt; Const Int Image)
+-&gt; Getting Int (Result n) Int
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span class="annot"><span class="annottext">(Image -&gt; Int) -&gt; SimpleGetter Image Int
+forall s a. (s -&gt; a) -&gt; SimpleGetter s a
+</span><span class="hs-identifier hs-var">to</span></span><span> </span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><span class="hs-identifier hs-var">imageWidth</span></span><span>
+</span><span id="line-111"></span><span>               </span><span id="local-6989586621679372919"><span class="annot"><span class="annottext">rHeight :: Int
+</span><a href="#local-6989586621679372919"><span class="hs-identifier hs-var hs-var">rHeight</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Result n
+</span><a href="#local-6989586621679372922"><span class="hs-identifier hs-var">result</span></a></span><span class="annot"><span class="annottext">Result n -&gt; Getting Int (Result n) Int -&gt; Int
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">(Image -&gt; Const Int Image) -&gt; Result n -&gt; Const Int (Result n)
+forall n. Lens' (Result n) Image
+</span><a href="Brick.Types.Internal.html#imageL"><span class="hs-identifier hs-var">imageL</span></a></span><span class="annot"><span class="annottext">((Image -&gt; Const Int Image) -&gt; Result n -&gt; Const Int (Result n))
+-&gt; ((Int -&gt; Const Int Int) -&gt; Image -&gt; Const Int Image)
+-&gt; Getting Int (Result n) Int
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span class="annot"><span class="annottext">(Image -&gt; Int) -&gt; SimpleGetter Image Int
+forall s a. (s -&gt; a) -&gt; SimpleGetter s a
+</span><span class="hs-identifier hs-var">to</span></span><span> </span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><span class="hs-identifier hs-var">imageHeight</span></span><span>
+</span><span id="line-112"></span><span>               </span><span id="local-6989586621679372918"><span class="annot"><span class="annottext">remainder :: Int
+</span><a href="#local-6989586621679372918"><span class="hs-identifier hs-var hs-var">remainder</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">max</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Int) -&gt; Int -&gt; Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679372921"><span class="hs-identifier hs-var">c</span></a></span><span class="annot"><span class="annottext">Context -&gt; Getting Int Context Int -&gt; Int
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting Int Context Int
+Lens' Context Int
+</span><a href="Brick.Types.html#availHeightL"><span class="hs-identifier hs-var">availHeightL</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372917"><span class="hs-identifier hs-var">topPaddingAmount</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">2</span></span><span class="hs-special">)</span><span>
+</span><span id="line-113"></span><span>               </span><span id="local-6989586621679372917"><span class="annot"><span class="annottext">topPaddingAmount :: Int
+</span><a href="#local-6989586621679372917"><span class="hs-identifier hs-var hs-var">topPaddingAmount</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">max</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Int) -&gt; Int -&gt; Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679372921"><span class="hs-identifier hs-var">c</span></a></span><span class="annot"><span class="annottext">Context -&gt; Getting Int Context Int -&gt; Int
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting Int Context Int
+Lens' Context Int
+</span><a href="Brick.Types.html#availHeightL"><span class="hs-identifier hs-var">availHeightL</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372919"><span class="hs-identifier hs-var">rHeight</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Integral a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">`div`</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">2</span></span><span>
+</span><span id="line-114"></span><span>               </span><span id="local-6989586621679372916"><span class="annot"><span class="annottext">bottomPaddingAmount :: Int
+</span><a href="#local-6989586621679372916"><span class="hs-identifier hs-var hs-var">bottomPaddingAmount</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">max</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Int) -&gt; Int -&gt; Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372917"><span class="hs-identifier hs-var">topPaddingAmount</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372918"><span class="hs-identifier hs-var">remainder</span></a></span><span>
+</span><span id="line-115"></span><span>               </span><span id="local-6989586621679372915"><span class="annot"><span class="annottext">topPadding :: Image
+</span><a href="#local-6989586621679372915"><span class="hs-identifier hs-var hs-var">topPadding</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Attr -&gt; Char -&gt; Int -&gt; Int -&gt; Image
+forall d. Integral d =&gt; Attr -&gt; Char -&gt; d -&gt; d -&gt; Image
+</span><span class="hs-identifier hs-var">charFill</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679372921"><span class="hs-identifier hs-var">c</span></a></span><span class="annot"><span class="annottext">Context -&gt; Getting Attr Context Attr -&gt; Attr
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting Attr Context Attr
+forall r. Getting r Context Attr
+</span><a href="Brick.Types.html#attrL"><span class="hs-identifier hs-var">attrL</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679372923"><span class="hs-identifier hs-var">ch</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372920"><span class="hs-identifier hs-var">rWidth</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372917"><span class="hs-identifier hs-var">topPaddingAmount</span></a></span><span>
+</span><span id="line-116"></span><span>               </span><span id="local-6989586621679372914"><span class="annot"><span class="annottext">bottomPadding :: Image
+</span><a href="#local-6989586621679372914"><span class="hs-identifier hs-var hs-var">bottomPadding</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Attr -&gt; Char -&gt; Int -&gt; Int -&gt; Image
+forall d. Integral d =&gt; Attr -&gt; Char -&gt; d -&gt; d -&gt; Image
+</span><span class="hs-identifier hs-var">charFill</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679372921"><span class="hs-identifier hs-var">c</span></a></span><span class="annot"><span class="annottext">Context -&gt; Getting Attr Context Attr -&gt; Attr
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting Attr Context Attr
+forall r. Getting r Context Attr
+</span><a href="Brick.Types.html#attrL"><span class="hs-identifier hs-var">attrL</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679372923"><span class="hs-identifier hs-var">ch</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372920"><span class="hs-identifier hs-var">rWidth</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372916"><span class="hs-identifier hs-var">bottomPaddingAmount</span></a></span><span>
+</span><span id="line-117"></span><span>               </span><span id="local-6989586621679372913"><span class="annot"><span class="annottext">paddedImage :: Image
+</span><a href="#local-6989586621679372913"><span class="hs-identifier hs-var hs-var">paddedImage</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Image] -&gt; Image
+</span><span class="hs-identifier hs-var">vertCat</span></span><span> </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679372915"><span class="hs-identifier hs-var">topPadding</span></a></span><span>
+</span><span id="line-118"></span><span>                                     </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Result n
+</span><a href="#local-6989586621679372922"><span class="hs-identifier hs-var">result</span></a></span><span class="annot"><span class="annottext">Result n -&gt; Getting Image (Result n) Image -&gt; Image
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting Image (Result n) Image
+forall n. Lens' (Result n) Image
+</span><a href="Brick.Types.Internal.html#imageL"><span class="hs-identifier hs-var">imageL</span></a></span><span>
+</span><span id="line-119"></span><span>                                     </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679372914"><span class="hs-identifier hs-var">bottomPadding</span></a></span><span>
+</span><span id="line-120"></span><span>                                     </span><span class="hs-special">]</span><span>
+</span><span id="line-121"></span><span>               </span><span id="local-6989586621679372912"><span class="annot"><span class="annottext">off :: Location
+</span><a href="#local-6989586621679372912"><span class="hs-identifier hs-var hs-var">off</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int, Int) -&gt; Location
+</span><a href="Brick.Types.Common.html#Location"><span class="hs-identifier hs-var">Location</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372917"><span class="hs-identifier hs-var">topPaddingAmount</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-122"></span><span>           </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372917"><span class="hs-identifier hs-var">topPaddingAmount</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372916"><span class="hs-identifier hs-var">bottomPaddingAmount</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="hs-keyword">then</span><span>
+</span><span id="line-123"></span><span>               </span><span class="annot"><span class="annottext">Result n -&gt; RenderM n (Result n)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Result n
+</span><a href="#local-6989586621679372922"><span class="hs-identifier hs-var">result</span></a></span><span> </span><span class="hs-keyword">else</span><span>
+</span><span id="line-124"></span><span>               </span><span class="annot"><span class="annottext">Result n -&gt; RenderM n (Result n)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(Result n -&gt; RenderM n (Result n))
+-&gt; Result n -&gt; RenderM n (Result n)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Location -&gt; Result n -&gt; Result n
+forall n. Location -&gt; Result n -&gt; Result n
+</span><a href="Brick.Widgets.Core.html#addResultOffset"><span class="hs-identifier hs-var">addResultOffset</span></a></span><span> </span><span class="annot"><span class="annottext">Location
+</span><a href="#local-6989586621679372912"><span class="hs-identifier hs-var">off</span></a></span><span>
+</span><span id="line-125"></span><span>                      </span><span class="annot"><span class="annottext">(Result n -&gt; Result n) -&gt; Result n -&gt; Result n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Result n
+</span><a href="#local-6989586621679372922"><span class="hs-identifier hs-var">result</span></a></span><span> </span><span class="annot"><span class="annottext">Result n -&gt; (Result n -&gt; Result n) -&gt; Result n
+forall a b. a -&gt; (a -&gt; b) -&gt; b
+</span><span class="hs-operator hs-var">&amp;</span></span><span> </span><span class="annot"><span class="annottext">(Image -&gt; Identity Image) -&gt; Result n -&gt; Identity (Result n)
+forall n. Lens' (Result n) Image
+</span><a href="Brick.Types.Internal.html#imageL"><span class="hs-identifier hs-var">imageL</span></a></span><span> </span><span class="annot"><span class="annottext">((Image -&gt; Identity Image) -&gt; Result n -&gt; Identity (Result n))
+-&gt; Image -&gt; Result n -&gt; Result n
+forall s t a b. ASetter s t a b -&gt; b -&gt; s -&gt; t
+</span><span class="hs-operator hs-var">.~</span></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679372913"><span class="hs-identifier hs-var">paddedImage</span></a></span><span>
+</span><span id="line-126"></span><span>
+</span><span id="line-127"></span><span class="hs-comment">-- | Center a widget both vertically and horizontally. Consumes all</span><span>
+</span><span id="line-128"></span><span class="hs-comment">-- available vertical and horizontal space.</span><span>
+</span><span id="line-129"></span><span id="local-6989586621679372911"><span class="annot"><a href="Brick.Widgets.Center.html#center"><span class="hs-identifier hs-type">center</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-type">Widget</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679372911"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-type">Widget</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679372911"><span class="hs-identifier hs-type">n</span></a></span></span><span>
+</span><span id="line-130"></span><span id="center"><span class="annot"><span class="annottext">center :: Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Center.html#center"><span class="hs-identifier hs-var hs-var">center</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe Char -&gt; Widget n -&gt; Widget n
+forall n. Maybe Char -&gt; Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Center.html#centerWith"><span class="hs-identifier hs-var">centerWith</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe Char
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-131"></span><span>
+</span><span id="line-132"></span><span class="hs-comment">-- | Center a widget both vertically and horizontally. Consumes all</span><span>
+</span><span id="line-133"></span><span class="hs-comment">-- available vertical and horizontal space. Uses the specified character</span><span>
+</span><span id="line-134"></span><span class="hs-comment">-- to fill in the space around the centered widget (defaults to space).</span><span>
+</span><span id="line-135"></span><span id="local-6989586621679372910"><span class="annot"><a href="Brick.Widgets.Center.html#centerWith"><span class="hs-identifier hs-type">centerWith</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-type">Widget</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679372910"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-type">Widget</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679372910"><span class="hs-identifier hs-type">n</span></a></span></span><span>
+</span><span id="line-136"></span><span id="centerWith"><span class="annot"><span class="annottext">centerWith :: Maybe Char -&gt; Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Center.html#centerWith"><span class="hs-identifier hs-var hs-var">centerWith</span></a></span></span><span> </span><span id="local-6989586621679372909"><span class="annot"><span class="annottext">Maybe Char
+</span><a href="#local-6989586621679372909"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe Char -&gt; Widget n -&gt; Widget n
+forall n. Maybe Char -&gt; Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Center.html#vCenterWith"><span class="hs-identifier hs-var">vCenterWith</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe Char
+</span><a href="#local-6989586621679372909"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="annot"><span class="annottext">(Widget n -&gt; Widget n)
+-&gt; (Widget n -&gt; Widget n) -&gt; Widget n -&gt; Widget n
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Maybe Char -&gt; Widget n -&gt; Widget n
+forall n. Maybe Char -&gt; Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Center.html#hCenterWith"><span class="hs-identifier hs-var">hCenterWith</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe Char
+</span><a href="#local-6989586621679372909"><span class="hs-identifier hs-var">c</span></a></span><span>
+</span><span id="line-137"></span><span>
+</span><span id="line-138"></span><span class="hs-comment">-- | Center a widget both vertically and horizontally using a Vty image</span><span>
+</span><span id="line-139"></span><span class="hs-comment">-- translation. Consumes all available vertical and horizontal space.</span><span>
+</span><span id="line-140"></span><span class="hs-comment">-- Unlike center, this does not fill in the surrounding space with a</span><span>
+</span><span id="line-141"></span><span class="hs-comment">-- character so it is usable as a layer. Any widget underneath this one</span><span>
+</span><span id="line-142"></span><span class="hs-comment">-- will be visible in the region surrounding the centered widget.</span><span>
+</span><span id="line-143"></span><span id="local-6989586621679372908"><span class="annot"><a href="Brick.Widgets.Center.html#centerLayer"><span class="hs-identifier hs-type">centerLayer</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-type">Widget</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679372908"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-type">Widget</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679372908"><span class="hs-identifier hs-type">n</span></a></span></span><span>
+</span><span id="line-144"></span><span id="centerLayer"><span class="annot"><span class="annottext">centerLayer :: Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Center.html#centerLayer"><span class="hs-identifier hs-var hs-var">centerLayer</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Widget n -&gt; Widget n
+forall n. Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Center.html#vCenterLayer"><span class="hs-identifier hs-var">vCenterLayer</span></a></span><span> </span><span class="annot"><span class="annottext">(Widget n -&gt; Widget n)
+-&gt; (Widget n -&gt; Widget n) -&gt; Widget n -&gt; Widget n
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Widget n -&gt; Widget n
+forall n. Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Center.html#hCenterLayer"><span class="hs-identifier hs-var">hCenterLayer</span></a></span><span>
+</span><span id="line-145"></span><span>
+</span><span id="line-146"></span><span class="hs-comment">-- | Center the widget horizontally and vertically about the specified</span><span>
+</span><span id="line-147"></span><span class="hs-comment">-- origin.</span><span>
+</span><span id="line-148"></span><span id="local-6989586621679372907"><span class="annot"><a href="Brick.Widgets.Center.html#centerAbout"><span class="hs-identifier hs-type">centerAbout</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#Location"><span class="hs-identifier hs-type">Location</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-type">Widget</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679372907"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-type">Widget</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679372907"><span class="hs-identifier hs-type">n</span></a></span></span><span>
+</span><span id="line-149"></span><span id="centerAbout"><span class="annot"><span class="annottext">centerAbout :: Location -&gt; Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Center.html#centerAbout"><span class="hs-identifier hs-var hs-var">centerAbout</span></a></span></span><span> </span><span id="local-6989586621679372906"><span class="annot"><span class="annottext">Location
+</span><a href="#local-6989586621679372906"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span id="local-6989586621679372905"><span class="annot"><span class="annottext">Widget n
+</span><a href="#local-6989586621679372905"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-150"></span><span>    </span><span class="annot"><span class="annottext">Size -&gt; Size -&gt; RenderM n (Result n) -&gt; Widget n
+forall n. Size -&gt; Size -&gt; RenderM n (Result n) -&gt; Widget n
+</span><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-var">Widget</span></a></span><span> </span><span class="annot"><span class="annottext">Size
+</span><a href="Brick.Types.html#Greedy"><span class="hs-identifier hs-var">Greedy</span></a></span><span> </span><span class="annot"><span class="annottext">Size
+</span><a href="Brick.Types.html#Greedy"><span class="hs-identifier hs-var">Greedy</span></a></span><span> </span><span class="annot"><span class="annottext">(RenderM n (Result n) -&gt; Widget n)
+-&gt; RenderM n (Result n) -&gt; Widget n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-151"></span><span>      </span><span class="hs-comment">-- Compute translation offset so that loc is in the middle of the</span><span>
+</span><span id="line-152"></span><span>      </span><span class="hs-comment">-- rendering area</span><span>
+</span><span id="line-153"></span><span>      </span><span id="local-6989586621679372904"><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679372904"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">RenderM n Context
+forall n. RenderM n Context
+</span><a href="Brick.Types.html#getContext"><span class="hs-identifier hs-var">getContext</span></a></span><span>
+</span><span id="line-154"></span><span>      </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679372903"><span class="annot"><span class="annottext">centerW :: Int
+</span><a href="#local-6989586621679372903"><span class="hs-identifier hs-var hs-var">centerW</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679372904"><span class="hs-identifier hs-var">c</span></a></span><span class="annot"><span class="annottext">Context -&gt; Getting Int Context Int -&gt; Int
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting Int Context Int
+Lens' Context Int
+</span><a href="Brick.Types.html#availWidthL"><span class="hs-identifier hs-var">availWidthL</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Integral a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">`div`</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">2</span></span><span>
+</span><span id="line-155"></span><span>          </span><span id="local-6989586621679372902"><span class="annot"><span class="annottext">centerH :: Int
+</span><a href="#local-6989586621679372902"><span class="hs-identifier hs-var hs-var">centerH</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679372904"><span class="hs-identifier hs-var">c</span></a></span><span class="annot"><span class="annottext">Context -&gt; Getting Int Context Int -&gt; Int
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting Int Context Int
+Lens' Context Int
+</span><a href="Brick.Types.html#availHeightL"><span class="hs-identifier hs-var">availHeightL</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Integral a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">`div`</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">2</span></span><span>
+</span><span id="line-156"></span><span>          </span><span id="local-6989586621679372901"><span class="annot"><span class="annottext">off :: Location
+</span><a href="#local-6989586621679372901"><span class="hs-identifier hs-var hs-var">off</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int, Int) -&gt; Location
+</span><a href="Brick.Types.Common.html#Location"><span class="hs-identifier hs-var">Location</span></a></span><span> </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372903"><span class="hs-identifier hs-var">centerW</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Location
+</span><a href="#local-6989586621679372906"><span class="hs-identifier hs-var">l</span></a></span><span class="annot"><span class="annottext">Location -&gt; Getting Int Location Int -&gt; Int
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting Int Location Int
+forall a. TerminalLocation a =&gt; Lens' a Int
+</span><a href="Brick.Types.Internal.html#locationColumnL"><span class="hs-identifier hs-var">locationColumnL</span></a></span><span>
+</span><span id="line-157"></span><span>                         </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372902"><span class="hs-identifier hs-var">centerH</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Location
+</span><a href="#local-6989586621679372906"><span class="hs-identifier hs-var">l</span></a></span><span class="annot"><span class="annottext">Location -&gt; Getting Int Location Int -&gt; Int
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting Int Location Int
+forall a. TerminalLocation a =&gt; Lens' a Int
+</span><a href="Brick.Types.Internal.html#locationRowL"><span class="hs-identifier hs-var">locationRowL</span></a></span><span>
+</span><span id="line-158"></span><span>                         </span><span class="hs-special">)</span><span>
+</span><span id="line-159"></span><span>      </span><span id="local-6989586621679372898"><span class="annot"><span class="annottext">Result n
+</span><a href="#local-6989586621679372898"><span class="hs-identifier hs-var">result</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Widget n -&gt; RenderM n (Result n)
+forall n. Widget n -&gt; RenderM n (Result n)
+</span><a href="Brick.Types.html#render"><span class="hs-identifier hs-var hs-var">render</span></a></span><span> </span><span class="annot"><span class="annottext">(Widget n -&gt; RenderM n (Result n))
+-&gt; Widget n -&gt; RenderM n (Result n)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Location -&gt; Widget n -&gt; Widget n
+forall n. Location -&gt; Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Core.html#translateBy"><span class="hs-identifier hs-var">translateBy</span></a></span><span> </span><span class="annot"><span class="annottext">Location
+</span><a href="#local-6989586621679372901"><span class="hs-identifier hs-var">off</span></a></span><span> </span><span class="annot"><span class="annottext">Widget n
+</span><a href="#local-6989586621679372905"><span class="hs-identifier hs-var">p</span></a></span><span>
+</span><span id="line-160"></span><span>
+</span><span id="line-161"></span><span>      </span><span class="hs-comment">-- Pad the result so it consumes available space</span><span>
+</span><span id="line-162"></span><span>      </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679372896"><span class="annot"><span class="annottext">rightPaddingAmt :: Int
+</span><a href="#local-6989586621679372896"><span class="hs-identifier hs-var hs-var">rightPaddingAmt</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">max</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Int) -&gt; Int -&gt; Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679372904"><span class="hs-identifier hs-var">c</span></a></span><span class="annot"><span class="annottext">Context -&gt; Getting Int Context Int -&gt; Int
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting Int Context Int
+Lens' Context Int
+</span><a href="Brick.Types.html#availWidthL"><span class="hs-identifier hs-var">availWidthL</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><span class="hs-identifier hs-var">imageWidth</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Result n
+</span><a href="#local-6989586621679372898"><span class="hs-identifier hs-var">result</span></a></span><span class="annot"><span class="annottext">Result n -&gt; Getting Image (Result n) Image -&gt; Image
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting Image (Result n) Image
+forall n. Lens' (Result n) Image
+</span><a href="Brick.Types.Internal.html#imageL"><span class="hs-identifier hs-var">imageL</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-163"></span><span>          </span><span id="local-6989586621679372895"><span class="annot"><span class="annottext">bottomPaddingAmt :: Int
+</span><a href="#local-6989586621679372895"><span class="hs-identifier hs-var hs-var">bottomPaddingAmt</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">max</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Int) -&gt; Int -&gt; Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679372904"><span class="hs-identifier hs-var">c</span></a></span><span class="annot"><span class="annottext">Context -&gt; Getting Int Context Int -&gt; Int
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting Int Context Int
+Lens' Context Int
+</span><a href="Brick.Types.html#availHeightL"><span class="hs-identifier hs-var">availHeightL</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><span class="hs-identifier hs-var">imageHeight</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Result n
+</span><a href="#local-6989586621679372898"><span class="hs-identifier hs-var">result</span></a></span><span class="annot"><span class="annottext">Result n -&gt; Getting Image (Result n) Image -&gt; Image
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting Image (Result n) Image
+forall n. Lens' (Result n) Image
+</span><a href="Brick.Types.Internal.html#imageL"><span class="hs-identifier hs-var">imageL</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-164"></span><span>          </span><span id="local-6989586621679372894"><span class="annot"><span class="annottext">rightPadding :: Image
+</span><a href="#local-6989586621679372894"><span class="hs-identifier hs-var hs-var">rightPadding</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Attr -&gt; Char -&gt; Int -&gt; Int -&gt; Image
+forall d. Integral d =&gt; Attr -&gt; Char -&gt; d -&gt; d -&gt; Image
+</span><span class="hs-identifier hs-var">charFill</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679372904"><span class="hs-identifier hs-var">c</span></a></span><span class="annot"><span class="annottext">Context -&gt; Getting Attr Context Attr -&gt; Attr
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting Attr Context Attr
+forall r. Getting r Context Attr
+</span><a href="Brick.Types.html#attrL"><span class="hs-identifier hs-var">attrL</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">' '</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372896"><span class="hs-identifier hs-var">rightPaddingAmt</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><span class="hs-identifier hs-var">imageHeight</span></span><span> </span><span class="annot"><span class="annottext">(Image -&gt; Int) -&gt; Image -&gt; Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Result n
+</span><a href="#local-6989586621679372898"><span class="hs-identifier hs-var">result</span></a></span><span class="annot"><span class="annottext">Result n -&gt; Getting Image (Result n) Image -&gt; Image
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting Image (Result n) Image
+forall n. Lens' (Result n) Image
+</span><a href="Brick.Types.Internal.html#imageL"><span class="hs-identifier hs-var">imageL</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-165"></span><span>          </span><span id="local-6989586621679372893"><span class="annot"><span class="annottext">bottomPadding :: Image
+</span><a href="#local-6989586621679372893"><span class="hs-identifier hs-var hs-var">bottomPadding</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Attr -&gt; Char -&gt; Int -&gt; Int -&gt; Image
+forall d. Integral d =&gt; Attr -&gt; Char -&gt; d -&gt; d -&gt; Image
+</span><span class="hs-identifier hs-var">charFill</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679372904"><span class="hs-identifier hs-var">c</span></a></span><span class="annot"><span class="annottext">Context -&gt; Getting Attr Context Attr -&gt; Attr
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting Attr Context Attr
+forall r. Getting r Context Attr
+</span><a href="Brick.Types.html#attrL"><span class="hs-identifier hs-var">attrL</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">' '</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><span class="hs-identifier hs-var">imageWidth</span></span><span> </span><span class="annot"><span class="annottext">(Image -&gt; Int) -&gt; Image -&gt; Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Result n
+</span><a href="#local-6989586621679372898"><span class="hs-identifier hs-var">result</span></a></span><span class="annot"><span class="annottext">Result n -&gt; Getting Image (Result n) Image -&gt; Image
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting Image (Result n) Image
+forall n. Lens' (Result n) Image
+</span><a href="Brick.Types.Internal.html#imageL"><span class="hs-identifier hs-var">imageL</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372895"><span class="hs-identifier hs-var">bottomPaddingAmt</span></a></span><span>
+</span><span id="line-166"></span><span>          </span><span id="local-6989586621679372892"><span class="annot"><span class="annottext">paddedImg :: Image
+</span><a href="#local-6989586621679372892"><span class="hs-identifier hs-var hs-var">paddedImg</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Image] -&gt; Image
+</span><span class="hs-identifier hs-var">horizCat</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">[Image] -&gt; Image
+</span><span class="hs-identifier hs-var">vertCat</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Result n
+</span><a href="#local-6989586621679372898"><span class="hs-identifier hs-var">result</span></a></span><span class="annot"><span class="annottext">Result n -&gt; Getting Image (Result n) Image -&gt; Image
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting Image (Result n) Image
+forall n. Lens' (Result n) Image
+</span><a href="Brick.Types.Internal.html#imageL"><span class="hs-identifier hs-var">imageL</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679372893"><span class="hs-identifier hs-var">bottomPadding</span></a></span><span class="hs-special">]</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679372894"><span class="hs-identifier hs-var">rightPadding</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-167"></span><span>
+</span><span id="line-168"></span><span>      </span><span class="annot"><span class="annottext">Result n -&gt; RenderM n (Result n)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(Result n -&gt; RenderM n (Result n))
+-&gt; Result n -&gt; RenderM n (Result n)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Result n
+</span><a href="#local-6989586621679372898"><span class="hs-identifier hs-var">result</span></a></span><span> </span><span class="annot"><span class="annottext">Result n -&gt; (Result n -&gt; Result n) -&gt; Result n
+forall a b. a -&gt; (a -&gt; b) -&gt; b
+</span><span class="hs-operator hs-var">&amp;</span></span><span> </span><span class="annot"><span class="annottext">(Image -&gt; Identity Image) -&gt; Result n -&gt; Identity (Result n)
+forall n. Lens' (Result n) Image
+</span><a href="Brick.Types.Internal.html#imageL"><span class="hs-identifier hs-var">imageL</span></a></span><span> </span><span class="annot"><span class="annottext">((Image -&gt; Identity Image) -&gt; Result n -&gt; Identity (Result n))
+-&gt; Image -&gt; Result n -&gt; Result n
+forall s t a b. ASetter s t a b -&gt; b -&gt; s -&gt; t
+</span><span class="hs-operator hs-var">.~</span></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679372892"><span class="hs-identifier hs-var">paddedImg</span></a></span><span>
+</span><span id="line-169"></span></pre></body></html>

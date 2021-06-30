@@ -1,0 +1,497 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span id="%24con2tag_44hjd4JBOJzHPJFeCtWwli"></span><span class="hs-pragma">{-# LANGUAGE DeriveTraversable, PatternSynonyms, Safe #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-comment">{-|
+Module      : Data.Char.Domino
+Description : A module that defines domino values, and their unicode equivalent.
+Maintainer  : hapytexeu+gh@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+A module that defines values for domino pieces, and converts these to unicode characters of the &lt;https://www.unicode.org/charts/PDF/U1F030.pdf 1F030 unicode block&gt;.
+-}</span><span>
+</span><span id="line-12"></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Data.Char.Domino</span><span> </span><span class="hs-special">(</span><span>
+</span><span id="line-14"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Data types to represent domino values</span></span><span>
+</span><span id="line-15"></span><span>    </span><span class="annot"><a href="Data.Char.Domino.html#Domino"><span class="hs-identifier">Domino</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Data.Char.Domino.html#Domino"><span class="hs-identifier">Domino</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Domino.html#Back"><span class="hs-identifier">Back</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Domino.html#leftTop"><span class="hs-identifier">leftTop</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Domino.html#rightBottom"><span class="hs-identifier">rightBottom</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-keyword">pattern</span><span> </span><span class="annot"><a href="Data.Char.Domino.html#%3A%7C"><span class="hs-operator">(:|)</span></a></span><span>
+</span><span id="line-16"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Domino.html#OrientedDomino"><span class="hs-identifier">OrientedDomino</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Domino.html#SimpleDomino"><span class="hs-identifier">SimpleDomino</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Domino.html#ComplexDomino"><span class="hs-identifier">ComplexDomino</span></a></span><span>
+</span><span id="line-17"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Render domino values</span></span><span>
+</span><span id="line-18"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Domino.html#dominoH"><span class="hs-identifier">dominoH</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Domino.html#dominoH%27"><span class="hs-identifier">dominoH'</span></a></span><span>
+</span><span id="line-19"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Domino.html#dominoV"><span class="hs-identifier">dominoV</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Domino.html#dominoV%27"><span class="hs-identifier">dominoV'</span></a></span><span>
+</span><span id="line-20"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Domino.html#domino"><span class="hs-identifier">domino</span></a></span><span> </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Domino.html#domino%27"><span class="hs-identifier">domino'</span></a></span><span>
+</span><span id="line-21"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-22"></span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Char</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">chr</span></span><span class="hs-special">)</span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Data.Char.Core.html"><span class="hs-identifier">Data.Char.Core</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Data.Char.Core.html#Orientation"><span class="hs-identifier">Orientation</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Data.Char.Core.html#Horizontal"><span class="hs-identifier">Horizontal</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Core.html#Vertical"><span class="hs-identifier">Vertical</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Core.html#Oriented"><span class="hs-identifier">Oriented</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Data.Char.Core.html#Oriented"><span class="hs-identifier">Oriented</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-25"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Data.Char.Dice.html"><span class="hs-identifier">Data.Char.Dice</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Data.Char.Dice.html#DieValue"><span class="hs-identifier">DieValue</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-26"></span><span>
+</span><span id="line-27"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Test.QuickCheck.Arbitrary</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Arbitrary</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">arbitrary</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">Arbitrary1</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">liftArbitrary</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">arbitrary1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-28"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Test.QuickCheck.Gen</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">frequency</span></span><span class="hs-special">)</span><span>
+</span><span id="line-29"></span><span>
+</span><span id="line-30"></span><span class="hs-comment">-- | A domino piece, which has two items. Depending on the orientation, the</span><span>
+</span><span id="line-31"></span><span class="hs-comment">-- items are located at the /top/ and /bottom/; or /left/ and /right/.</span><span>
+</span><span id="line-32"></span><span class="hs-keyword">data</span><span> </span><span id="Domino"><span class="annot"><a href="Data.Char.Domino.html#Domino"><span class="hs-identifier hs-var">Domino</span></a></span></span><span> </span><span id="local-6989586621679102913"><span class="annot"><a href="#local-6989586621679102913"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-33"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span id="Domino"><span class="annot"><a href="Data.Char.Domino.html#Domino"><span class="hs-identifier hs-var">Domino</span></a></span></span><span> </span><span class="hs-comment">-- ^ The front side of the domino piece.</span><span>
+</span><span id="line-34"></span><span>  </span><span class="hs-special">{</span><span>
+</span><span id="line-35"></span><span>    </span><span id="leftTop"><span class="annot"><span class="annottext">Domino a -&gt; a
+</span><a href="Data.Char.Domino.html#leftTop"><span class="hs-identifier hs-var hs-var">leftTop</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679102913"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-comment">-- ^ The part that is located at the /left/ side in case the piece is located /horizontally/, or at the /top/ in case the piece is located /vertically/.</span><span>
+</span><span id="line-36"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="rightBottom"><span class="annot"><span class="annottext">Domino a -&gt; a
+</span><a href="Data.Char.Domino.html#rightBottom"><span class="hs-identifier hs-var hs-var">rightBottom</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679102913"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-comment">-- ^ The part that is located at the /right/ side in case the piece is located /horizontally/, or at the /bottom/ in case the piece is located /vertically/.</span><span>
+</span><span id="line-37"></span><span>  </span><span class="hs-special">}</span><span>
+</span><span id="line-38"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="Back"><span class="annot"><a href="Data.Char.Domino.html#Back"><span class="hs-identifier hs-var">Back</span></a></span></span><span>  </span><span class="hs-comment">-- ^ The back side of the domino piece.</span><span>
+</span><span id="line-39"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679102857"><span id="local-6989586621679102859"><span class="annot"><span class="annottext">Domino a -&gt; Domino a -&gt; Bool
+(Domino a -&gt; Domino a -&gt; Bool)
+-&gt; (Domino a -&gt; Domino a -&gt; Bool) -&gt; Eq (Domino a)
+forall a. Eq a =&gt; Domino a -&gt; Domino a -&gt; Bool
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: Domino a -&gt; Domino a -&gt; Bool
+$c/= :: forall a. Eq a =&gt; Domino a -&gt; Domino a -&gt; Bool
+== :: Domino a -&gt; Domino a -&gt; Bool
+$c== :: forall a. Eq a =&gt; Domino a -&gt; Domino a -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679102822"><span id="local-6989586621679102824"><span id="local-6989586621679102826"><span id="local-6989586621679102828"><span id="local-6989586621679102830"><span id="local-6989586621679102832"><span id="local-6989586621679102834"><span id="local-6989586621679102836"><span id="local-6989586621679102838"><span id="local-6989586621679102840"><span id="local-6989586621679102842"><span id="local-6989586621679102844"><span id="local-6989586621679102846"><span id="local-6989586621679102848"><span id="local-6989586621679102850"><span id="local-6989586621679102852"><span id="local-6989586621679102854"><span class="annot"><span class="annottext">Domino a -&gt; Bool
+(a -&gt; m) -&gt; Domino a -&gt; m
+(a -&gt; b -&gt; b) -&gt; b -&gt; Domino a -&gt; b
+(forall m. Monoid m =&gt; Domino m -&gt; m)
+-&gt; (forall m a. Monoid m =&gt; (a -&gt; m) -&gt; Domino a -&gt; m)
+-&gt; (forall m a. Monoid m =&gt; (a -&gt; m) -&gt; Domino a -&gt; m)
+-&gt; (forall a b. (a -&gt; b -&gt; b) -&gt; b -&gt; Domino a -&gt; b)
+-&gt; (forall a b. (a -&gt; b -&gt; b) -&gt; b -&gt; Domino a -&gt; b)
+-&gt; (forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; Domino a -&gt; b)
+-&gt; (forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; Domino a -&gt; b)
+-&gt; (forall a. (a -&gt; a -&gt; a) -&gt; Domino a -&gt; a)
+-&gt; (forall a. (a -&gt; a -&gt; a) -&gt; Domino a -&gt; a)
+-&gt; (forall a. Domino a -&gt; [a])
+-&gt; (forall a. Domino a -&gt; Bool)
+-&gt; (forall a. Domino a -&gt; Int)
+-&gt; (forall a. Eq a =&gt; a -&gt; Domino a -&gt; Bool)
+-&gt; (forall a. Ord a =&gt; Domino a -&gt; a)
+-&gt; (forall a. Ord a =&gt; Domino a -&gt; a)
+-&gt; (forall a. Num a =&gt; Domino a -&gt; a)
+-&gt; (forall a. Num a =&gt; Domino a -&gt; a)
+-&gt; Foldable Domino
+forall a. Eq a =&gt; a -&gt; Domino a -&gt; Bool
+forall a. Num a =&gt; Domino a -&gt; a
+forall a. Ord a =&gt; Domino a -&gt; a
+forall m. Monoid m =&gt; Domino m -&gt; m
+forall a. Domino a -&gt; Bool
+forall a. Domino a -&gt; Int
+forall a. Domino a -&gt; [a]
+forall a. (a -&gt; a -&gt; a) -&gt; Domino a -&gt; a
+forall m a. Monoid m =&gt; (a -&gt; m) -&gt; Domino a -&gt; m
+forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; Domino a -&gt; b
+forall a b. (a -&gt; b -&gt; b) -&gt; b -&gt; Domino a -&gt; b
+forall (t :: * -&gt; *).
+(forall m. Monoid m =&gt; t m -&gt; m)
+-&gt; (forall m a. Monoid m =&gt; (a -&gt; m) -&gt; t a -&gt; m)
+-&gt; (forall m a. Monoid m =&gt; (a -&gt; m) -&gt; t a -&gt; m)
+-&gt; (forall a b. (a -&gt; b -&gt; b) -&gt; b -&gt; t a -&gt; b)
+-&gt; (forall a b. (a -&gt; b -&gt; b) -&gt; b -&gt; t a -&gt; b)
+-&gt; (forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b)
+-&gt; (forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b)
+-&gt; (forall a. (a -&gt; a -&gt; a) -&gt; t a -&gt; a)
+-&gt; (forall a. (a -&gt; a -&gt; a) -&gt; t a -&gt; a)
+-&gt; (forall a. t a -&gt; [a])
+-&gt; (forall a. t a -&gt; Bool)
+-&gt; (forall a. t a -&gt; Int)
+-&gt; (forall a. Eq a =&gt; a -&gt; t a -&gt; Bool)
+-&gt; (forall a. Ord a =&gt; t a -&gt; a)
+-&gt; (forall a. Ord a =&gt; t a -&gt; a)
+-&gt; (forall a. Num a =&gt; t a -&gt; a)
+-&gt; (forall a. Num a =&gt; t a -&gt; a)
+-&gt; Foldable t
+product :: Domino a -&gt; a
+$cproduct :: forall a. Num a =&gt; Domino a -&gt; a
+sum :: Domino a -&gt; a
+$csum :: forall a. Num a =&gt; Domino a -&gt; a
+minimum :: Domino a -&gt; a
+$cminimum :: forall a. Ord a =&gt; Domino a -&gt; a
+maximum :: Domino a -&gt; a
+$cmaximum :: forall a. Ord a =&gt; Domino a -&gt; a
+elem :: a -&gt; Domino a -&gt; Bool
+$celem :: forall a. Eq a =&gt; a -&gt; Domino a -&gt; Bool
+length :: Domino a -&gt; Int
+$clength :: forall a. Domino a -&gt; Int
+null :: Domino a -&gt; Bool
+$cnull :: forall a. Domino a -&gt; Bool
+toList :: Domino a -&gt; [a]
+$ctoList :: forall a. Domino a -&gt; [a]
+foldl1 :: (a -&gt; a -&gt; a) -&gt; Domino a -&gt; a
+$cfoldl1 :: forall a. (a -&gt; a -&gt; a) -&gt; Domino a -&gt; a
+foldr1 :: (a -&gt; a -&gt; a) -&gt; Domino a -&gt; a
+$cfoldr1 :: forall a. (a -&gt; a -&gt; a) -&gt; Domino a -&gt; a
+foldl' :: (b -&gt; a -&gt; b) -&gt; b -&gt; Domino a -&gt; b
+$cfoldl' :: forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; Domino a -&gt; b
+foldl :: (b -&gt; a -&gt; b) -&gt; b -&gt; Domino a -&gt; b
+$cfoldl :: forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; Domino a -&gt; b
+foldr' :: (a -&gt; b -&gt; b) -&gt; b -&gt; Domino a -&gt; b
+$cfoldr' :: forall a b. (a -&gt; b -&gt; b) -&gt; b -&gt; Domino a -&gt; b
+foldr :: (a -&gt; b -&gt; b) -&gt; b -&gt; Domino a -&gt; b
+$cfoldr :: forall a b. (a -&gt; b -&gt; b) -&gt; b -&gt; Domino a -&gt; b
+foldMap' :: (a -&gt; m) -&gt; Domino a -&gt; m
+$cfoldMap' :: forall m a. Monoid m =&gt; (a -&gt; m) -&gt; Domino a -&gt; m
+foldMap :: (a -&gt; m) -&gt; Domino a -&gt; m
+$cfoldMap :: forall m a. Monoid m =&gt; (a -&gt; m) -&gt; Domino a -&gt; m
+fold :: Domino m -&gt; m
+$cfold :: forall m. Monoid m =&gt; Domino m -&gt; m
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Foldable</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679102817"><span id="local-6989586621679102819"><span class="annot"><span class="annottext">a -&gt; Domino b -&gt; Domino a
+(a -&gt; b) -&gt; Domino a -&gt; Domino b
+(forall a b. (a -&gt; b) -&gt; Domino a -&gt; Domino b)
+-&gt; (forall a b. a -&gt; Domino b -&gt; Domino a) -&gt; Functor Domino
+forall a b. a -&gt; Domino b -&gt; Domino a
+forall a b. (a -&gt; b) -&gt; Domino a -&gt; Domino b
+forall (f :: * -&gt; *).
+(forall a b. (a -&gt; b) -&gt; f a -&gt; f b)
+-&gt; (forall a b. a -&gt; f b -&gt; f a) -&gt; Functor f
+&lt;$ :: a -&gt; Domino b -&gt; Domino a
+$c&lt;$ :: forall a b. a -&gt; Domino b -&gt; Domino a
+fmap :: (a -&gt; b) -&gt; Domino a -&gt; Domino b
+$cfmap :: forall a b. (a -&gt; b) -&gt; Domino a -&gt; Domino b
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Functor</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679102801"><span id="local-6989586621679102803"><span id="local-6989586621679102805"><span id="local-6989586621679102807"><span id="local-6989586621679102809"><span id="local-6989586621679102811"><span id="local-6989586621679102813"><span class="annot"><span class="annottext">Eq (Domino a)
+Eq (Domino a)
+-&gt; (Domino a -&gt; Domino a -&gt; Ordering)
+-&gt; (Domino a -&gt; Domino a -&gt; Bool)
+-&gt; (Domino a -&gt; Domino a -&gt; Bool)
+-&gt; (Domino a -&gt; Domino a -&gt; Bool)
+-&gt; (Domino a -&gt; Domino a -&gt; Bool)
+-&gt; (Domino a -&gt; Domino a -&gt; Domino a)
+-&gt; (Domino a -&gt; Domino a -&gt; Domino a)
+-&gt; Ord (Domino a)
+Domino a -&gt; Domino a -&gt; Bool
+Domino a -&gt; Domino a -&gt; Ordering
+Domino a -&gt; Domino a -&gt; Domino a
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+forall a. Ord a =&gt; Eq (Domino a)
+forall a. Ord a =&gt; Domino a -&gt; Domino a -&gt; Bool
+forall a. Ord a =&gt; Domino a -&gt; Domino a -&gt; Ordering
+forall a. Ord a =&gt; Domino a -&gt; Domino a -&gt; Domino a
+min :: Domino a -&gt; Domino a -&gt; Domino a
+$cmin :: forall a. Ord a =&gt; Domino a -&gt; Domino a -&gt; Domino a
+max :: Domino a -&gt; Domino a -&gt; Domino a
+$cmax :: forall a. Ord a =&gt; Domino a -&gt; Domino a -&gt; Domino a
+&gt;= :: Domino a -&gt; Domino a -&gt; Bool
+$c&gt;= :: forall a. Ord a =&gt; Domino a -&gt; Domino a -&gt; Bool
+&gt; :: Domino a -&gt; Domino a -&gt; Bool
+$c&gt; :: forall a. Ord a =&gt; Domino a -&gt; Domino a -&gt; Bool
+&lt;= :: Domino a -&gt; Domino a -&gt; Bool
+$c&lt;= :: forall a. Ord a =&gt; Domino a -&gt; Domino a -&gt; Bool
+&lt; :: Domino a -&gt; Domino a -&gt; Bool
+$c&lt; :: forall a. Ord a =&gt; Domino a -&gt; Domino a -&gt; Bool
+compare :: Domino a -&gt; Domino a -&gt; Ordering
+$ccompare :: forall a. Ord a =&gt; Domino a -&gt; Domino a -&gt; Ordering
+$cp1Ord :: forall a. Ord a =&gt; Eq (Domino a)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679102792"><span id="local-6989586621679102794"><span id="local-6989586621679102796"><span id="local-6989586621679102798"><span class="annot"><span class="annottext">ReadPrec [Domino a]
+ReadPrec (Domino a)
+Int -&gt; ReadS (Domino a)
+ReadS [Domino a]
+(Int -&gt; ReadS (Domino a))
+-&gt; ReadS [Domino a]
+-&gt; ReadPrec (Domino a)
+-&gt; ReadPrec [Domino a]
+-&gt; Read (Domino a)
+forall a. Read a =&gt; ReadPrec [Domino a]
+forall a. Read a =&gt; ReadPrec (Domino a)
+forall a. Read a =&gt; Int -&gt; ReadS (Domino a)
+forall a. Read a =&gt; ReadS [Domino a]
+forall a.
+(Int -&gt; ReadS a)
+-&gt; ReadS [a] -&gt; ReadPrec a -&gt; ReadPrec [a] -&gt; Read a
+readListPrec :: ReadPrec [Domino a]
+$creadListPrec :: forall a. Read a =&gt; ReadPrec [Domino a]
+readPrec :: ReadPrec (Domino a)
+$creadPrec :: forall a. Read a =&gt; ReadPrec (Domino a)
+readList :: ReadS [Domino a]
+$creadList :: forall a. Read a =&gt; ReadS [Domino a]
+readsPrec :: Int -&gt; ReadS (Domino a)
+$creadsPrec :: forall a. Read a =&gt; Int -&gt; ReadS (Domino a)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Read</span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679102785"><span id="local-6989586621679102787"><span id="local-6989586621679102789"><span class="annot"><span class="annottext">Int -&gt; Domino a -&gt; ShowS
+[Domino a] -&gt; ShowS
+Domino a -&gt; String
+(Int -&gt; Domino a -&gt; ShowS)
+-&gt; (Domino a -&gt; String) -&gt; ([Domino a] -&gt; ShowS) -&gt; Show (Domino a)
+forall a. Show a =&gt; Int -&gt; Domino a -&gt; ShowS
+forall a. Show a =&gt; [Domino a] -&gt; ShowS
+forall a. Show a =&gt; Domino a -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [Domino a] -&gt; ShowS
+$cshowList :: forall a. Show a =&gt; [Domino a] -&gt; ShowS
+show :: Domino a -&gt; String
+$cshow :: forall a. Show a =&gt; Domino a -&gt; String
+showsPrec :: Int -&gt; Domino a -&gt; ShowS
+$cshowsPrec :: forall a. Show a =&gt; Int -&gt; Domino a -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679102774"><span id="local-6989586621679102776"><span id="local-6989586621679102778"><span id="local-6989586621679102780"><span class="annot"><span class="annottext">Functor Domino
+Foldable Domino
+Functor Domino
+-&gt; Foldable Domino
+-&gt; (forall (f :: * -&gt; *) a b.
+    Applicative f =&gt;
+    (a -&gt; f b) -&gt; Domino a -&gt; f (Domino b))
+-&gt; (forall (f :: * -&gt; *) a.
+    Applicative f =&gt;
+    Domino (f a) -&gt; f (Domino a))
+-&gt; (forall (m :: * -&gt; *) a b.
+    Monad m =&gt;
+    (a -&gt; m b) -&gt; Domino a -&gt; m (Domino b))
+-&gt; (forall (m :: * -&gt; *) a.
+    Monad m =&gt;
+    Domino (m a) -&gt; m (Domino a))
+-&gt; Traversable Domino
+(a -&gt; f b) -&gt; Domino a -&gt; f (Domino b)
+forall (t :: * -&gt; *).
+Functor t
+-&gt; Foldable t
+-&gt; (forall (f :: * -&gt; *) a b.
+    Applicative f =&gt;
+    (a -&gt; f b) -&gt; t a -&gt; f (t b))
+-&gt; (forall (f :: * -&gt; *) a. Applicative f =&gt; t (f a) -&gt; f (t a))
+-&gt; (forall (m :: * -&gt; *) a b.
+    Monad m =&gt;
+    (a -&gt; m b) -&gt; t a -&gt; m (t b))
+-&gt; (forall (m :: * -&gt; *) a. Monad m =&gt; t (m a) -&gt; m (t a))
+-&gt; Traversable t
+forall (m :: * -&gt; *) a. Monad m =&gt; Domino (m a) -&gt; m (Domino a)
+forall (f :: * -&gt; *) a.
+Applicative f =&gt;
+Domino (f a) -&gt; f (Domino a)
+forall (m :: * -&gt; *) a b.
+Monad m =&gt;
+(a -&gt; m b) -&gt; Domino a -&gt; m (Domino b)
+forall (f :: * -&gt; *) a b.
+Applicative f =&gt;
+(a -&gt; f b) -&gt; Domino a -&gt; f (Domino b)
+sequence :: Domino (m a) -&gt; m (Domino a)
+$csequence :: forall (m :: * -&gt; *) a. Monad m =&gt; Domino (m a) -&gt; m (Domino a)
+mapM :: (a -&gt; m b) -&gt; Domino a -&gt; m (Domino b)
+$cmapM :: forall (m :: * -&gt; *) a b.
+Monad m =&gt;
+(a -&gt; m b) -&gt; Domino a -&gt; m (Domino b)
+sequenceA :: Domino (f a) -&gt; f (Domino a)
+$csequenceA :: forall (f :: * -&gt; *) a.
+Applicative f =&gt;
+Domino (f a) -&gt; f (Domino a)
+traverse :: (a -&gt; f b) -&gt; Domino a -&gt; f (Domino b)
+$ctraverse :: forall (f :: * -&gt; *) a b.
+Applicative f =&gt;
+(a -&gt; f b) -&gt; Domino a -&gt; f (Domino b)
+$cp2Traversable :: Foldable Domino
+$cp1Traversable :: Functor Domino
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Traversable</span></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-40"></span><span>
+</span><span id="line-41"></span><span class="hs-comment">-- | A pattern synonym that makes it more convenient to write expressions that</span><span>
+</span><span id="line-42"></span><span class="hs-comment">-- look like domino's like for example @II :| IV@.</span><span>
+</span><span id="line-43"></span><span id="local-6989586621679102935"><span class="hs-keyword">pattern</span><span> </span><span class="annot"><a href="Data.Char.Domino.html#%3A%7C"><span class="hs-operator hs-type">(:|)</span></a></span><span>
+</span><span id="line-44"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679102935"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-comment">-- ^ The item that is located at the left, or the top.</span><span>
+</span><span id="line-45"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679102935"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-comment">-- ^ The item that is located at the right, or the bottom.</span><span>
+</span><span id="line-46"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.Char.Domino.html#Domino"><span class="hs-identifier hs-type">Domino</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679102935"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-comment">-- ^ The domino that is constructed.</span></span><span>
+</span><span id="line-47"></span><span class="hs-keyword">pattern</span><span> </span><span id="%24b%3A%7C"><span id="%24m%3A%7C"><span id="%3A%7C"><span class="annot"><span class="annottext">$b:| :: a -&gt; a -&gt; Domino a
+$m:| :: forall r a. Domino a -&gt; (a -&gt; a -&gt; r) -&gt; (Void# -&gt; r) -&gt; r
+</span><a href="Data.Char.Domino.html#%24b%3A%7C"><span class="hs-operator hs-var hs-var hs-var">(:|)</span></a></span></span></span></span><span> </span><span class="annot"><a href="#local-6989586621679102770"><span class="hs-identifier hs-type">x</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679102769"><span class="hs-identifier hs-type">y</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Data.Char.Domino.html#Domino"><span class="hs-identifier hs-type">Domino</span></a></span><span> </span><span id="local-6989586621679102770"><span class="annot"><a href="#local-6989586621679102770"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span id="local-6989586621679102769"><span class="annot"><a href="#local-6989586621679102769"><span class="hs-identifier hs-var">y</span></a></span></span><span>
+</span><span id="line-48"></span><span>
+</span><span id="line-49"></span><span class="hs-comment">-- | A type alias that specifies that 'OrientedDomino' is an 'Oriented' type</span><span>
+</span><span id="line-50"></span><span class="hs-comment">-- that wraps a 'Domino' item.</span><span>
+</span><span id="line-51"></span><span class="hs-keyword">type</span><span> </span><span id="OrientedDomino"><span class="annot"><a href="Data.Char.Domino.html#OrientedDomino"><span class="hs-identifier hs-var">OrientedDomino</span></a></span></span><span> </span><span id="local-6989586621679102768"><span class="annot"><a href="#local-6989586621679102768"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Data.Char.Core.html#Oriented"><span class="hs-identifier hs-type">Oriented</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Char.Domino.html#Domino"><span class="hs-identifier hs-type">Domino</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679102768"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-52"></span><span>
+</span><span id="line-53"></span><span class="hs-comment">-- | A 'SimpleDomino' is a 'Domino' that contains 'DieValue' objects, it thus</span><span>
+</span><span id="line-54"></span><span class="hs-comment">-- can not have an &quot;empty&quot; value.</span><span>
+</span><span id="line-55"></span><span class="hs-keyword">type</span><span> </span><span id="SimpleDomino"><span class="annot"><a href="Data.Char.Domino.html#SimpleDomino"><span class="hs-identifier hs-var">SimpleDomino</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Data.Char.Domino.html#Domino"><span class="hs-identifier hs-type">Domino</span></a></span><span> </span><span class="annot"><a href="Data.Char.Dice.html#DieValue"><span class="hs-identifier hs-type">DieValue</span></a></span><span>
+</span><span id="line-56"></span><span>
+</span><span id="line-57"></span><span class="hs-comment">-- | A 'ComplexDomino' is a 'Domino' that contains 'Maybe' values wrapping a</span><span>
+</span><span id="line-58"></span><span class="hs-comment">-- 'DieValue'. In case of a 'Nothing', that side is considered /empty/.</span><span>
+</span><span id="line-59"></span><span class="hs-keyword">type</span><span> </span><span id="ComplexDomino"><span class="annot"><a href="Data.Char.Domino.html#ComplexDomino"><span class="hs-identifier hs-var">ComplexDomino</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Data.Char.Domino.html#Domino"><span class="hs-identifier hs-type">Domino</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Data.Char.Dice.html#DieValue"><span class="hs-identifier hs-type">DieValue</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-60"></span><span>
+</span><span id="line-61"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679102759"><span id="local-6989586621679102761"><span id="local-6989586621679102763"><span class="annot"><span class="hs-identifier hs-type">Applicative</span></span><span> </span><span class="annot"><a href="Data.Char.Domino.html#Domino"><span class="hs-identifier hs-type">Domino</span></a></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-62"></span><span>    </span><span id="local-6989586621679102757"><span class="annot"><span class="annottext">pure :: a -&gt; Domino a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">pure</span></span></span><span> </span><span id="local-6989586621679102756"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679102756"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; Domino a
+forall a. a -&gt; a -&gt; Domino a
+</span><a href="Data.Char.Domino.html#Domino"><span class="hs-identifier hs-var">Domino</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679102756"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679102756"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-63"></span><span>    </span><span class="annot"><a href="Data.Char.Domino.html#Domino"><span class="hs-identifier hs-type">Domino</span></a></span><span> </span><span id="local-6989586621679102755"><span class="annot"><span class="annottext">a -&gt; b
+</span><a href="#local-6989586621679102755"><span class="hs-identifier hs-var">fa</span></a></span></span><span> </span><span id="local-6989586621679102754"><span class="annot"><span class="annottext">a -&gt; b
+</span><a href="#local-6989586621679102754"><span class="hs-identifier hs-var">fb</span></a></span></span><span> </span><span id="local-6989586621679102753"><span class="annot"><span class="annottext">&lt;*&gt; :: Domino (a -&gt; b) -&gt; Domino a -&gt; Domino b
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">&lt;*&gt;</span></span></span><span> </span><span class="annot"><a href="Data.Char.Domino.html#Domino"><span class="hs-identifier hs-type">Domino</span></a></span><span> </span><span id="local-6989586621679102752"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679102752"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679102751"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679102751"><span class="hs-identifier hs-var">b</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">b -&gt; b -&gt; Domino b
+forall a. a -&gt; a -&gt; Domino a
+</span><a href="Data.Char.Domino.html#Domino"><span class="hs-identifier hs-var">Domino</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; b
+</span><a href="#local-6989586621679102755"><span class="hs-identifier hs-var">fa</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679102752"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; b
+</span><a href="#local-6989586621679102754"><span class="hs-identifier hs-var">fb</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679102751"><span class="hs-identifier hs-var">b</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-64"></span><span>    </span><span class="annot"><span class="annottext">Domino (a -&gt; b)
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Domino a
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Domino b
+forall a. Domino a
+</span><a href="Data.Char.Domino.html#Back"><span class="hs-identifier hs-var">Back</span></a></span><span>
+</span><span id="line-65"></span><span>
+</span><span id="line-66"></span><span id="local-6989586621679102750"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679102747"><span class="annot"><span class="hs-identifier hs-type">Arbitrary</span></span><span> </span><span class="annot"><a href="#local-6989586621679102750"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Arbitrary</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Char.Domino.html#Domino"><span class="hs-identifier hs-type">Domino</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679102750"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-67"></span><span>    </span><span id="local-6989586621679102745"><span class="annot"><span class="annottext">arbitrary :: Gen (Domino a)
+</span><a href="#local-6989586621679102745"><span class="hs-identifier hs-var hs-var hs-var hs-var">arbitrary</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Gen (Domino a)
+forall (f :: * -&gt; *) a. (Arbitrary1 f, Arbitrary a) =&gt; Gen (f a)
+</span><span class="hs-identifier hs-var">arbitrary1</span></span></span><span>
+</span><span id="line-68"></span><span>
+</span><span id="line-69"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679102742"><span class="annot"><span class="hs-identifier hs-type">Arbitrary1</span></span><span> </span><span class="annot"><a href="Data.Char.Domino.html#Domino"><span class="hs-identifier hs-type">Domino</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-70"></span><span>    </span><span id="local-6989586621679102740"><span class="annot"><span class="annottext">liftArbitrary :: Gen a -&gt; Gen (Domino a)
+</span><a href="#local-6989586621679102740"><span class="hs-identifier hs-var hs-var hs-var hs-var">liftArbitrary</span></a></span></span><span> </span><span id="local-6989586621679102739"><span class="annot"><span class="annottext">Gen a
+</span><a href="#local-6989586621679102739"><span class="hs-identifier hs-var">arb</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(Int, Gen (Domino a))] -&gt; Gen (Domino a)
+forall a. [(Int, Gen a)] -&gt; Gen a
+</span><span class="hs-identifier hs-var">frequency</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Domino a -&gt; Gen (Domino a)
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">Domino a
+forall a. Domino a
+</span><a href="Data.Char.Domino.html#Back"><span class="hs-identifier hs-var">Back</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">3</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; Domino a
+forall a. a -&gt; a -&gt; Domino a
+</span><a href="Data.Char.Domino.html#Domino"><span class="hs-identifier hs-var">Domino</span></a></span><span> </span><span class="annot"><span class="annottext">(a -&gt; a -&gt; Domino a) -&gt; Gen a -&gt; Gen (a -&gt; Domino a)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Gen a
+</span><a href="#local-6989586621679102739"><span class="hs-identifier hs-var">arb</span></a></span><span> </span><span class="annot"><span class="annottext">Gen (a -&gt; Domino a) -&gt; Gen a -&gt; Gen (Domino a)
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Gen a
+</span><a href="#local-6989586621679102739"><span class="hs-identifier hs-var">arb</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span><span>
+</span><span id="line-71"></span><span>
+</span><span id="line-72"></span><span class="annot"><a href="Data.Char.Domino.html#_domino"><span class="hs-identifier hs-type">_domino</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.Char.Domino.html#ComplexDomino"><span class="hs-identifier hs-type">ComplexDomino</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>
+</span><span id="line-73"></span><span id="_domino"><span class="annot"><span class="annottext">_domino :: Int -&gt; ComplexDomino -&gt; Char
+</span><a href="Data.Char.Domino.html#_domino"><span class="hs-identifier hs-var hs-var">_domino</span></a></span></span><span> </span><span id="local-6989586621679102736"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679102736"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ComplexDomino -&gt; Char
+forall a. Enum a =&gt; Domino (Maybe a) -&gt; Char
+</span><a href="#local-6989586621679102735"><span class="hs-identifier hs-var">go</span></a></span><span>
+</span><span id="line-74"></span><span>    </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679102735"><span class="annot"><span class="annottext">go :: Domino (Maybe a) -&gt; Char
+</span><a href="#local-6989586621679102735"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="annot"><span class="annottext">Domino (Maybe a)
+</span><a href="Data.Char.Domino.html#Back"><span class="hs-identifier hs-var">Back</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Char
+</span><span class="hs-identifier hs-var">chr</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679102736"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-75"></span><span>          </span><span class="annot"><a href="#local-6989586621679102735"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Char.Domino.html#Domino"><span class="hs-identifier hs-type">Domino</span></a></span><span> </span><span id="local-6989586621679102734"><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679102734"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679102733"><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679102733"><span class="hs-identifier hs-var">b</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Char
+</span><span class="hs-identifier hs-var">chr</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">7</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">Maybe a -&gt; Int
+forall a. Enum a =&gt; Maybe a -&gt; Int
+</span><a href="#local-6989586621679102731"><span class="hs-identifier hs-var">_val</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679102734"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Maybe a -&gt; Int
+forall a. Enum a =&gt; Maybe a -&gt; Int
+</span><a href="#local-6989586621679102731"><span class="hs-identifier hs-var">_val</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679102733"><span class="hs-identifier hs-var">b</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679102736"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-76"></span><span>          </span><span id="local-6989586621679102731"><span class="annot"><span class="annottext">_val :: Maybe a -&gt; Int
+</span><a href="#local-6989586621679102731"><span class="hs-identifier hs-var hs-var">_val</span></a></span></span><span> </span><span class="annot"><span class="annottext">Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span>
+</span><span id="line-77"></span><span>          </span><span class="annot"><a href="#local-6989586621679102731"><span class="hs-identifier hs-var">_val</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679102729"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679102729"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; Int
+forall a. Enum a =&gt; a -&gt; Int
+</span><span class="hs-identifier hs-var">fromEnum</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679102729"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-78"></span><span>
+</span><span id="line-79"></span><span class="hs-comment">-- | Convert a 'ComplexDomino' value to a unicode character rendering the domino</span><span>
+</span><span id="line-80"></span><span class="hs-comment">-- value /horizontally/.</span><span>
+</span><span id="line-81"></span><span class="annot"><a href="Data.Char.Domino.html#dominoH"><span class="hs-identifier hs-type">dominoH</span></a></span><span>
+</span><span id="line-82"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Char.Domino.html#ComplexDomino"><span class="hs-identifier hs-type">ComplexDomino</span></a></span><span> </span><span class="hs-comment">-- ^ The 'ComplexDomino' object to render horizontally.</span><span>
+</span><span id="line-83"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span> </span><span class="hs-comment">-- ^ The unicode character that represents the given 'ComplexDomino' value in a horizontal manner.</span><span>
+</span><span id="line-84"></span><span id="dominoH"><span class="annot"><span class="annottext">dominoH :: ComplexDomino -&gt; Char
+</span><a href="Data.Char.Domino.html#dominoH"><span class="hs-identifier hs-var hs-var">dominoH</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; ComplexDomino -&gt; Char
+</span><a href="Data.Char.Domino.html#_domino"><span class="hs-identifier hs-var">_domino</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0x1f030</span></span><span>
+</span><span id="line-85"></span><span>
+</span><span id="line-86"></span><span class="hs-comment">-- | Convert a 'SimpleDomino' value to a unicode character rendering the domino</span><span>
+</span><span id="line-87"></span><span class="hs-comment">-- value /horizontally/.</span><span>
+</span><span id="line-88"></span><span class="annot"><a href="Data.Char.Domino.html#dominoH%27"><span class="hs-identifier hs-type">dominoH'</span></a></span><span>
+</span><span id="line-89"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Char.Domino.html#SimpleDomino"><span class="hs-identifier hs-type">SimpleDomino</span></a></span><span> </span><span class="hs-comment">-- ^ The 'SimpleDomino' object to render horizontally.</span><span>
+</span><span id="line-90"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span> </span><span class="hs-comment">-- ^ The unicode character that represents the given 'SimpleDomino' value in a horizontal manner.</span><span>
+</span><span id="line-91"></span><span id="dominoH%27"><span class="annot"><span class="annottext">dominoH' :: SimpleDomino -&gt; Char
+</span><a href="Data.Char.Domino.html#dominoH%27"><span class="hs-identifier hs-var hs-var">dominoH'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ComplexDomino -&gt; Char
+</span><a href="Data.Char.Domino.html#dominoH"><span class="hs-identifier hs-var">dominoH</span></a></span><span> </span><span class="annot"><span class="annottext">(ComplexDomino -&gt; Char)
+-&gt; (SimpleDomino -&gt; ComplexDomino) -&gt; SimpleDomino -&gt; Char
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(DieValue -&gt; Maybe DieValue) -&gt; SimpleDomino -&gt; ComplexDomino
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="annot"><span class="annottext">DieValue -&gt; Maybe DieValue
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span>
+</span><span id="line-92"></span><span>
+</span><span id="line-93"></span><span class="hs-comment">-- | Convert a 'ComplexDomino' value to a unicode character rendering the domino</span><span>
+</span><span id="line-94"></span><span class="hs-comment">-- value /vertically/.</span><span>
+</span><span id="line-95"></span><span class="annot"><a href="Data.Char.Domino.html#dominoV"><span class="hs-identifier hs-type">dominoV</span></a></span><span>
+</span><span id="line-96"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Char.Domino.html#ComplexDomino"><span class="hs-identifier hs-type">ComplexDomino</span></a></span><span> </span><span class="hs-comment">-- ^ The 'ComplexDomino' object to render vertically.</span><span>
+</span><span id="line-97"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span> </span><span class="hs-comment">-- ^ The unicode character that represents the given 'ComplexDomino' value in a vertical manner.</span><span>
+</span><span id="line-98"></span><span id="dominoV"><span class="annot"><span class="annottext">dominoV :: ComplexDomino -&gt; Char
+</span><a href="Data.Char.Domino.html#dominoV"><span class="hs-identifier hs-var hs-var">dominoV</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; ComplexDomino -&gt; Char
+</span><a href="Data.Char.Domino.html#_domino"><span class="hs-identifier hs-var">_domino</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0x1f062</span></span><span>
+</span><span id="line-99"></span><span>
+</span><span id="line-100"></span><span class="hs-comment">-- | Convert a 'SimpleDomino' value to a unicode character rendering the domino</span><span>
+</span><span id="line-101"></span><span class="hs-comment">-- value /vertically/.</span><span>
+</span><span id="line-102"></span><span class="annot"><a href="Data.Char.Domino.html#dominoV%27"><span class="hs-identifier hs-type">dominoV'</span></a></span><span>
+</span><span id="line-103"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Char.Domino.html#SimpleDomino"><span class="hs-identifier hs-type">SimpleDomino</span></a></span><span> </span><span class="hs-comment">-- ^ The 'SimpleDomino' object to render vertically.</span><span>
+</span><span id="line-104"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span> </span><span class="hs-comment">-- ^ The unicode character that represents the given 'SimpleDomino' value in vertical manner.</span><span>
+</span><span id="line-105"></span><span id="dominoV%27"><span class="annot"><span class="annottext">dominoV' :: SimpleDomino -&gt; Char
+</span><a href="Data.Char.Domino.html#dominoV%27"><span class="hs-identifier hs-var hs-var">dominoV'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ComplexDomino -&gt; Char
+</span><a href="Data.Char.Domino.html#dominoV"><span class="hs-identifier hs-var">dominoV</span></a></span><span> </span><span class="annot"><span class="annottext">(ComplexDomino -&gt; Char)
+-&gt; (SimpleDomino -&gt; ComplexDomino) -&gt; SimpleDomino -&gt; Char
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(DieValue -&gt; Maybe DieValue) -&gt; SimpleDomino -&gt; ComplexDomino
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="annot"><span class="annottext">DieValue -&gt; Maybe DieValue
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span>
+</span><span id="line-106"></span><span>
+</span><span id="line-107"></span><span class="hs-comment">-- | Convert an 'OrientedDomino' to its unicode equivalent, where the sides of</span><span>
+</span><span id="line-108"></span><span class="hs-comment">-- the domino can be empty.</span><span>
+</span><span id="line-109"></span><span class="annot"><a href="Data.Char.Domino.html#domino"><span class="hs-identifier hs-type">domino</span></a></span><span>
+</span><span id="line-110"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Char.Domino.html#OrientedDomino"><span class="hs-identifier hs-type">OrientedDomino</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Data.Char.Dice.html#DieValue"><span class="hs-identifier hs-type">DieValue</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-comment">-- ^ The 'OrientedDomino' to render.</span><span>
+</span><span id="line-111"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span> </span><span class="hs-comment">-- ^ The unicode characters that represents the 'OrientedDomino' value.</span><span>
+</span><span id="line-112"></span><span id="domino"><span class="annot"><span class="annottext">domino :: OrientedDomino (Maybe DieValue) -&gt; Char
+</span><a href="Data.Char.Domino.html#domino"><span class="hs-identifier hs-var hs-var">domino</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Char.Core.html#Oriented"><span class="hs-identifier hs-type">Oriented</span></a></span><span> </span><span id="local-6989586621679102726"><span class="annot"><span class="annottext">ComplexDomino
+</span><a href="#local-6989586621679102726"><span class="hs-identifier hs-var">d</span></a></span></span><span> </span><span class="annot"><span class="annottext">Orientation
+</span><a href="Data.Char.Core.html#Horizontal"><span class="hs-identifier hs-var">Horizontal</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ComplexDomino -&gt; Char
+</span><a href="Data.Char.Domino.html#dominoH"><span class="hs-identifier hs-var">dominoH</span></a></span><span> </span><span class="annot"><span class="annottext">ComplexDomino
+</span><a href="#local-6989586621679102726"><span class="hs-identifier hs-var">d</span></a></span><span>
+</span><span id="line-113"></span><span class="annot"><a href="Data.Char.Domino.html#domino"><span class="hs-identifier hs-var">domino</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Char.Core.html#Oriented"><span class="hs-identifier hs-type">Oriented</span></a></span><span> </span><span id="local-6989586621679102725"><span class="annot"><span class="annottext">ComplexDomino
+</span><a href="#local-6989586621679102725"><span class="hs-identifier hs-var">d</span></a></span></span><span> </span><span class="annot"><span class="annottext">Orientation
+</span><a href="Data.Char.Core.html#Vertical"><span class="hs-identifier hs-var">Vertical</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ComplexDomino -&gt; Char
+</span><a href="Data.Char.Domino.html#dominoV"><span class="hs-identifier hs-var">dominoV</span></a></span><span> </span><span class="annot"><span class="annottext">ComplexDomino
+</span><a href="#local-6989586621679102725"><span class="hs-identifier hs-var">d</span></a></span><span>
+</span><span id="line-114"></span><span>
+</span><span id="line-115"></span><span class="hs-comment">-- | Convert an 'OrientedDomino' to its unicode equivalent, where the sides of</span><span>
+</span><span id="line-116"></span><span class="hs-comment">-- the domino can /not/ be empty.</span><span>
+</span><span id="line-117"></span><span class="annot"><a href="Data.Char.Domino.html#domino%27"><span class="hs-identifier hs-type">domino'</span></a></span><span>
+</span><span id="line-118"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Char.Domino.html#OrientedDomino"><span class="hs-identifier hs-type">OrientedDomino</span></a></span><span> </span><span class="annot"><a href="Data.Char.Dice.html#DieValue"><span class="hs-identifier hs-type">DieValue</span></a></span><span> </span><span class="hs-comment">-- ^ The 'OrientedDomino' to render.</span><span>
+</span><span id="line-119"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span> </span><span class="hs-comment">-- ^ The unicode characters that represents the 'OrientedDomino' value.</span><span>
+</span><span id="line-120"></span><span id="domino%27"><span class="annot"><span class="annottext">domino' :: OrientedDomino DieValue -&gt; Char
+</span><a href="Data.Char.Domino.html#domino%27"><span class="hs-identifier hs-var hs-var">domino'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">OrientedDomino (Maybe DieValue) -&gt; Char
+</span><a href="Data.Char.Domino.html#domino"><span class="hs-identifier hs-var">domino</span></a></span><span> </span><span class="annot"><span class="annottext">(OrientedDomino (Maybe DieValue) -&gt; Char)
+-&gt; (OrientedDomino DieValue -&gt; OrientedDomino (Maybe DieValue))
+-&gt; OrientedDomino DieValue
+-&gt; Char
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(SimpleDomino -&gt; ComplexDomino)
+-&gt; OrientedDomino DieValue -&gt; OrientedDomino (Maybe DieValue)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(DieValue -&gt; Maybe DieValue) -&gt; SimpleDomino -&gt; ComplexDomino
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="annot"><span class="annottext">DieValue -&gt; Maybe DieValue
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span class="hs-special">)</span><span>
+</span><span id="line-121"></span></pre></body></html>

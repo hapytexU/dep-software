@@ -1,0 +1,714 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DeriveTraversable, Safe #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-comment">{-|
+Module      : Data.Char.Braille
+Description : A module used to render Braille characters in unicode.
+Maintainer  : hapytexeu+gh@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+Unicode has a Braille segment for Braille with six dot cells, and a segment for Braille with eight dot cells, this module aims to make it more convenient to render such characters.
+-}</span><span>
+</span><span id="line-12"></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Data.Char.Braille</span><span class="hs-special">(</span><span>
+</span><span id="line-14"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Datastructures to store the state of the Braille character.</span></span><span>
+</span><span id="line-15"></span><span>    </span><span class="annot"><a href="Data.Char.Braille.html#Braille6"><span class="hs-identifier">Braille6</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Data.Char.Braille.html#Braille6"><span class="hs-identifier">Braille6</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Braille.html#top"><span class="hs-identifier">top</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Braille.html#middle"><span class="hs-identifier">middle</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Braille.html#bottom"><span class="hs-identifier">bottom</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-16"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Braille.html#Braille"><span class="hs-identifier">Braille</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Data.Char.Braille.html#Braille"><span class="hs-identifier">Braille</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Braille.html#row1"><span class="hs-identifier">row1</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Braille.html#row2"><span class="hs-identifier">row2</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Braille.html#row3"><span class="hs-identifier">row3</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Braille.html#row4"><span class="hs-identifier">row4</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-17"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Converting 'Braille6' to 'Braille'</span></span><span>
+</span><span id="line-18"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Braille.html#toBraille%27"><span class="hs-identifier">toBraille'</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Braille.html#toBraille"><span class="hs-identifier">toBraille</span></a></span><span>
+</span><span id="line-19"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Rendering Braille characters.</span></span><span>
+</span><span id="line-20"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Braille.html#braille6"><span class="hs-identifier">braille6</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Braille.html#braille"><span class="hs-identifier">braille</span></a></span><span>
+</span><span id="line-21"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-22"></span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Bits</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-operator">(.|.)</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">shiftL</span></span><span class="hs-special">)</span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Bool</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">bool</span></span><span class="hs-special">)</span><span>
+</span><span id="line-25"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Char</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">chr</span></span><span class="hs-special">)</span><span>
+</span><span id="line-26"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Data.Char.Block.html"><span class="hs-identifier">Data.Char.Block</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Data.Char.Block.html#Row"><span class="hs-identifier">Row</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Data.Char.Block.html#Row"><span class="hs-identifier">Row</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-27"></span><span>
+</span><span id="line-28"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Test.QuickCheck.Arbitrary</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Arbitrary</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">arbitrary</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">Arbitrary1</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">liftArbitrary</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">arbitrary1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-29"></span><span>
+</span><span id="line-30"></span><span class="hs-comment">-- | A datastructure to render Braille patterns with six dots cells.</span><span>
+</span><span id="line-31"></span><span class="hs-keyword">data</span><span> </span><span id="Braille6"><span class="annot"><a href="Data.Char.Braille.html#Braille6"><span class="hs-identifier hs-var">Braille6</span></a></span></span><span> </span><span id="local-6989586621679098277"><span class="annot"><a href="#local-6989586621679098277"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="Braille6"><span class="annot"><a href="Data.Char.Braille.html#Braille6"><span class="hs-identifier hs-var">Braille6</span></a></span></span><span> </span><span class="hs-special">{</span><span>
+</span><span id="line-32"></span><span>    </span><span id="top"><span class="annot"><span class="annottext">Braille6 a -&gt; Row a
+</span><a href="Data.Char.Braille.html#top"><span class="hs-identifier hs-var hs-var">top</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Char.Block.html#Row"><span class="hs-identifier hs-type">Row</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679098277"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-comment">-- ^ The state of the top row of the Braille character.</span><span>
+</span><span id="line-33"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="middle"><span class="annot"><span class="annottext">Braille6 a -&gt; Row a
+</span><a href="Data.Char.Braille.html#middle"><span class="hs-identifier hs-var hs-var">middle</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Char.Block.html#Row"><span class="hs-identifier hs-type">Row</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679098277"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-comment">-- ^ The state of the middle row of the Braille character.</span><span>
+</span><span id="line-34"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="bottom"><span class="annot"><span class="annottext">Braille6 a -&gt; Row a
+</span><a href="Data.Char.Braille.html#bottom"><span class="hs-identifier hs-var hs-var">bottom</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Char.Block.html#Row"><span class="hs-identifier hs-type">Row</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679098277"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-comment">-- ^ The state of the bottom row of the Braille character.</span><span>
+</span><span id="line-35"></span><span>  </span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679098237"><span id="local-6989586621679098239"><span class="annot"><span class="annottext">Braille6 a -&gt; Braille6 a -&gt; Bool
+(Braille6 a -&gt; Braille6 a -&gt; Bool)
+-&gt; (Braille6 a -&gt; Braille6 a -&gt; Bool) -&gt; Eq (Braille6 a)
+forall a. Eq a =&gt; Braille6 a -&gt; Braille6 a -&gt; Bool
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: Braille6 a -&gt; Braille6 a -&gt; Bool
+$c/= :: forall a. Eq a =&gt; Braille6 a -&gt; Braille6 a -&gt; Bool
+== :: Braille6 a -&gt; Braille6 a -&gt; Bool
+$c== :: forall a. Eq a =&gt; Braille6 a -&gt; Braille6 a -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679098202"><span id="local-6989586621679098204"><span id="local-6989586621679098206"><span id="local-6989586621679098208"><span id="local-6989586621679098210"><span id="local-6989586621679098212"><span id="local-6989586621679098214"><span id="local-6989586621679098216"><span id="local-6989586621679098218"><span id="local-6989586621679098220"><span id="local-6989586621679098222"><span id="local-6989586621679098224"><span id="local-6989586621679098226"><span id="local-6989586621679098228"><span id="local-6989586621679098230"><span id="local-6989586621679098232"><span id="local-6989586621679098234"><span class="annot"><span class="annottext">Braille6 a -&gt; Bool
+(a -&gt; m) -&gt; Braille6 a -&gt; m
+(a -&gt; b -&gt; b) -&gt; b -&gt; Braille6 a -&gt; b
+(forall m. Monoid m =&gt; Braille6 m -&gt; m)
+-&gt; (forall m a. Monoid m =&gt; (a -&gt; m) -&gt; Braille6 a -&gt; m)
+-&gt; (forall m a. Monoid m =&gt; (a -&gt; m) -&gt; Braille6 a -&gt; m)
+-&gt; (forall a b. (a -&gt; b -&gt; b) -&gt; b -&gt; Braille6 a -&gt; b)
+-&gt; (forall a b. (a -&gt; b -&gt; b) -&gt; b -&gt; Braille6 a -&gt; b)
+-&gt; (forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; Braille6 a -&gt; b)
+-&gt; (forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; Braille6 a -&gt; b)
+-&gt; (forall a. (a -&gt; a -&gt; a) -&gt; Braille6 a -&gt; a)
+-&gt; (forall a. (a -&gt; a -&gt; a) -&gt; Braille6 a -&gt; a)
+-&gt; (forall a. Braille6 a -&gt; [a])
+-&gt; (forall a. Braille6 a -&gt; Bool)
+-&gt; (forall a. Braille6 a -&gt; Int)
+-&gt; (forall a. Eq a =&gt; a -&gt; Braille6 a -&gt; Bool)
+-&gt; (forall a. Ord a =&gt; Braille6 a -&gt; a)
+-&gt; (forall a. Ord a =&gt; Braille6 a -&gt; a)
+-&gt; (forall a. Num a =&gt; Braille6 a -&gt; a)
+-&gt; (forall a. Num a =&gt; Braille6 a -&gt; a)
+-&gt; Foldable Braille6
+forall a. Eq a =&gt; a -&gt; Braille6 a -&gt; Bool
+forall a. Num a =&gt; Braille6 a -&gt; a
+forall a. Ord a =&gt; Braille6 a -&gt; a
+forall m. Monoid m =&gt; Braille6 m -&gt; m
+forall a. Braille6 a -&gt; Bool
+forall a. Braille6 a -&gt; Int
+forall a. Braille6 a -&gt; [a]
+forall a. (a -&gt; a -&gt; a) -&gt; Braille6 a -&gt; a
+forall m a. Monoid m =&gt; (a -&gt; m) -&gt; Braille6 a -&gt; m
+forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; Braille6 a -&gt; b
+forall a b. (a -&gt; b -&gt; b) -&gt; b -&gt; Braille6 a -&gt; b
+forall (t :: * -&gt; *).
+(forall m. Monoid m =&gt; t m -&gt; m)
+-&gt; (forall m a. Monoid m =&gt; (a -&gt; m) -&gt; t a -&gt; m)
+-&gt; (forall m a. Monoid m =&gt; (a -&gt; m) -&gt; t a -&gt; m)
+-&gt; (forall a b. (a -&gt; b -&gt; b) -&gt; b -&gt; t a -&gt; b)
+-&gt; (forall a b. (a -&gt; b -&gt; b) -&gt; b -&gt; t a -&gt; b)
+-&gt; (forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b)
+-&gt; (forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b)
+-&gt; (forall a. (a -&gt; a -&gt; a) -&gt; t a -&gt; a)
+-&gt; (forall a. (a -&gt; a -&gt; a) -&gt; t a -&gt; a)
+-&gt; (forall a. t a -&gt; [a])
+-&gt; (forall a. t a -&gt; Bool)
+-&gt; (forall a. t a -&gt; Int)
+-&gt; (forall a. Eq a =&gt; a -&gt; t a -&gt; Bool)
+-&gt; (forall a. Ord a =&gt; t a -&gt; a)
+-&gt; (forall a. Ord a =&gt; t a -&gt; a)
+-&gt; (forall a. Num a =&gt; t a -&gt; a)
+-&gt; (forall a. Num a =&gt; t a -&gt; a)
+-&gt; Foldable t
+product :: Braille6 a -&gt; a
+$cproduct :: forall a. Num a =&gt; Braille6 a -&gt; a
+sum :: Braille6 a -&gt; a
+$csum :: forall a. Num a =&gt; Braille6 a -&gt; a
+minimum :: Braille6 a -&gt; a
+$cminimum :: forall a. Ord a =&gt; Braille6 a -&gt; a
+maximum :: Braille6 a -&gt; a
+$cmaximum :: forall a. Ord a =&gt; Braille6 a -&gt; a
+elem :: a -&gt; Braille6 a -&gt; Bool
+$celem :: forall a. Eq a =&gt; a -&gt; Braille6 a -&gt; Bool
+length :: Braille6 a -&gt; Int
+$clength :: forall a. Braille6 a -&gt; Int
+null :: Braille6 a -&gt; Bool
+$cnull :: forall a. Braille6 a -&gt; Bool
+toList :: Braille6 a -&gt; [a]
+$ctoList :: forall a. Braille6 a -&gt; [a]
+foldl1 :: (a -&gt; a -&gt; a) -&gt; Braille6 a -&gt; a
+$cfoldl1 :: forall a. (a -&gt; a -&gt; a) -&gt; Braille6 a -&gt; a
+foldr1 :: (a -&gt; a -&gt; a) -&gt; Braille6 a -&gt; a
+$cfoldr1 :: forall a. (a -&gt; a -&gt; a) -&gt; Braille6 a -&gt; a
+foldl' :: (b -&gt; a -&gt; b) -&gt; b -&gt; Braille6 a -&gt; b
+$cfoldl' :: forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; Braille6 a -&gt; b
+foldl :: (b -&gt; a -&gt; b) -&gt; b -&gt; Braille6 a -&gt; b
+$cfoldl :: forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; Braille6 a -&gt; b
+foldr' :: (a -&gt; b -&gt; b) -&gt; b -&gt; Braille6 a -&gt; b
+$cfoldr' :: forall a b. (a -&gt; b -&gt; b) -&gt; b -&gt; Braille6 a -&gt; b
+foldr :: (a -&gt; b -&gt; b) -&gt; b -&gt; Braille6 a -&gt; b
+$cfoldr :: forall a b. (a -&gt; b -&gt; b) -&gt; b -&gt; Braille6 a -&gt; b
+foldMap' :: (a -&gt; m) -&gt; Braille6 a -&gt; m
+$cfoldMap' :: forall m a. Monoid m =&gt; (a -&gt; m) -&gt; Braille6 a -&gt; m
+foldMap :: (a -&gt; m) -&gt; Braille6 a -&gt; m
+$cfoldMap :: forall m a. Monoid m =&gt; (a -&gt; m) -&gt; Braille6 a -&gt; m
+fold :: Braille6 m -&gt; m
+$cfold :: forall m. Monoid m =&gt; Braille6 m -&gt; m
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Foldable</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679098197"><span id="local-6989586621679098199"><span class="annot"><span class="annottext">a -&gt; Braille6 b -&gt; Braille6 a
+(a -&gt; b) -&gt; Braille6 a -&gt; Braille6 b
+(forall a b. (a -&gt; b) -&gt; Braille6 a -&gt; Braille6 b)
+-&gt; (forall a b. a -&gt; Braille6 b -&gt; Braille6 a) -&gt; Functor Braille6
+forall a b. a -&gt; Braille6 b -&gt; Braille6 a
+forall a b. (a -&gt; b) -&gt; Braille6 a -&gt; Braille6 b
+forall (f :: * -&gt; *).
+(forall a b. (a -&gt; b) -&gt; f a -&gt; f b)
+-&gt; (forall a b. a -&gt; f b -&gt; f a) -&gt; Functor f
+&lt;$ :: a -&gt; Braille6 b -&gt; Braille6 a
+$c&lt;$ :: forall a b. a -&gt; Braille6 b -&gt; Braille6 a
+fmap :: (a -&gt; b) -&gt; Braille6 a -&gt; Braille6 b
+$cfmap :: forall a b. (a -&gt; b) -&gt; Braille6 a -&gt; Braille6 b
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Functor</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679098181"><span id="local-6989586621679098183"><span id="local-6989586621679098185"><span id="local-6989586621679098187"><span id="local-6989586621679098189"><span id="local-6989586621679098191"><span id="local-6989586621679098193"><span class="annot"><span class="annottext">Eq (Braille6 a)
+Eq (Braille6 a)
+-&gt; (Braille6 a -&gt; Braille6 a -&gt; Ordering)
+-&gt; (Braille6 a -&gt; Braille6 a -&gt; Bool)
+-&gt; (Braille6 a -&gt; Braille6 a -&gt; Bool)
+-&gt; (Braille6 a -&gt; Braille6 a -&gt; Bool)
+-&gt; (Braille6 a -&gt; Braille6 a -&gt; Bool)
+-&gt; (Braille6 a -&gt; Braille6 a -&gt; Braille6 a)
+-&gt; (Braille6 a -&gt; Braille6 a -&gt; Braille6 a)
+-&gt; Ord (Braille6 a)
+Braille6 a -&gt; Braille6 a -&gt; Bool
+Braille6 a -&gt; Braille6 a -&gt; Ordering
+Braille6 a -&gt; Braille6 a -&gt; Braille6 a
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+forall a. Ord a =&gt; Eq (Braille6 a)
+forall a. Ord a =&gt; Braille6 a -&gt; Braille6 a -&gt; Bool
+forall a. Ord a =&gt; Braille6 a -&gt; Braille6 a -&gt; Ordering
+forall a. Ord a =&gt; Braille6 a -&gt; Braille6 a -&gt; Braille6 a
+min :: Braille6 a -&gt; Braille6 a -&gt; Braille6 a
+$cmin :: forall a. Ord a =&gt; Braille6 a -&gt; Braille6 a -&gt; Braille6 a
+max :: Braille6 a -&gt; Braille6 a -&gt; Braille6 a
+$cmax :: forall a. Ord a =&gt; Braille6 a -&gt; Braille6 a -&gt; Braille6 a
+&gt;= :: Braille6 a -&gt; Braille6 a -&gt; Bool
+$c&gt;= :: forall a. Ord a =&gt; Braille6 a -&gt; Braille6 a -&gt; Bool
+&gt; :: Braille6 a -&gt; Braille6 a -&gt; Bool
+$c&gt; :: forall a. Ord a =&gt; Braille6 a -&gt; Braille6 a -&gt; Bool
+&lt;= :: Braille6 a -&gt; Braille6 a -&gt; Bool
+$c&lt;= :: forall a. Ord a =&gt; Braille6 a -&gt; Braille6 a -&gt; Bool
+&lt; :: Braille6 a -&gt; Braille6 a -&gt; Bool
+$c&lt; :: forall a. Ord a =&gt; Braille6 a -&gt; Braille6 a -&gt; Bool
+compare :: Braille6 a -&gt; Braille6 a -&gt; Ordering
+$ccompare :: forall a. Ord a =&gt; Braille6 a -&gt; Braille6 a -&gt; Ordering
+$cp1Ord :: forall a. Ord a =&gt; Eq (Braille6 a)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679098172"><span id="local-6989586621679098174"><span id="local-6989586621679098176"><span id="local-6989586621679098178"><span class="annot"><span class="annottext">ReadPrec [Braille6 a]
+ReadPrec (Braille6 a)
+Int -&gt; ReadS (Braille6 a)
+ReadS [Braille6 a]
+(Int -&gt; ReadS (Braille6 a))
+-&gt; ReadS [Braille6 a]
+-&gt; ReadPrec (Braille6 a)
+-&gt; ReadPrec [Braille6 a]
+-&gt; Read (Braille6 a)
+forall a. Read a =&gt; ReadPrec [Braille6 a]
+forall a. Read a =&gt; ReadPrec (Braille6 a)
+forall a. Read a =&gt; Int -&gt; ReadS (Braille6 a)
+forall a. Read a =&gt; ReadS [Braille6 a]
+forall a.
+(Int -&gt; ReadS a)
+-&gt; ReadS [a] -&gt; ReadPrec a -&gt; ReadPrec [a] -&gt; Read a
+readListPrec :: ReadPrec [Braille6 a]
+$creadListPrec :: forall a. Read a =&gt; ReadPrec [Braille6 a]
+readPrec :: ReadPrec (Braille6 a)
+$creadPrec :: forall a. Read a =&gt; ReadPrec (Braille6 a)
+readList :: ReadS [Braille6 a]
+$creadList :: forall a. Read a =&gt; ReadS [Braille6 a]
+readsPrec :: Int -&gt; ReadS (Braille6 a)
+$creadsPrec :: forall a. Read a =&gt; Int -&gt; ReadS (Braille6 a)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Read</span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679098165"><span id="local-6989586621679098167"><span id="local-6989586621679098169"><span class="annot"><span class="annottext">Int -&gt; Braille6 a -&gt; ShowS
+[Braille6 a] -&gt; ShowS
+Braille6 a -&gt; String
+(Int -&gt; Braille6 a -&gt; ShowS)
+-&gt; (Braille6 a -&gt; String)
+-&gt; ([Braille6 a] -&gt; ShowS)
+-&gt; Show (Braille6 a)
+forall a. Show a =&gt; Int -&gt; Braille6 a -&gt; ShowS
+forall a. Show a =&gt; [Braille6 a] -&gt; ShowS
+forall a. Show a =&gt; Braille6 a -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [Braille6 a] -&gt; ShowS
+$cshowList :: forall a. Show a =&gt; [Braille6 a] -&gt; ShowS
+show :: Braille6 a -&gt; String
+$cshow :: forall a. Show a =&gt; Braille6 a -&gt; String
+showsPrec :: Int -&gt; Braille6 a -&gt; ShowS
+$cshowsPrec :: forall a. Show a =&gt; Int -&gt; Braille6 a -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679098154"><span id="local-6989586621679098156"><span id="local-6989586621679098158"><span id="local-6989586621679098160"><span class="annot"><span class="annottext">Functor Braille6
+Foldable Braille6
+Functor Braille6
+-&gt; Foldable Braille6
+-&gt; (forall (f :: * -&gt; *) a b.
+    Applicative f =&gt;
+    (a -&gt; f b) -&gt; Braille6 a -&gt; f (Braille6 b))
+-&gt; (forall (f :: * -&gt; *) a.
+    Applicative f =&gt;
+    Braille6 (f a) -&gt; f (Braille6 a))
+-&gt; (forall (m :: * -&gt; *) a b.
+    Monad m =&gt;
+    (a -&gt; m b) -&gt; Braille6 a -&gt; m (Braille6 b))
+-&gt; (forall (m :: * -&gt; *) a.
+    Monad m =&gt;
+    Braille6 (m a) -&gt; m (Braille6 a))
+-&gt; Traversable Braille6
+(a -&gt; f b) -&gt; Braille6 a -&gt; f (Braille6 b)
+forall (t :: * -&gt; *).
+Functor t
+-&gt; Foldable t
+-&gt; (forall (f :: * -&gt; *) a b.
+    Applicative f =&gt;
+    (a -&gt; f b) -&gt; t a -&gt; f (t b))
+-&gt; (forall (f :: * -&gt; *) a. Applicative f =&gt; t (f a) -&gt; f (t a))
+-&gt; (forall (m :: * -&gt; *) a b.
+    Monad m =&gt;
+    (a -&gt; m b) -&gt; t a -&gt; m (t b))
+-&gt; (forall (m :: * -&gt; *) a. Monad m =&gt; t (m a) -&gt; m (t a))
+-&gt; Traversable t
+forall (m :: * -&gt; *) a. Monad m =&gt; Braille6 (m a) -&gt; m (Braille6 a)
+forall (f :: * -&gt; *) a.
+Applicative f =&gt;
+Braille6 (f a) -&gt; f (Braille6 a)
+forall (m :: * -&gt; *) a b.
+Monad m =&gt;
+(a -&gt; m b) -&gt; Braille6 a -&gt; m (Braille6 b)
+forall (f :: * -&gt; *) a b.
+Applicative f =&gt;
+(a -&gt; f b) -&gt; Braille6 a -&gt; f (Braille6 b)
+sequence :: Braille6 (m a) -&gt; m (Braille6 a)
+$csequence :: forall (m :: * -&gt; *) a. Monad m =&gt; Braille6 (m a) -&gt; m (Braille6 a)
+mapM :: (a -&gt; m b) -&gt; Braille6 a -&gt; m (Braille6 b)
+$cmapM :: forall (m :: * -&gt; *) a b.
+Monad m =&gt;
+(a -&gt; m b) -&gt; Braille6 a -&gt; m (Braille6 b)
+sequenceA :: Braille6 (f a) -&gt; f (Braille6 a)
+$csequenceA :: forall (f :: * -&gt; *) a.
+Applicative f =&gt;
+Braille6 (f a) -&gt; f (Braille6 a)
+traverse :: (a -&gt; f b) -&gt; Braille6 a -&gt; f (Braille6 b)
+$ctraverse :: forall (f :: * -&gt; *) a b.
+Applicative f =&gt;
+(a -&gt; f b) -&gt; Braille6 a -&gt; f (Braille6 b)
+$cp2Traversable :: Foldable Braille6
+$cp1Traversable :: Functor Braille6
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Traversable</span></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-36"></span><span>
+</span><span id="line-37"></span><span class="hs-comment">-- | A datastructure to render Braille patterns with eight dots cells.</span><span>
+</span><span id="line-38"></span><span class="hs-keyword">data</span><span> </span><span id="Braille"><span class="annot"><a href="Data.Char.Braille.html#Braille"><span class="hs-identifier hs-var">Braille</span></a></span></span><span> </span><span id="local-6989586621679098292"><span class="annot"><a href="#local-6989586621679098292"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="Braille"><span class="annot"><a href="Data.Char.Braille.html#Braille"><span class="hs-identifier hs-var">Braille</span></a></span></span><span> </span><span class="hs-special">{</span><span>
+</span><span id="line-39"></span><span>    </span><span id="row1"><span class="annot"><span class="annottext">Braille a -&gt; Row a
+</span><a href="Data.Char.Braille.html#row1"><span class="hs-identifier hs-var hs-var">row1</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Char.Block.html#Row"><span class="hs-identifier hs-type">Row</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679098292"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-comment">-- ^ The state of the top row of the Braille character.</span><span>
+</span><span id="line-40"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="row2"><span class="annot"><span class="annottext">Braille a -&gt; Row a
+</span><a href="Data.Char.Braille.html#row2"><span class="hs-identifier hs-var hs-var">row2</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Char.Block.html#Row"><span class="hs-identifier hs-type">Row</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679098292"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-comment">-- ^ The state of the second row of the Braille character.</span><span>
+</span><span id="line-41"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="row3"><span class="annot"><span class="annottext">Braille a -&gt; Row a
+</span><a href="Data.Char.Braille.html#row3"><span class="hs-identifier hs-var hs-var">row3</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Char.Block.html#Row"><span class="hs-identifier hs-type">Row</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679098292"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-comment">-- ^ The state of the third row of the Braille character.</span><span>
+</span><span id="line-42"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="row4"><span class="annot"><span class="annottext">Braille a -&gt; Row a
+</span><a href="Data.Char.Braille.html#row4"><span class="hs-identifier hs-var hs-var">row4</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Char.Block.html#Row"><span class="hs-identifier hs-type">Row</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679098292"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-comment">-- ^ The state of the bottom row of the Braille character.</span><span>
+</span><span id="line-43"></span><span>  </span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679098149"><span id="local-6989586621679098151"><span class="annot"><span class="annottext">Braille a -&gt; Braille a -&gt; Bool
+(Braille a -&gt; Braille a -&gt; Bool)
+-&gt; (Braille a -&gt; Braille a -&gt; Bool) -&gt; Eq (Braille a)
+forall a. Eq a =&gt; Braille a -&gt; Braille a -&gt; Bool
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: Braille a -&gt; Braille a -&gt; Bool
+$c/= :: forall a. Eq a =&gt; Braille a -&gt; Braille a -&gt; Bool
+== :: Braille a -&gt; Braille a -&gt; Bool
+$c== :: forall a. Eq a =&gt; Braille a -&gt; Braille a -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679098115"><span id="local-6989586621679098117"><span id="local-6989586621679098119"><span id="local-6989586621679098121"><span id="local-6989586621679098123"><span id="local-6989586621679098125"><span id="local-6989586621679098127"><span id="local-6989586621679098129"><span id="local-6989586621679098131"><span id="local-6989586621679098133"><span id="local-6989586621679098135"><span id="local-6989586621679098137"><span id="local-6989586621679098139"><span id="local-6989586621679098141"><span id="local-6989586621679098143"><span id="local-6989586621679098145"><span id="local-6989586621679098147"><span class="annot"><span class="annottext">Braille a -&gt; Bool
+(a -&gt; m) -&gt; Braille a -&gt; m
+(a -&gt; b -&gt; b) -&gt; b -&gt; Braille a -&gt; b
+(forall m. Monoid m =&gt; Braille m -&gt; m)
+-&gt; (forall m a. Monoid m =&gt; (a -&gt; m) -&gt; Braille a -&gt; m)
+-&gt; (forall m a. Monoid m =&gt; (a -&gt; m) -&gt; Braille a -&gt; m)
+-&gt; (forall a b. (a -&gt; b -&gt; b) -&gt; b -&gt; Braille a -&gt; b)
+-&gt; (forall a b. (a -&gt; b -&gt; b) -&gt; b -&gt; Braille a -&gt; b)
+-&gt; (forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; Braille a -&gt; b)
+-&gt; (forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; Braille a -&gt; b)
+-&gt; (forall a. (a -&gt; a -&gt; a) -&gt; Braille a -&gt; a)
+-&gt; (forall a. (a -&gt; a -&gt; a) -&gt; Braille a -&gt; a)
+-&gt; (forall a. Braille a -&gt; [a])
+-&gt; (forall a. Braille a -&gt; Bool)
+-&gt; (forall a. Braille a -&gt; Int)
+-&gt; (forall a. Eq a =&gt; a -&gt; Braille a -&gt; Bool)
+-&gt; (forall a. Ord a =&gt; Braille a -&gt; a)
+-&gt; (forall a. Ord a =&gt; Braille a -&gt; a)
+-&gt; (forall a. Num a =&gt; Braille a -&gt; a)
+-&gt; (forall a. Num a =&gt; Braille a -&gt; a)
+-&gt; Foldable Braille
+forall a. Eq a =&gt; a -&gt; Braille a -&gt; Bool
+forall a. Num a =&gt; Braille a -&gt; a
+forall a. Ord a =&gt; Braille a -&gt; a
+forall m. Monoid m =&gt; Braille m -&gt; m
+forall a. Braille a -&gt; Bool
+forall a. Braille a -&gt; Int
+forall a. Braille a -&gt; [a]
+forall a. (a -&gt; a -&gt; a) -&gt; Braille a -&gt; a
+forall m a. Monoid m =&gt; (a -&gt; m) -&gt; Braille a -&gt; m
+forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; Braille a -&gt; b
+forall a b. (a -&gt; b -&gt; b) -&gt; b -&gt; Braille a -&gt; b
+forall (t :: * -&gt; *).
+(forall m. Monoid m =&gt; t m -&gt; m)
+-&gt; (forall m a. Monoid m =&gt; (a -&gt; m) -&gt; t a -&gt; m)
+-&gt; (forall m a. Monoid m =&gt; (a -&gt; m) -&gt; t a -&gt; m)
+-&gt; (forall a b. (a -&gt; b -&gt; b) -&gt; b -&gt; t a -&gt; b)
+-&gt; (forall a b. (a -&gt; b -&gt; b) -&gt; b -&gt; t a -&gt; b)
+-&gt; (forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b)
+-&gt; (forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b)
+-&gt; (forall a. (a -&gt; a -&gt; a) -&gt; t a -&gt; a)
+-&gt; (forall a. (a -&gt; a -&gt; a) -&gt; t a -&gt; a)
+-&gt; (forall a. t a -&gt; [a])
+-&gt; (forall a. t a -&gt; Bool)
+-&gt; (forall a. t a -&gt; Int)
+-&gt; (forall a. Eq a =&gt; a -&gt; t a -&gt; Bool)
+-&gt; (forall a. Ord a =&gt; t a -&gt; a)
+-&gt; (forall a. Ord a =&gt; t a -&gt; a)
+-&gt; (forall a. Num a =&gt; t a -&gt; a)
+-&gt; (forall a. Num a =&gt; t a -&gt; a)
+-&gt; Foldable t
+product :: Braille a -&gt; a
+$cproduct :: forall a. Num a =&gt; Braille a -&gt; a
+sum :: Braille a -&gt; a
+$csum :: forall a. Num a =&gt; Braille a -&gt; a
+minimum :: Braille a -&gt; a
+$cminimum :: forall a. Ord a =&gt; Braille a -&gt; a
+maximum :: Braille a -&gt; a
+$cmaximum :: forall a. Ord a =&gt; Braille a -&gt; a
+elem :: a -&gt; Braille a -&gt; Bool
+$celem :: forall a. Eq a =&gt; a -&gt; Braille a -&gt; Bool
+length :: Braille a -&gt; Int
+$clength :: forall a. Braille a -&gt; Int
+null :: Braille a -&gt; Bool
+$cnull :: forall a. Braille a -&gt; Bool
+toList :: Braille a -&gt; [a]
+$ctoList :: forall a. Braille a -&gt; [a]
+foldl1 :: (a -&gt; a -&gt; a) -&gt; Braille a -&gt; a
+$cfoldl1 :: forall a. (a -&gt; a -&gt; a) -&gt; Braille a -&gt; a
+foldr1 :: (a -&gt; a -&gt; a) -&gt; Braille a -&gt; a
+$cfoldr1 :: forall a. (a -&gt; a -&gt; a) -&gt; Braille a -&gt; a
+foldl' :: (b -&gt; a -&gt; b) -&gt; b -&gt; Braille a -&gt; b
+$cfoldl' :: forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; Braille a -&gt; b
+foldl :: (b -&gt; a -&gt; b) -&gt; b -&gt; Braille a -&gt; b
+$cfoldl :: forall b a. (b -&gt; a -&gt; b) -&gt; b -&gt; Braille a -&gt; b
+foldr' :: (a -&gt; b -&gt; b) -&gt; b -&gt; Braille a -&gt; b
+$cfoldr' :: forall a b. (a -&gt; b -&gt; b) -&gt; b -&gt; Braille a -&gt; b
+foldr :: (a -&gt; b -&gt; b) -&gt; b -&gt; Braille a -&gt; b
+$cfoldr :: forall a b. (a -&gt; b -&gt; b) -&gt; b -&gt; Braille a -&gt; b
+foldMap' :: (a -&gt; m) -&gt; Braille a -&gt; m
+$cfoldMap' :: forall m a. Monoid m =&gt; (a -&gt; m) -&gt; Braille a -&gt; m
+foldMap :: (a -&gt; m) -&gt; Braille a -&gt; m
+$cfoldMap :: forall m a. Monoid m =&gt; (a -&gt; m) -&gt; Braille a -&gt; m
+fold :: Braille m -&gt; m
+$cfold :: forall m. Monoid m =&gt; Braille m -&gt; m
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Foldable</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679098111"><span id="local-6989586621679098113"><span class="annot"><span class="annottext">a -&gt; Braille b -&gt; Braille a
+(a -&gt; b) -&gt; Braille a -&gt; Braille b
+(forall a b. (a -&gt; b) -&gt; Braille a -&gt; Braille b)
+-&gt; (forall a b. a -&gt; Braille b -&gt; Braille a) -&gt; Functor Braille
+forall a b. a -&gt; Braille b -&gt; Braille a
+forall a b. (a -&gt; b) -&gt; Braille a -&gt; Braille b
+forall (f :: * -&gt; *).
+(forall a b. (a -&gt; b) -&gt; f a -&gt; f b)
+-&gt; (forall a b. a -&gt; f b -&gt; f a) -&gt; Functor f
+&lt;$ :: a -&gt; Braille b -&gt; Braille a
+$c&lt;$ :: forall a b. a -&gt; Braille b -&gt; Braille a
+fmap :: (a -&gt; b) -&gt; Braille a -&gt; Braille b
+$cfmap :: forall a b. (a -&gt; b) -&gt; Braille a -&gt; Braille b
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Functor</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679098096"><span id="local-6989586621679098098"><span id="local-6989586621679098100"><span id="local-6989586621679098102"><span id="local-6989586621679098104"><span id="local-6989586621679098106"><span id="local-6989586621679098108"><span class="annot"><span class="annottext">Eq (Braille a)
+Eq (Braille a)
+-&gt; (Braille a -&gt; Braille a -&gt; Ordering)
+-&gt; (Braille a -&gt; Braille a -&gt; Bool)
+-&gt; (Braille a -&gt; Braille a -&gt; Bool)
+-&gt; (Braille a -&gt; Braille a -&gt; Bool)
+-&gt; (Braille a -&gt; Braille a -&gt; Bool)
+-&gt; (Braille a -&gt; Braille a -&gt; Braille a)
+-&gt; (Braille a -&gt; Braille a -&gt; Braille a)
+-&gt; Ord (Braille a)
+Braille a -&gt; Braille a -&gt; Bool
+Braille a -&gt; Braille a -&gt; Ordering
+Braille a -&gt; Braille a -&gt; Braille a
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+forall a. Ord a =&gt; Eq (Braille a)
+forall a. Ord a =&gt; Braille a -&gt; Braille a -&gt; Bool
+forall a. Ord a =&gt; Braille a -&gt; Braille a -&gt; Ordering
+forall a. Ord a =&gt; Braille a -&gt; Braille a -&gt; Braille a
+min :: Braille a -&gt; Braille a -&gt; Braille a
+$cmin :: forall a. Ord a =&gt; Braille a -&gt; Braille a -&gt; Braille a
+max :: Braille a -&gt; Braille a -&gt; Braille a
+$cmax :: forall a. Ord a =&gt; Braille a -&gt; Braille a -&gt; Braille a
+&gt;= :: Braille a -&gt; Braille a -&gt; Bool
+$c&gt;= :: forall a. Ord a =&gt; Braille a -&gt; Braille a -&gt; Bool
+&gt; :: Braille a -&gt; Braille a -&gt; Bool
+$c&gt; :: forall a. Ord a =&gt; Braille a -&gt; Braille a -&gt; Bool
+&lt;= :: Braille a -&gt; Braille a -&gt; Bool
+$c&lt;= :: forall a. Ord a =&gt; Braille a -&gt; Braille a -&gt; Bool
+&lt; :: Braille a -&gt; Braille a -&gt; Bool
+$c&lt; :: forall a. Ord a =&gt; Braille a -&gt; Braille a -&gt; Bool
+compare :: Braille a -&gt; Braille a -&gt; Ordering
+$ccompare :: forall a. Ord a =&gt; Braille a -&gt; Braille a -&gt; Ordering
+$cp1Ord :: forall a. Ord a =&gt; Eq (Braille a)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679098088"><span id="local-6989586621679098090"><span id="local-6989586621679098092"><span id="local-6989586621679098094"><span class="annot"><span class="annottext">ReadPrec [Braille a]
+ReadPrec (Braille a)
+Int -&gt; ReadS (Braille a)
+ReadS [Braille a]
+(Int -&gt; ReadS (Braille a))
+-&gt; ReadS [Braille a]
+-&gt; ReadPrec (Braille a)
+-&gt; ReadPrec [Braille a]
+-&gt; Read (Braille a)
+forall a. Read a =&gt; ReadPrec [Braille a]
+forall a. Read a =&gt; ReadPrec (Braille a)
+forall a. Read a =&gt; Int -&gt; ReadS (Braille a)
+forall a. Read a =&gt; ReadS [Braille a]
+forall a.
+(Int -&gt; ReadS a)
+-&gt; ReadS [a] -&gt; ReadPrec a -&gt; ReadPrec [a] -&gt; Read a
+readListPrec :: ReadPrec [Braille a]
+$creadListPrec :: forall a. Read a =&gt; ReadPrec [Braille a]
+readPrec :: ReadPrec (Braille a)
+$creadPrec :: forall a. Read a =&gt; ReadPrec (Braille a)
+readList :: ReadS [Braille a]
+$creadList :: forall a. Read a =&gt; ReadS [Braille a]
+readsPrec :: Int -&gt; ReadS (Braille a)
+$creadsPrec :: forall a. Read a =&gt; Int -&gt; ReadS (Braille a)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Read</span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679098082"><span id="local-6989586621679098084"><span id="local-6989586621679098086"><span class="annot"><span class="annottext">Int -&gt; Braille a -&gt; ShowS
+[Braille a] -&gt; ShowS
+Braille a -&gt; String
+(Int -&gt; Braille a -&gt; ShowS)
+-&gt; (Braille a -&gt; String)
+-&gt; ([Braille a] -&gt; ShowS)
+-&gt; Show (Braille a)
+forall a. Show a =&gt; Int -&gt; Braille a -&gt; ShowS
+forall a. Show a =&gt; [Braille a] -&gt; ShowS
+forall a. Show a =&gt; Braille a -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [Braille a] -&gt; ShowS
+$cshowList :: forall a. Show a =&gt; [Braille a] -&gt; ShowS
+show :: Braille a -&gt; String
+$cshow :: forall a. Show a =&gt; Braille a -&gt; String
+showsPrec :: Int -&gt; Braille a -&gt; ShowS
+$cshowsPrec :: forall a. Show a =&gt; Int -&gt; Braille a -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679098072"><span id="local-6989586621679098074"><span id="local-6989586621679098076"><span id="local-6989586621679098078"><span class="annot"><span class="annottext">Functor Braille
+Foldable Braille
+Functor Braille
+-&gt; Foldable Braille
+-&gt; (forall (f :: * -&gt; *) a b.
+    Applicative f =&gt;
+    (a -&gt; f b) -&gt; Braille a -&gt; f (Braille b))
+-&gt; (forall (f :: * -&gt; *) a.
+    Applicative f =&gt;
+    Braille (f a) -&gt; f (Braille a))
+-&gt; (forall (m :: * -&gt; *) a b.
+    Monad m =&gt;
+    (a -&gt; m b) -&gt; Braille a -&gt; m (Braille b))
+-&gt; (forall (m :: * -&gt; *) a.
+    Monad m =&gt;
+    Braille (m a) -&gt; m (Braille a))
+-&gt; Traversable Braille
+(a -&gt; f b) -&gt; Braille a -&gt; f (Braille b)
+forall (t :: * -&gt; *).
+Functor t
+-&gt; Foldable t
+-&gt; (forall (f :: * -&gt; *) a b.
+    Applicative f =&gt;
+    (a -&gt; f b) -&gt; t a -&gt; f (t b))
+-&gt; (forall (f :: * -&gt; *) a. Applicative f =&gt; t (f a) -&gt; f (t a))
+-&gt; (forall (m :: * -&gt; *) a b.
+    Monad m =&gt;
+    (a -&gt; m b) -&gt; t a -&gt; m (t b))
+-&gt; (forall (m :: * -&gt; *) a. Monad m =&gt; t (m a) -&gt; m (t a))
+-&gt; Traversable t
+forall (m :: * -&gt; *) a. Monad m =&gt; Braille (m a) -&gt; m (Braille a)
+forall (f :: * -&gt; *) a.
+Applicative f =&gt;
+Braille (f a) -&gt; f (Braille a)
+forall (m :: * -&gt; *) a b.
+Monad m =&gt;
+(a -&gt; m b) -&gt; Braille a -&gt; m (Braille b)
+forall (f :: * -&gt; *) a b.
+Applicative f =&gt;
+(a -&gt; f b) -&gt; Braille a -&gt; f (Braille b)
+sequence :: Braille (m a) -&gt; m (Braille a)
+$csequence :: forall (m :: * -&gt; *) a. Monad m =&gt; Braille (m a) -&gt; m (Braille a)
+mapM :: (a -&gt; m b) -&gt; Braille a -&gt; m (Braille b)
+$cmapM :: forall (m :: * -&gt; *) a b.
+Monad m =&gt;
+(a -&gt; m b) -&gt; Braille a -&gt; m (Braille b)
+sequenceA :: Braille (f a) -&gt; f (Braille a)
+$csequenceA :: forall (f :: * -&gt; *) a.
+Applicative f =&gt;
+Braille (f a) -&gt; f (Braille a)
+traverse :: (a -&gt; f b) -&gt; Braille a -&gt; f (Braille b)
+$ctraverse :: forall (f :: * -&gt; *) a b.
+Applicative f =&gt;
+(a -&gt; f b) -&gt; Braille a -&gt; f (Braille b)
+$cp2Traversable :: Foldable Braille
+$cp1Traversable :: Functor Braille
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Traversable</span></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-44"></span><span>
+</span><span id="line-45"></span><span class="hs-comment">-- | Convert a 'Braille6' value to a 'Braille' character, by putting in a given</span><span>
+</span><span id="line-46"></span><span class="hs-comment">-- value at the two values at the bottom row.</span><span>
+</span><span id="line-47"></span><span id="local-6989586621679098290"><span class="annot"><a href="Data.Char.Braille.html#toBraille%27"><span class="hs-identifier hs-type">toBraille'</span></a></span><span>
+</span><span id="line-48"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679098290"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-comment">-- ^ The value to put in the cells of the bottom row.</span><span>
+</span><span id="line-49"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.Char.Braille.html#Braille6"><span class="hs-identifier hs-type">Braille6</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679098290"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-comment">-- ^ The given 'Braille6' value to convert.</span><span>
+</span><span id="line-50"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.Char.Braille.html#Braille"><span class="hs-identifier hs-type">Braille</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679098290"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-comment">-- ^ A 'Braille' value that uses as bottom two values given as first parameter.</span></span><span>
+</span><span id="line-51"></span><span id="toBraille%27"><span class="annot"><span class="annottext">toBraille' :: a -&gt; Braille6 a -&gt; Braille a
+</span><a href="Data.Char.Braille.html#toBraille%27"><span class="hs-identifier hs-var hs-var">toBraille'</span></a></span></span><span> </span><span id="local-6989586621679098071"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679098071"><span class="hs-identifier hs-var">d</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Char.Braille.html#Braille6"><span class="hs-identifier hs-type">Braille6</span></a></span><span> </span><span id="local-6989586621679098070"><span class="annot"><span class="annottext">Row a
+</span><a href="#local-6989586621679098070"><span class="hs-identifier hs-var">r0</span></a></span></span><span> </span><span id="local-6989586621679098069"><span class="annot"><span class="annottext">Row a
+</span><a href="#local-6989586621679098069"><span class="hs-identifier hs-var">r1</span></a></span></span><span> </span><span id="local-6989586621679098068"><span class="annot"><span class="annottext">Row a
+</span><a href="#local-6989586621679098068"><span class="hs-identifier hs-var">r2</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Row a -&gt; Row a -&gt; Row a -&gt; Row a -&gt; Braille a
+forall a. Row a -&gt; Row a -&gt; Row a -&gt; Row a -&gt; Braille a
+</span><a href="Data.Char.Braille.html#Braille"><span class="hs-identifier hs-var">Braille</span></a></span><span> </span><span class="annot"><span class="annottext">Row a
+</span><a href="#local-6989586621679098070"><span class="hs-identifier hs-var">r0</span></a></span><span> </span><span class="annot"><span class="annottext">Row a
+</span><a href="#local-6989586621679098069"><span class="hs-identifier hs-var">r1</span></a></span><span> </span><span class="annot"><span class="annottext">Row a
+</span><a href="#local-6989586621679098068"><span class="hs-identifier hs-var">r2</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; a -&gt; Row a
+forall a. a -&gt; a -&gt; Row a
+</span><a href="Data.Char.Block.html#Row"><span class="hs-identifier hs-var">Row</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679098071"><span class="hs-identifier hs-var">d</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679098071"><span class="hs-identifier hs-var">d</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-52"></span><span>
+</span><span id="line-53"></span><span class="hs-comment">-- | Convert a 'Braille6' value to a 'Braille6' character by setting the bottom</span><span>
+</span><span id="line-54"></span><span class="hs-comment">-- row with two 'False' values.</span><span>
+</span><span id="line-55"></span><span class="annot"><a href="Data.Char.Braille.html#toBraille"><span class="hs-identifier hs-type">toBraille</span></a></span><span>
+</span><span id="line-56"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Char.Braille.html#Braille6"><span class="hs-identifier hs-type">Braille6</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span> </span><span class="hs-comment">-- ^ The given 'Braille6' value to convert.</span><span>
+</span><span id="line-57"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.Char.Braille.html#Braille"><span class="hs-identifier hs-type">Braille</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span> </span><span class="hs-comment">-- ^ A 'Braille' value that uses as bottom two times 'False'.</span><span>
+</span><span id="line-58"></span><span id="toBraille"><span class="annot"><span class="annottext">toBraille :: Braille6 Bool -&gt; Braille Bool
+</span><a href="Data.Char.Braille.html#toBraille"><span class="hs-identifier hs-var hs-var">toBraille</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Braille6 Bool -&gt; Braille Bool
+forall a. a -&gt; Braille6 a -&gt; Braille a
+</span><a href="Data.Char.Braille.html#toBraille%27"><span class="hs-identifier hs-var">toBraille'</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span>
+</span><span id="line-59"></span><span>
+</span><span id="line-60"></span><span id="local-6989586621679098067"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679098064"><span class="annot"><span class="hs-identifier hs-type">Arbitrary</span></span><span> </span><span class="annot"><a href="#local-6989586621679098067"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Arbitrary</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Char.Braille.html#Braille6"><span class="hs-identifier hs-type">Braille6</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679098067"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-61"></span><span>    </span><span id="local-6989586621679098062"><span class="annot"><span class="annottext">arbitrary :: Gen (Braille6 a)
+</span><a href="#local-6989586621679098062"><span class="hs-identifier hs-var hs-var hs-var hs-var">arbitrary</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Gen (Braille6 a)
+forall (f :: * -&gt; *) a. (Arbitrary1 f, Arbitrary a) =&gt; Gen (f a)
+</span><span class="hs-identifier hs-var">arbitrary1</span></span></span><span>
+</span><span id="line-62"></span><span>
+</span><span id="line-63"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679098059"><span class="annot"><span class="hs-identifier hs-type">Arbitrary1</span></span><span> </span><span class="annot"><a href="Data.Char.Braille.html#Braille6"><span class="hs-identifier hs-type">Braille6</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-64"></span><span>    </span><span id="local-6989586621679098057"><span class="annot"><span class="annottext">liftArbitrary :: Gen a -&gt; Gen (Braille6 a)
+</span><a href="#local-6989586621679098057"><span class="hs-identifier hs-var hs-var hs-var hs-var">liftArbitrary</span></a></span></span><span> </span><span id="local-6989586621679098056"><span class="annot"><span class="annottext">Gen a
+</span><a href="#local-6989586621679098056"><span class="hs-identifier hs-var">arb</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Row a -&gt; Row a -&gt; Row a -&gt; Braille6 a
+forall a. Row a -&gt; Row a -&gt; Row a -&gt; Braille6 a
+</span><a href="Data.Char.Braille.html#Braille6"><span class="hs-identifier hs-var">Braille6</span></a></span><span> </span><span class="annot"><span class="annottext">(Row a -&gt; Row a -&gt; Row a -&gt; Braille6 a)
+-&gt; Gen (Row a) -&gt; Gen (Row a -&gt; Row a -&gt; Braille6 a)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Gen (Row a)
+</span><a href="#local-6989586621679098054"><span class="hs-identifier hs-var">arb'</span></a></span><span> </span><span class="annot"><span class="annottext">Gen (Row a -&gt; Row a -&gt; Braille6 a)
+-&gt; Gen (Row a) -&gt; Gen (Row a -&gt; Braille6 a)
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Gen (Row a)
+</span><a href="#local-6989586621679098054"><span class="hs-identifier hs-var">arb'</span></a></span><span> </span><span class="annot"><span class="annottext">Gen (Row a -&gt; Braille6 a) -&gt; Gen (Row a) -&gt; Gen (Braille6 a)
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Gen (Row a)
+</span><a href="#local-6989586621679098054"><span class="hs-identifier hs-var">arb'</span></a></span><span>
+</span><span id="line-65"></span><span>        </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679098054"><span class="annot"><span class="annottext">arb' :: Gen (Row a)
+</span><a href="#local-6989586621679098054"><span class="hs-identifier hs-var hs-var">arb'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Gen a -&gt; Gen (Row a)
+forall (f :: * -&gt; *) a. Arbitrary1 f =&gt; Gen a -&gt; Gen (f a)
+</span><span class="hs-identifier hs-var">liftArbitrary</span></span><span> </span><span class="annot"><span class="annottext">Gen a
+</span><a href="#local-6989586621679098056"><span class="hs-identifier hs-var">arb</span></a></span><span>
+</span><span id="line-66"></span><span>
+</span><span id="line-67"></span><span id="local-6989586621679098053"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679098050"><span class="annot"><span class="hs-identifier hs-type">Arbitrary</span></span><span> </span><span class="annot"><a href="#local-6989586621679098053"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Arbitrary</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Char.Braille.html#Braille"><span class="hs-identifier hs-type">Braille</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679098053"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-68"></span><span>    </span><span id="local-6989586621679098049"><span class="annot"><span class="annottext">arbitrary :: Gen (Braille a)
+</span><a href="#local-6989586621679098049"><span class="hs-identifier hs-var hs-var hs-var hs-var">arbitrary</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Gen (Braille a)
+forall (f :: * -&gt; *) a. (Arbitrary1 f, Arbitrary a) =&gt; Gen (f a)
+</span><span class="hs-identifier hs-var">arbitrary1</span></span></span><span>
+</span><span id="line-69"></span><span>
+</span><span id="line-70"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679098046"><span class="annot"><span class="hs-identifier hs-type">Arbitrary1</span></span><span> </span><span class="annot"><a href="Data.Char.Braille.html#Braille"><span class="hs-identifier hs-type">Braille</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-71"></span><span>    </span><span id="local-6989586621679098045"><span class="annot"><span class="annottext">liftArbitrary :: Gen a -&gt; Gen (Braille a)
+</span><a href="#local-6989586621679098045"><span class="hs-identifier hs-var hs-var hs-var hs-var">liftArbitrary</span></a></span></span><span> </span><span id="local-6989586621679098044"><span class="annot"><span class="annottext">Gen a
+</span><a href="#local-6989586621679098044"><span class="hs-identifier hs-var">arb</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Row a -&gt; Row a -&gt; Row a -&gt; Row a -&gt; Braille a
+forall a. Row a -&gt; Row a -&gt; Row a -&gt; Row a -&gt; Braille a
+</span><a href="Data.Char.Braille.html#Braille"><span class="hs-identifier hs-var">Braille</span></a></span><span> </span><span class="annot"><span class="annottext">(Row a -&gt; Row a -&gt; Row a -&gt; Row a -&gt; Braille a)
+-&gt; Gen (Row a) -&gt; Gen (Row a -&gt; Row a -&gt; Row a -&gt; Braille a)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Gen (Row a)
+</span><a href="#local-6989586621679098043"><span class="hs-identifier hs-var">arb'</span></a></span><span> </span><span class="annot"><span class="annottext">Gen (Row a -&gt; Row a -&gt; Row a -&gt; Braille a)
+-&gt; Gen (Row a) -&gt; Gen (Row a -&gt; Row a -&gt; Braille a)
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Gen (Row a)
+</span><a href="#local-6989586621679098043"><span class="hs-identifier hs-var">arb'</span></a></span><span> </span><span class="annot"><span class="annottext">Gen (Row a -&gt; Row a -&gt; Braille a)
+-&gt; Gen (Row a) -&gt; Gen (Row a -&gt; Braille a)
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Gen (Row a)
+</span><a href="#local-6989586621679098043"><span class="hs-identifier hs-var">arb'</span></a></span><span> </span><span class="annot"><span class="annottext">Gen (Row a -&gt; Braille a) -&gt; Gen (Row a) -&gt; Gen (Braille a)
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Gen (Row a)
+</span><a href="#local-6989586621679098043"><span class="hs-identifier hs-var">arb'</span></a></span><span>
+</span><span id="line-72"></span><span>        </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679098043"><span class="annot"><span class="annottext">arb' :: Gen (Row a)
+</span><a href="#local-6989586621679098043"><span class="hs-identifier hs-var hs-var">arb'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Gen a -&gt; Gen (Row a)
+forall (f :: * -&gt; *) a. Arbitrary1 f =&gt; Gen a -&gt; Gen (f a)
+</span><span class="hs-identifier hs-var">liftArbitrary</span></span><span> </span><span class="annot"><span class="annottext">Gen a
+</span><a href="#local-6989586621679098044"><span class="hs-identifier hs-var">arb</span></a></span><span>
+</span><span id="line-73"></span><span>
+</span><span id="line-74"></span><span class="annot"><a href="Data.Char.Braille.html#_rowValue%27"><span class="hs-identifier hs-type">_rowValue'</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.Char.Block.html#Row"><span class="hs-identifier hs-type">Row</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-75"></span><span id="_rowValue%27"><span class="annot"><span class="annottext">_rowValue' :: Int -&gt; Row Bool -&gt; Int
+</span><a href="Data.Char.Braille.html#_rowValue%27"><span class="hs-identifier hs-var hs-var">_rowValue'</span></a></span></span><span> </span><span id="local-6989586621679098041"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679098041"><span class="hs-identifier hs-var">d</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Char.Block.html#Row"><span class="hs-identifier hs-type">Row</span></a></span><span> </span><span id="local-6989586621679098040"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679098040"><span class="hs-identifier hs-var">b0</span></a></span></span><span> </span><span id="local-6989586621679098039"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679098039"><span class="hs-identifier hs-var">b1</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool -&gt; Int
+forall a. a -&gt; a -&gt; Bool -&gt; a
+</span><span class="hs-identifier hs-var">bool</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679098040"><span class="hs-identifier hs-var">b0</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.|.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool -&gt; Int
+forall a. a -&gt; a -&gt; Bool -&gt; a
+</span><span class="hs-identifier hs-var">bool</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679098041"><span class="hs-identifier hs-var">d</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679098039"><span class="hs-identifier hs-var">b1</span></a></span><span>
+</span><span id="line-76"></span><span>
+</span><span id="line-77"></span><span class="annot"><a href="Data.Char.Braille.html#_rowValue"><span class="hs-identifier hs-type">_rowValue</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Char.Block.html#Row"><span class="hs-identifier hs-type">Row</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-78"></span><span id="_rowValue"><span class="annot"><span class="annottext">_rowValue :: Row Bool -&gt; Int
+</span><a href="Data.Char.Braille.html#_rowValue"><span class="hs-identifier hs-var hs-var">_rowValue</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Row Bool -&gt; Int
+</span><a href="Data.Char.Braille.html#_rowValue%27"><span class="hs-identifier hs-var">_rowValue'</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">8</span></span><span>
+</span><span id="line-79"></span><span>
+</span><span id="line-80"></span><span class="hs-comment">-- | Convert the given 'Braille6' value to a unicode character representing this</span><span>
+</span><span id="line-81"></span><span class="hs-comment">-- Braille value.</span><span>
+</span><span id="line-82"></span><span class="annot"><a href="Data.Char.Braille.html#braille6"><span class="hs-identifier hs-type">braille6</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Char.Braille.html#Braille6"><span class="hs-identifier hs-type">Braille6</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>
+</span><span id="line-83"></span><span id="braille6"><span class="annot"><span class="annottext">braille6 :: Braille6 Bool -&gt; Char
+</span><a href="Data.Char.Braille.html#braille6"><span class="hs-identifier hs-var hs-var">braille6</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Braille Bool -&gt; Char
+</span><a href="Data.Char.Braille.html#braille"><span class="hs-identifier hs-var">braille</span></a></span><span> </span><span class="annot"><span class="annottext">(Braille Bool -&gt; Char)
+-&gt; (Braille6 Bool -&gt; Braille Bool) -&gt; Braille6 Bool -&gt; Char
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Braille6 Bool -&gt; Braille Bool
+</span><a href="Data.Char.Braille.html#toBraille"><span class="hs-identifier hs-var">toBraille</span></a></span><span>
+</span><span id="line-84"></span><span>
+</span><span id="line-85"></span><span class="hs-comment">-- | Convert the given 'Braille' value to a unicode character representing this</span><span>
+</span><span id="line-86"></span><span class="hs-comment">-- braille value.</span><span>
+</span><span id="line-87"></span><span class="annot"><a href="Data.Char.Braille.html#braille"><span class="hs-identifier hs-type">braille</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Char.Braille.html#Braille"><span class="hs-identifier hs-type">Braille</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>
+</span><span id="line-88"></span><span id="braille"><span class="annot"><span class="annottext">braille :: Braille Bool -&gt; Char
+</span><a href="Data.Char.Braille.html#braille"><span class="hs-identifier hs-var hs-var">braille</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Char.Braille.html#Braille"><span class="hs-identifier hs-type">Braille</span></a></span><span> </span><span id="local-6989586621679098036"><span class="annot"><span class="annottext">Row Bool
+</span><a href="#local-6989586621679098036"><span class="hs-identifier hs-var">r1</span></a></span></span><span> </span><span id="local-6989586621679098035"><span class="annot"><span class="annottext">Row Bool
+</span><a href="#local-6989586621679098035"><span class="hs-identifier hs-var">r2</span></a></span></span><span> </span><span id="local-6989586621679098034"><span class="annot"><span class="annottext">Row Bool
+</span><a href="#local-6989586621679098034"><span class="hs-identifier hs-var">r3</span></a></span></span><span> </span><span id="local-6989586621679098033"><span class="annot"><span class="annottext">Row Bool
+</span><a href="#local-6989586621679098033"><span class="hs-identifier hs-var">r4</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Char
+</span><span class="hs-identifier hs-var">chr</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0x2800</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.|.</span></span><span> </span><span class="annot"><span class="annottext">Row Bool -&gt; Int
+</span><a href="Data.Char.Braille.html#_rowValue"><span class="hs-identifier hs-var">_rowValue</span></a></span><span> </span><span class="annot"><span class="annottext">Row Bool
+</span><a href="#local-6989586621679098036"><span class="hs-identifier hs-var">r1</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.|.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">shiftL</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Row Bool -&gt; Int
+</span><a href="Data.Char.Braille.html#_rowValue"><span class="hs-identifier hs-var">_rowValue</span></a></span><span> </span><span class="annot"><span class="annottext">Row Bool
+</span><a href="#local-6989586621679098035"><span class="hs-identifier hs-var">r2</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.|.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">shiftL</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Row Bool -&gt; Int
+</span><a href="Data.Char.Braille.html#_rowValue"><span class="hs-identifier hs-var">_rowValue</span></a></span><span> </span><span class="annot"><span class="annottext">Row Bool
+</span><a href="#local-6989586621679098034"><span class="hs-identifier hs-var">r3</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">2</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.|.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">shiftL</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Row Bool -&gt; Int
+</span><a href="Data.Char.Braille.html#_rowValue%27"><span class="hs-identifier hs-var">_rowValue'</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">2</span></span><span> </span><span class="annot"><span class="annottext">Row Bool
+</span><a href="#local-6989586621679098033"><span class="hs-identifier hs-var">r4</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">6</span></span><span class="hs-special">)</span><span>
+</span><span id="line-89"></span></pre></body></html>

@@ -1,0 +1,177 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- | This module provides an API for turning &quot;markup&quot; values into</span><span>
+</span><span id="line-2"></span><span class="hs-comment">-- widgets. This module uses the &quot;Data.Text.Markup&quot; interface in this</span><span>
+</span><span id="line-3"></span><span class="hs-comment">-- package to assign attributes to substrings in a text string; to</span><span>
+</span><span id="line-4"></span><span class="hs-comment">-- manipulate markup using (for example) syntax highlighters, see that</span><span>
+</span><span id="line-5"></span><span class="hs-comment">-- module.</span><span>
+</span><span id="line-6"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Brick.Markup</span><span>
+</span><span id="line-7"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Data.Text.Markup.html#Markup"><span class="hs-identifier">Markup</span></a></span><span>
+</span><span id="line-8"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Markup.html#markup"><span class="hs-identifier">markup</span></a></span><span>
+</span><span id="line-9"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Markup.html#%40%3F"><span class="hs-operator">(@?)</span></a></span><span>
+</span><span id="line-10"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Markup.html#GetAttr"><span class="hs-identifier">GetAttr</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-12"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-13"></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Lens.Micro</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-operator">(.~)</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-operator">(&amp;)</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-operator">(^.)</span></span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">forM</span></span><span class="hs-special">)</span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Text</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">T</span></span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Data.Text.Markup.html"><span class="hs-identifier">Data.Text.Markup</span></a></span><span>
+</span><span id="line-18"></span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Graphics.Vty</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Attr</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">vertCat</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">horizCat</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">text'</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">defAttr</span></span><span class="hs-special">)</span><span>
+</span><span id="line-20"></span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Brick.AttrMap.html"><span class="hs-identifier">Brick.AttrMap</span></a></span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Brick.Types.html"><span class="hs-identifier">Brick.Types</span></a></span><span>
+</span><span id="line-23"></span><span>
+</span><span id="line-24"></span><span class="hs-comment">-- | A type class for types that provide access to an attribute in the</span><span>
+</span><span id="line-25"></span><span class="hs-comment">-- rendering monad.  You probably won't need to instance this.</span><span>
+</span><span id="line-26"></span><span class="hs-keyword">class</span><span> </span><span id="GetAttr"><span class="annot"><a href="Brick.Markup.html#GetAttr"><span class="hs-identifier hs-var">GetAttr</span></a></span></span><span> </span><span id="local-6989586621679376417"><span class="annot"><a href="#local-6989586621679376417"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-27"></span><span>    </span><span class="hs-comment">-- | Where to get the attribute for this attribute metadata.</span><span>
+</span><span id="line-28"></span><span>    </span><span id="local-6989586621679376420"><span id="getAttr"><span class="annot"><a href="Brick.Markup.html#getAttr"><span class="hs-identifier hs-type">getAttr</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679376417"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Types.html#RenderM"><span class="hs-identifier hs-type">RenderM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679376420"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Attr</span></span></span><span>
+</span><span id="line-29"></span><span>
+</span><span id="line-30"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Brick.Markup.html#GetAttr"><span class="hs-identifier hs-type">GetAttr</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Attr</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-31"></span><span>    </span><span id="local-6989586621679376352"><span class="annot"><span class="annottext">getAttr :: Attr -&gt; RenderM n Attr
+</span><a href="#local-6989586621679376352"><span class="hs-identifier hs-var hs-var hs-var hs-var">getAttr</span></a></span></span><span> </span><span id="local-6989586621679376351"><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679376351"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-32"></span><span>        </span><span id="local-6989586621679376350"><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679376350"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">RenderM n Context
+forall n. RenderM n Context
+</span><a href="Brick.Types.html#getContext"><span class="hs-identifier hs-var">getContext</span></a></span><span>
+</span><span id="line-33"></span><span>        </span><span class="annot"><span class="annottext">Attr -&gt; RenderM n Attr
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(Attr -&gt; RenderM n Attr) -&gt; Attr -&gt; RenderM n Attr
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Attr -&gt; AttrMap -&gt; Attr
+</span><a href="Brick.AttrMap.html#mergeWithDefault"><span class="hs-identifier hs-var">mergeWithDefault</span></a></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679376351"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679376350"><span class="hs-identifier hs-var">c</span></a></span><span class="annot"><span class="annottext">Context -&gt; Getting AttrMap Context AttrMap -&gt; AttrMap
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting AttrMap Context AttrMap
+Lens' Context AttrMap
+</span><a href="Brick.Types.html#ctxAttrMapL"><span class="hs-identifier hs-var">ctxAttrMapL</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-34"></span><span>
+</span><span id="line-35"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Brick.Markup.html#GetAttr"><span class="hs-identifier hs-type">GetAttr</span></a></span><span> </span><span class="annot"><a href="Brick.AttrMap.html#AttrName"><span class="hs-identifier hs-type">AttrName</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-36"></span><span>    </span><span id="local-6989586621679376345"><span class="annot"><span class="annottext">getAttr :: AttrName -&gt; RenderM n Attr
+</span><a href="#local-6989586621679376345"><span class="hs-identifier hs-var hs-var hs-var hs-var">getAttr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">AttrName -&gt; RenderM n Attr
+forall n. AttrName -&gt; RenderM n Attr
+</span><a href="Brick.Types.html#lookupAttrName"><span class="hs-identifier hs-var">lookupAttrName</span></a></span><span>
+</span><span id="line-37"></span><span>
+</span><span id="line-38"></span><span class="hs-comment">-- | Build a piece of markup from text with an assigned attribute name.</span><span>
+</span><span id="line-39"></span><span class="hs-comment">-- When the markup is rendered, the attribute name will be looked up in</span><span>
+</span><span id="line-40"></span><span class="hs-comment">-- the rendering context's 'AttrMap' to determine the attribute to use</span><span>
+</span><span id="line-41"></span><span class="hs-comment">-- for this piece of text.</span><span>
+</span><span id="line-42"></span><span class="annot"><a href="Brick.Markup.html#%40%3F"><span class="hs-operator hs-type">(@?)</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">T.Text</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.AttrMap.html#AttrName"><span class="hs-identifier hs-type">AttrName</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.Text.Markup.html#Markup"><span class="hs-identifier hs-type">Markup</span></a></span><span> </span><span class="annot"><a href="Brick.AttrMap.html#AttrName"><span class="hs-identifier hs-type">AttrName</span></a></span><span>
+</span><span id="line-43"></span><span id="%40%3F"><span class="annot"><span class="annottext">@? :: Text -&gt; AttrName -&gt; Markup AttrName
+</span><a href="Brick.Markup.html#%40%3F"><span class="hs-operator hs-var hs-var">(@?)</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; AttrName -&gt; Markup AttrName
+forall a. Text -&gt; a -&gt; Markup a
+</span><a href="Data.Text.Markup.html#%40%40"><span class="hs-operator hs-var">(@@)</span></a></span><span>
+</span><span id="line-44"></span><span>
+</span><span id="line-45"></span><span class="hs-comment">-- | Build a widget from markup.</span><span>
+</span><span id="line-46"></span><span id="local-6989586621679376341"><span id="local-6989586621679376342"><span class="annot"><a href="Brick.Markup.html#markup"><span class="hs-identifier hs-type">markup</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="#local-6989586621679376342"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Markup.html#GetAttr"><span class="hs-identifier hs-type">GetAttr</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679376342"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Data.Text.Markup.html#Markup"><span class="hs-identifier hs-type">Markup</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679376342"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-type">Widget</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679376341"><span class="hs-identifier hs-type">n</span></a></span></span></span><span>
+</span><span id="line-47"></span><span id="markup"><span class="annot"><span class="annottext">markup :: Markup a -&gt; Widget n
+</span><a href="Brick.Markup.html#markup"><span class="hs-identifier hs-var hs-var">markup</span></a></span></span><span> </span><span id="local-6989586621679376340"><span class="annot"><span class="annottext">Markup a
+</span><a href="#local-6989586621679376340"><span class="hs-identifier hs-var">m</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-48"></span><span>    </span><span class="annot"><span class="annottext">Size -&gt; Size -&gt; RenderM n (Result n) -&gt; Widget n
+forall n. Size -&gt; Size -&gt; RenderM n (Result n) -&gt; Widget n
+</span><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-var">Widget</span></a></span><span> </span><span class="annot"><span class="annottext">Size
+</span><a href="Brick.Types.html#Fixed"><span class="hs-identifier hs-var">Fixed</span></a></span><span> </span><span class="annot"><span class="annottext">Size
+</span><a href="Brick.Types.html#Fixed"><span class="hs-identifier hs-var">Fixed</span></a></span><span> </span><span class="annot"><span class="annottext">(RenderM n (Result n) -&gt; Widget n)
+-&gt; RenderM n (Result n) -&gt; Widget n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-49"></span><span>      </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679376337"><span class="annot"><span class="annottext">markupLines :: [[(Text, a)]]
+</span><a href="#local-6989586621679376337"><span class="hs-identifier hs-var hs-var">markupLines</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Markup a -&gt; [[(Text, a)]]
+forall a. Eq a =&gt; Markup a -&gt; [[(Text, a)]]
+</span><a href="Data.Text.Markup.html#markupToList"><span class="hs-identifier hs-var">markupToList</span></a></span><span> </span><span class="annot"><span class="annottext">Markup a
+</span><a href="#local-6989586621679376340"><span class="hs-identifier hs-var">m</span></a></span><span>
+</span><span id="line-50"></span><span>          </span><span id="local-6989586621679376335"><span class="annot"><span class="annottext">mkLine :: [(Text, a)] -&gt; ReaderT Context (State (RenderState n)) Image
+</span><a href="#local-6989586621679376335"><span class="hs-identifier hs-var hs-var">mkLine</span></a></span></span><span> </span><span id="local-6989586621679376334"><span class="annot"><span class="annottext">[(Text, a)]
+</span><a href="#local-6989586621679376334"><span class="hs-identifier hs-var">pairs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-51"></span><span>              </span><span id="local-6989586621679376333"><span class="annot"><span class="annottext">[Image]
+</span><a href="#local-6989586621679376333"><span class="hs-identifier hs-var">is</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[(Text, a)]
+-&gt; ((Text, a) -&gt; ReaderT Context (State (RenderState n)) Image)
+-&gt; ReaderT Context (State (RenderState n)) [Image]
+forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
+(Traversable t, Monad m) =&gt;
+t a -&gt; (a -&gt; m b) -&gt; m (t b)
+</span><span class="hs-identifier hs-var">forM</span></span><span> </span><span class="annot"><span class="annottext">[(Text, a)]
+</span><a href="#local-6989586621679376334"><span class="hs-identifier hs-var">pairs</span></a></span><span> </span><span class="annot"><span class="annottext">(((Text, a) -&gt; ReaderT Context (State (RenderState n)) Image)
+ -&gt; ReaderT Context (State (RenderState n)) [Image])
+-&gt; ((Text, a) -&gt; ReaderT Context (State (RenderState n)) Image)
+-&gt; ReaderT Context (State (RenderState n)) [Image]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679376332"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679376332"><span class="hs-identifier hs-var">t</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679376331"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679376331"><span class="hs-identifier hs-var">aSrc</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-52"></span><span>                  </span><span id="local-6989586621679376330"><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679376330"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">a -&gt; RenderM n Attr
+forall a n. GetAttr a =&gt; a -&gt; RenderM n Attr
+</span><a href="Brick.Markup.html#getAttr"><span class="hs-identifier hs-var">getAttr</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679376331"><span class="hs-identifier hs-var">aSrc</span></a></span><span>
+</span><span id="line-53"></span><span>                  </span><span class="annot"><span class="annottext">Image -&gt; ReaderT Context (State (RenderState n)) Image
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(Image -&gt; ReaderT Context (State (RenderState n)) Image)
+-&gt; Image -&gt; ReaderT Context (State (RenderState n)) Image
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Attr -&gt; Text -&gt; Image
+</span><span class="hs-identifier hs-var">text'</span></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679376330"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679376332"><span class="hs-identifier hs-var">t</span></a></span><span>
+</span><span id="line-54"></span><span>              </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">[Image] -&gt; Bool
+forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Bool
+</span><span class="hs-identifier hs-var">null</span></span><span> </span><span class="annot"><span class="annottext">[Image]
+</span><a href="#local-6989586621679376333"><span class="hs-identifier hs-var">is</span></a></span><span>
+</span><span id="line-55"></span><span>                 </span><span class="hs-keyword">then</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-56"></span><span>                     </span><span id="local-6989586621679376328"><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679376328"><span class="hs-identifier hs-var">def</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Attr -&gt; RenderM n Attr
+forall a n. GetAttr a =&gt; a -&gt; RenderM n Attr
+</span><a href="Brick.Markup.html#getAttr"><span class="hs-identifier hs-var">getAttr</span></a></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><span class="hs-identifier hs-var">defAttr</span></span><span>
+</span><span id="line-57"></span><span>                     </span><span class="annot"><span class="annottext">Image -&gt; ReaderT Context (State (RenderState n)) Image
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(Image -&gt; ReaderT Context (State (RenderState n)) Image)
+-&gt; Image -&gt; ReaderT Context (State (RenderState n)) Image
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Attr -&gt; Text -&gt; Image
+</span><span class="hs-identifier hs-var">text'</span></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679376328"><span class="hs-identifier hs-var">def</span></a></span><span> </span><span class="annot"><span class="annottext">(Text -&gt; Image) -&gt; Text -&gt; Image
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Char -&gt; Text
+</span><span class="hs-identifier hs-var">T.singleton</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">' '</span></span><span>
+</span><span id="line-58"></span><span>                 </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Image -&gt; ReaderT Context (State (RenderState n)) Image
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(Image -&gt; ReaderT Context (State (RenderState n)) Image)
+-&gt; Image -&gt; ReaderT Context (State (RenderState n)) Image
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[Image] -&gt; Image
+</span><span class="hs-identifier hs-var">horizCat</span></span><span> </span><span class="annot"><span class="annottext">[Image]
+</span><a href="#local-6989586621679376333"><span class="hs-identifier hs-var">is</span></a></span><span>
+</span><span id="line-59"></span><span>      </span><span id="local-6989586621679376326"><span class="annot"><span class="annottext">[Image]
+</span><a href="#local-6989586621679376326"><span class="hs-identifier hs-var">lineImgs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">([(Text, a)] -&gt; ReaderT Context (State (RenderState n)) Image)
+-&gt; [[(Text, a)]] -&gt; ReaderT Context (State (RenderState n)) [Image]
+forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
+(Traversable t, Monad m) =&gt;
+(a -&gt; m b) -&gt; t a -&gt; m (t b)
+</span><span class="hs-identifier hs-var">mapM</span></span><span> </span><span class="annot"><span class="annottext">[(Text, a)] -&gt; ReaderT Context (State (RenderState n)) Image
+forall a n.
+GetAttr a =&gt;
+[(Text, a)] -&gt; ReaderT Context (State (RenderState n)) Image
+</span><a href="#local-6989586621679376335"><span class="hs-identifier hs-var">mkLine</span></a></span><span> </span><span class="annot"><span class="annottext">[[(Text, a)]]
+</span><a href="#local-6989586621679376337"><span class="hs-identifier hs-var">markupLines</span></a></span><span>
+</span><span id="line-60"></span><span>      </span><span class="annot"><span class="annottext">Result n -&gt; RenderM n (Result n)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(Result n -&gt; RenderM n (Result n))
+-&gt; Result n -&gt; RenderM n (Result n)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Result n
+forall n. Result n
+</span><a href="Brick.Types.Internal.html#emptyResult"><span class="hs-identifier hs-var">emptyResult</span></a></span><span> </span><span class="annot"><span class="annottext">Result n -&gt; (Result n -&gt; Result n) -&gt; Result n
+forall a b. a -&gt; (a -&gt; b) -&gt; b
+</span><span class="hs-operator hs-var">&amp;</span></span><span> </span><span class="annot"><span class="annottext">(Image -&gt; Identity Image) -&gt; Result n -&gt; Identity (Result n)
+forall n. Lens' (Result n) Image
+</span><a href="Brick.Types.Internal.html#imageL"><span class="hs-identifier hs-var">imageL</span></a></span><span> </span><span class="annot"><span class="annottext">((Image -&gt; Identity Image) -&gt; Result n -&gt; Identity (Result n))
+-&gt; Image -&gt; Result n -&gt; Result n
+forall s t a b. ASetter s t a b -&gt; b -&gt; s -&gt; t
+</span><span class="hs-operator hs-var">.~</span></span><span> </span><span class="annot"><span class="annottext">[Image] -&gt; Image
+</span><span class="hs-identifier hs-var">vertCat</span></span><span> </span><span class="annot"><span class="annottext">[Image]
+</span><a href="#local-6989586621679376326"><span class="hs-identifier hs-var">lineImgs</span></a></span><span>
+</span><span id="line-61"></span></pre></body></html>

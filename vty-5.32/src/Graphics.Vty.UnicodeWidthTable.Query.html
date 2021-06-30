@@ -1,0 +1,243 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE TupleSections #-}</span><span>
+</span><span id="line-2"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Graphics.Vty.UnicodeWidthTable.Query</span><span>
+</span><span id="line-3"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Graphics.Vty.UnicodeWidthTable.Query.html#buildUnicodeWidthTable"><span class="hs-identifier">buildUnicodeWidthTable</span></a></span><span>
+</span><span id="line-4"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.UnicodeWidthTable.Query.html#defaultUnicodeTableUpperBound"><span class="hs-identifier">defaultUnicodeTableUpperBound</span></a></span><span>
+</span><span id="line-5"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-6"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-7"></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">forM</span></span><span class="hs-special">)</span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Char</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">generalCategory</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">GeneralCategory</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">System.Console.ANSI</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">getCursorPosition</span></span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Text.Printf</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">printf</span></span><span class="hs-special">)</span><span>
+</span><span id="line-12"></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Graphics.Vty.UnicodeWidthTable.Types.html"><span class="hs-identifier">Graphics.Vty.UnicodeWidthTable.Types</span></a></span><span>
+</span><span id="line-14"></span><span>
+</span><span id="line-15"></span><span class="annot"><a href="Graphics.Vty.UnicodeWidthTable.Query.html#shouldConsider"><span class="hs-identifier hs-type">shouldConsider</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-16"></span><span id="shouldConsider"><span class="annot"><span class="annottext">shouldConsider :: Char -&gt; Bool
+</span><a href="Graphics.Vty.UnicodeWidthTable.Query.html#shouldConsider"><span class="hs-identifier hs-var hs-var">shouldConsider</span></a></span></span><span> </span><span id="local-6989586621679369126"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679369126"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-17"></span><span>    </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Char -&gt; GeneralCategory
+</span><span class="hs-identifier hs-var">generalCategory</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679369126"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-18"></span><span>        </span><span class="annot"><span class="annottext">GeneralCategory
+</span><span class="hs-identifier hs-var">Control</span></span><span>     </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span>
+</span><span id="line-19"></span><span>        </span><span class="annot"><span class="annottext">GeneralCategory
+</span><span class="hs-identifier hs-var">NotAssigned</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span>
+</span><span id="line-20"></span><span>        </span><span class="annot"><span class="annottext">GeneralCategory
+</span><span class="hs-identifier hs-var">Surrogate</span></span><span>   </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span>
+</span><span id="line-21"></span><span>        </span><span class="annot"><span class="annottext">GeneralCategory
+</span><span class="hs-identifier">_</span></span><span>           </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span>
+</span><span id="line-22"></span><span>
+</span><span id="line-23"></span><span class="annot"><a href="Graphics.Vty.UnicodeWidthTable.Query.html#charWidth"><span class="hs-identifier hs-type">charWidth</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-24"></span><span id="charWidth"><span class="annot"><span class="annottext">charWidth :: Char -&gt; IO Int
+</span><a href="Graphics.Vty.UnicodeWidthTable.Query.html#charWidth"><span class="hs-identifier hs-var hs-var">charWidth</span></a></span></span><span> </span><span id="local-6989586621679369121"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679369121"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-25"></span><span>    </span><span class="annot"><span class="annottext">String -&gt; IO ()
+forall r. PrintfType r =&gt; String -&gt; r
+</span><span class="hs-identifier hs-var">printf</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\r&quot;</span></span><span>
+</span><span id="line-26"></span><span>    </span><span class="annot"><span class="annottext">Char -&gt; IO ()
+</span><span class="hs-identifier hs-var">putChar</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679369121"><span class="hs-identifier hs-var">c</span></a></span><span>
+</span><span id="line-27"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-identifier">_</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679369119"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369119"><span class="hs-identifier hs-var">col</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">IO (Maybe (Int, Int))
+</span><span class="hs-identifier hs-var">getCursorPosition</span></span><span>
+</span><span id="line-28"></span><span>    </span><span class="annot"><span class="annottext">Int -&gt; IO Int
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369119"><span class="hs-identifier hs-var">col</span></a></span><span>
+</span><span id="line-29"></span><span>
+</span><span id="line-30"></span><span class="hs-comment">-- | Convert a sequence of character/width pairs into a list of</span><span>
+</span><span id="line-31"></span><span class="hs-comment">-- run-length encoded ranges. This function assumes the pairs come</span><span>
+</span><span id="line-32"></span><span class="hs-comment">-- sorted by character ordinal value. It does not require that the</span><span>
+</span><span id="line-33"></span><span class="hs-comment">-- character range is fully covered by the sequence.</span><span>
+</span><span id="line-34"></span><span class="hs-comment">--</span><span>
+</span><span id="line-35"></span><span class="hs-comment">-- The result of this function is a list of ranges in reverse order</span><span>
+</span><span id="line-36"></span><span class="hs-comment">-- relative to the input sequence.</span><span>
+</span><span id="line-37"></span><span class="annot"><a href="Graphics.Vty.UnicodeWidthTable.Query.html#mkRanges"><span class="hs-identifier hs-type">mkRanges</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Graphics.Vty.UnicodeWidthTable.Types.html#WidthTableRange"><span class="hs-identifier hs-type">WidthTableRange</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-38"></span><span id="mkRanges"><span class="annot"><span class="annottext">mkRanges :: [(Char, Int)] -&gt; [WidthTableRange]
+</span><a href="Graphics.Vty.UnicodeWidthTable.Query.html#mkRanges"><span class="hs-identifier hs-var hs-var">mkRanges</span></a></span></span><span> </span><span id="local-6989586621679369117"><span class="annot"><span class="annottext">[(Char, Int)]
+</span><a href="#local-6989586621679369117"><span class="hs-identifier hs-var">pairs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-39"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679369116"><span class="annot"><span class="annottext">convertedPairs :: [(Word32, Word8)]
+</span><a href="#local-6989586621679369116"><span class="hs-identifier hs-var hs-var">convertedPairs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Char, Int) -&gt; (Word32, Word8)
+forall a a b a.
+(Integral a, Num a, Num b, Enum a) =&gt;
+(a, a) -&gt; (a, b)
+</span><a href="#local-6989586621679369115"><span class="hs-identifier hs-var">convert</span></a></span><span> </span><span class="annot"><span class="annottext">((Char, Int) -&gt; (Word32, Word8))
+-&gt; [(Char, Int)] -&gt; [(Word32, Word8)]
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">[(Char, Int)]
+</span><a href="#local-6989586621679369117"><span class="hs-identifier hs-var">pairs</span></a></span><span>
+</span><span id="line-40"></span><span>        </span><span id="local-6989586621679369115"><span class="annot"><span class="annottext">convert :: (a, a) -&gt; (a, b)
+</span><a href="#local-6989586621679369115"><span class="hs-identifier hs-var hs-var">convert</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679369113"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679369113"><span class="hs-identifier hs-var">c</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679369112"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679369112"><span class="hs-identifier hs-var">i</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; a
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; a) -&gt; Int -&gt; a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; Int
+forall a. Enum a =&gt; a -&gt; Int
+</span><span class="hs-identifier hs-var">fromEnum</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679369113"><span class="hs-identifier hs-var">c</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">a -&gt; b
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679369112"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-41"></span><span>
+</span><span id="line-42"></span><span>        </span><span id="local-6989586621679369110"><span class="annot"><span class="annottext">go :: Maybe WidthTableRange
+-&gt; [WidthTableRange] -&gt; [(Word32, Word8)] -&gt; [WidthTableRange]
+</span><a href="#local-6989586621679369110"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="annot"><span class="annottext">Maybe WidthTableRange
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span id="local-6989586621679369109"><span class="annot"><span class="annottext">[WidthTableRange]
+</span><a href="#local-6989586621679369109"><span class="hs-identifier hs-var">finishedRanges</span></a></span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[WidthTableRange]
+</span><a href="#local-6989586621679369109"><span class="hs-identifier hs-var">finishedRanges</span></a></span><span>
+</span><span id="line-43"></span><span>        </span><span class="annot"><a href="#local-6989586621679369110"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679369108"><span class="annot"><span class="annottext">WidthTableRange
+</span><a href="#local-6989586621679369108"><span class="hs-identifier hs-var">r</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679369107"><span class="annot"><span class="annottext">[WidthTableRange]
+</span><a href="#local-6989586621679369107"><span class="hs-identifier hs-var">finishedRanges</span></a></span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">WidthTableRange
+</span><a href="#local-6989586621679369108"><span class="hs-identifier hs-var">r</span></a></span><span class="annot"><span class="annottext">WidthTableRange -&gt; [WidthTableRange] -&gt; [WidthTableRange]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span class="annot"><span class="annottext">[WidthTableRange]
+</span><a href="#local-6989586621679369107"><span class="hs-identifier hs-var">finishedRanges</span></a></span><span>
+</span><span id="line-44"></span><span>
+</span><span id="line-45"></span><span>        </span><span class="annot"><a href="#local-6989586621679369110"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe WidthTableRange
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span id="local-6989586621679369106"><span class="annot"><span class="annottext">[WidthTableRange]
+</span><a href="#local-6989586621679369106"><span class="hs-identifier hs-var">finishedRanges</span></a></span></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span id="local-6989586621679369105"><span class="annot"><span class="annottext">Word32
+</span><a href="#local-6989586621679369105"><span class="hs-identifier hs-var">c</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679369104"><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679369104"><span class="hs-identifier hs-var">width</span></a></span></span><span class="hs-special">)</span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span id="local-6989586621679369103"><span class="annot"><span class="annottext">[(Word32, Word8)]
+</span><a href="#local-6989586621679369103"><span class="hs-identifier hs-var">rest</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-46"></span><span>            </span><span class="annot"><span class="annottext">Maybe WidthTableRange
+-&gt; [WidthTableRange] -&gt; [(Word32, Word8)] -&gt; [WidthTableRange]
+</span><a href="#local-6989586621679369110"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">WidthTableRange -&gt; Maybe WidthTableRange
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">(WidthTableRange -&gt; Maybe WidthTableRange)
+-&gt; WidthTableRange -&gt; Maybe WidthTableRange
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Word32 -&gt; Word32 -&gt; Word8 -&gt; WidthTableRange
+</span><a href="Graphics.Vty.UnicodeWidthTable.Types.html#WidthTableRange"><span class="hs-identifier hs-var">WidthTableRange</span></a></span><span> </span><span class="annot"><span class="annottext">Word32
+</span><a href="#local-6989586621679369105"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="annot"><span class="annottext">Word32
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679369104"><span class="hs-identifier hs-var">width</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[WidthTableRange]
+</span><a href="#local-6989586621679369106"><span class="hs-identifier hs-var">finishedRanges</span></a></span><span> </span><span class="annot"><span class="annottext">[(Word32, Word8)]
+</span><a href="#local-6989586621679369103"><span class="hs-identifier hs-var">rest</span></a></span><span>
+</span><span id="line-47"></span><span>
+</span><span id="line-48"></span><span>        </span><span class="annot"><a href="#local-6989586621679369110"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679369101"><span class="annot"><span class="annottext">r :: WidthTableRange
+</span><a href="#local-6989586621679369101"><span class="hs-identifier hs-var">r</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Graphics.Vty.UnicodeWidthTable.Types.html#WidthTableRange"><span class="hs-identifier hs-type">WidthTableRange</span></a></span><span> </span><span id="local-6989586621679369100"><span class="annot"><span class="annottext">Word32
+</span><a href="#local-6989586621679369100"><span class="hs-identifier hs-var">prevCh</span></a></span></span><span> </span><span id="local-6989586621679369099"><span class="annot"><span class="annottext">Word32
+</span><a href="#local-6989586621679369099"><span class="hs-identifier hs-var">sz</span></a></span></span><span> </span><span id="local-6989586621679369098"><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679369098"><span class="hs-identifier hs-var">prevWidth</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span id="local-6989586621679369097"><span class="annot"><span class="annottext">[WidthTableRange]
+</span><a href="#local-6989586621679369097"><span class="hs-identifier hs-var">finishedRanges</span></a></span></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span id="local-6989586621679369096"><span class="annot"><span class="annottext">Word32
+</span><a href="#local-6989586621679369096"><span class="hs-identifier hs-var">c</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679369095"><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679369095"><span class="hs-identifier hs-var">width</span></a></span></span><span class="hs-special">)</span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span id="local-6989586621679369094"><span class="annot"><span class="annottext">[(Word32, Word8)]
+</span><a href="#local-6989586621679369094"><span class="hs-identifier hs-var">rest</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-49"></span><span>            </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Word32
+</span><a href="#local-6989586621679369096"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="annot"><span class="annottext">Word32 -&gt; Word32 -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Word32
+</span><a href="#local-6989586621679369100"><span class="hs-identifier hs-var">prevCh</span></a></span><span> </span><span class="annot"><span class="annottext">Word32 -&gt; Word32 -&gt; Word32
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Word32
+</span><a href="#local-6989586621679369099"><span class="hs-identifier hs-var">sz</span></a></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679369098"><span class="hs-identifier hs-var">prevWidth</span></a></span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Word8 -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679369095"><span class="hs-identifier hs-var">width</span></a></span><span>
+</span><span id="line-50"></span><span>            </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Maybe WidthTableRange
+-&gt; [WidthTableRange] -&gt; [(Word32, Word8)] -&gt; [WidthTableRange]
+</span><a href="#local-6989586621679369110"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">WidthTableRange -&gt; Maybe WidthTableRange
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word32 -&gt; Word32 -&gt; Word8 -&gt; WidthTableRange
+</span><a href="Graphics.Vty.UnicodeWidthTable.Types.html#WidthTableRange"><span class="hs-identifier hs-var">WidthTableRange</span></a></span><span> </span><span class="annot"><span class="annottext">Word32
+</span><a href="#local-6989586621679369100"><span class="hs-identifier hs-var">prevCh</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word32
+</span><a href="#local-6989586621679369099"><span class="hs-identifier hs-var">sz</span></a></span><span> </span><span class="annot"><span class="annottext">Word32 -&gt; Word32 -&gt; Word32
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Word32
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679369098"><span class="hs-identifier hs-var">prevWidth</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[WidthTableRange]
+</span><a href="#local-6989586621679369097"><span class="hs-identifier hs-var">finishedRanges</span></a></span><span> </span><span class="annot"><span class="annottext">[(Word32, Word8)]
+</span><a href="#local-6989586621679369094"><span class="hs-identifier hs-var">rest</span></a></span><span>
+</span><span id="line-51"></span><span>            </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Maybe WidthTableRange
+-&gt; [WidthTableRange] -&gt; [(Word32, Word8)] -&gt; [WidthTableRange]
+</span><a href="#local-6989586621679369110"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">WidthTableRange -&gt; Maybe WidthTableRange
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word32 -&gt; Word32 -&gt; Word8 -&gt; WidthTableRange
+</span><a href="Graphics.Vty.UnicodeWidthTable.Types.html#WidthTableRange"><span class="hs-identifier hs-var">WidthTableRange</span></a></span><span> </span><span class="annot"><span class="annottext">Word32
+</span><a href="#local-6989586621679369096"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="annot"><span class="annottext">Word32
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679369095"><span class="hs-identifier hs-var">width</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">WidthTableRange
+</span><a href="#local-6989586621679369101"><span class="hs-identifier hs-var">r</span></a></span><span class="annot"><span class="annottext">WidthTableRange -&gt; [WidthTableRange] -&gt; [WidthTableRange]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span class="annot"><span class="annottext">[WidthTableRange]
+</span><a href="#local-6989586621679369097"><span class="hs-identifier hs-var">finishedRanges</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[(Word32, Word8)]
+</span><a href="#local-6989586621679369094"><span class="hs-identifier hs-var">rest</span></a></span><span>
+</span><span id="line-52"></span><span>
+</span><span id="line-53"></span><span>    </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">Maybe WidthTableRange
+-&gt; [WidthTableRange] -&gt; [(Word32, Word8)] -&gt; [WidthTableRange]
+</span><a href="#local-6989586621679369110"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe WidthTableRange
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="annot"><span class="annottext">[(Word32, Word8)]
+</span><a href="#local-6989586621679369116"><span class="hs-identifier hs-var">convertedPairs</span></a></span><span>
+</span><span id="line-54"></span><span>
+</span><span id="line-55"></span><span class="hs-comment">-- The uppermost code point to consider when building Unicode width</span><span>
+</span><span id="line-56"></span><span class="hs-comment">-- tables.</span><span>
+</span><span id="line-57"></span><span class="annot"><a href="Graphics.Vty.UnicodeWidthTable.Query.html#defaultUnicodeTableUpperBound"><span class="hs-identifier hs-type">defaultUnicodeTableUpperBound</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>
+</span><span id="line-58"></span><span id="defaultUnicodeTableUpperBound"><span class="annot"><span class="annottext">defaultUnicodeTableUpperBound :: Char
+</span><a href="Graphics.Vty.UnicodeWidthTable.Query.html#defaultUnicodeTableUpperBound"><span class="hs-identifier hs-var hs-var">defaultUnicodeTableUpperBound</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\xe0000'</span></span><span>
+</span><span id="line-59"></span><span>
+</span><span id="line-60"></span><span class="hs-comment">-- | Construct a unicode character width table by querying the terminal</span><span>
+</span><span id="line-61"></span><span class="hs-comment">-- connected to stdout. This works by emitting characters to stdout</span><span>
+</span><span id="line-62"></span><span class="hs-comment">-- and then querying the terminal to determine the resulting cursor</span><span>
+</span><span id="line-63"></span><span class="hs-comment">-- position in order to measure character widths. Consequently this will</span><span>
+</span><span id="line-64"></span><span class="hs-comment">-- generate a lot of output and may take a while, depending on your</span><span>
+</span><span id="line-65"></span><span class="hs-comment">-- system performance. This should not be run in a terminal while it is</span><span>
+</span><span id="line-66"></span><span class="hs-comment">-- controlled by Vty.</span><span>
+</span><span id="line-67"></span><span class="hs-comment">--</span><span>
+</span><span id="line-68"></span><span class="hs-comment">-- The argument specifies the upper bound code point to test when</span><span>
+</span><span id="line-69"></span><span class="hs-comment">-- building the table. This allows callers to decide how much of the</span><span>
+</span><span id="line-70"></span><span class="hs-comment">-- Unicode code point space to scan when building the table.</span><span>
+</span><span id="line-71"></span><span class="hs-comment">--</span><span>
+</span><span id="line-72"></span><span class="hs-comment">-- This does not handle exceptions.</span><span>
+</span><span id="line-73"></span><span class="annot"><a href="Graphics.Vty.UnicodeWidthTable.Query.html#buildUnicodeWidthTable"><span class="hs-identifier hs-type">buildUnicodeWidthTable</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="annot"><a href="Graphics.Vty.UnicodeWidthTable.Types.html#UnicodeWidthTable"><span class="hs-identifier hs-type">UnicodeWidthTable</span></a></span><span>
+</span><span id="line-74"></span><span id="buildUnicodeWidthTable"><span class="annot"><span class="annottext">buildUnicodeWidthTable :: Char -&gt; IO UnicodeWidthTable
+</span><a href="Graphics.Vty.UnicodeWidthTable.Query.html#buildUnicodeWidthTable"><span class="hs-identifier hs-var hs-var">buildUnicodeWidthTable</span></a></span></span><span> </span><span id="local-6989586621679369091"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679369091"><span class="hs-identifier hs-var">tableUpperBound</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-75"></span><span>    </span><span id="local-6989586621679369090"><span class="annot"><span class="annottext">[(Char, Int)]
+</span><a href="#local-6989586621679369090"><span class="hs-identifier hs-var">pairs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">String -&gt; (Char -&gt; IO (Char, Int)) -&gt; IO [(Char, Int)]
+forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
+(Traversable t, Monad m) =&gt;
+t a -&gt; (a -&gt; m b) -&gt; m (t b)
+</span><span class="hs-identifier hs-var">forM</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Char -&gt; Bool) -&gt; String -&gt; String
+forall a. (a -&gt; Bool) -&gt; [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">filter</span></span><span> </span><span class="annot"><span class="annottext">Char -&gt; Bool
+</span><a href="Graphics.Vty.UnicodeWidthTable.Query.html#shouldConsider"><span class="hs-identifier hs-var">shouldConsider</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\0'</span></span><span class="hs-glyph">..</span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679369091"><span class="hs-identifier hs-var">tableUpperBound</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">((Char -&gt; IO (Char, Int)) -&gt; IO [(Char, Int)])
+-&gt; (Char -&gt; IO (Char, Int)) -&gt; IO [(Char, Int)]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679369089"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679369089"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-76"></span><span>        </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679369089"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">,</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; (Char, Int)) -&gt; IO Int -&gt; IO (Char, Int)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Char -&gt; IO Int
+</span><a href="Graphics.Vty.UnicodeWidthTable.Query.html#charWidth"><span class="hs-identifier hs-var">charWidth</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679369089"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-77"></span><span>
+</span><span id="line-78"></span><span>    </span><span class="annot"><span class="annottext">UnicodeWidthTable -&gt; IO UnicodeWidthTable
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">UnicodeWidthTable :: [WidthTableRange] -&gt; UnicodeWidthTable
+</span><a href="Graphics.Vty.UnicodeWidthTable.Types.html#UnicodeWidthTable"><span class="hs-identifier hs-type">UnicodeWidthTable</span></a></span><span> </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">unicodeWidthTableRanges :: [WidthTableRange]
+</span><a href="#local-6989586621679369087"><span class="hs-identifier hs-var">unicodeWidthTableRanges</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[WidthTableRange] -&gt; [WidthTableRange]
+forall a. [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">reverse</span></span><span> </span><span class="annot"><span class="annottext">([WidthTableRange] -&gt; [WidthTableRange])
+-&gt; [WidthTableRange] -&gt; [WidthTableRange]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[(Char, Int)] -&gt; [WidthTableRange]
+</span><a href="Graphics.Vty.UnicodeWidthTable.Query.html#mkRanges"><span class="hs-identifier hs-var">mkRanges</span></a></span><span> </span><span class="annot"><span class="annottext">[(Char, Int)]
+</span><a href="#local-6989586621679369090"><span class="hs-identifier hs-var">pairs</span></a></span><span>
+</span><span id="line-79"></span><span>                             </span><span class="hs-special">}</span><span>
+</span><span id="line-80"></span></pre></body></html>

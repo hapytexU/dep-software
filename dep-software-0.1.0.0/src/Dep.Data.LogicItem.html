@@ -1,0 +1,471 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE BangPatterns, FlexibleInstances, FunctionalDependencies, Safe #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-comment">{-|
+Module      : Dep.Data.LogicItem
+Description : A module that defines data structures for a sums, products, sum-of-products and product-of-sums.
+Maintainer  : hapytexeu+gh@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+This module provides utility functions to compress/decompress sums, products, sum-of-products and product-of-sums.
+-}</span><span>
+</span><span id="line-12"></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Dep.Data.LogicItem</span><span> </span><span class="hs-special">(</span><span>
+</span><span id="line-14"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Evaluating logical items</span></span><span>
+</span><span id="line-15"></span><span>    </span><span class="annot"><a href="Dep.Data.LogicItem.html#EvaluateItem"><span class="hs-identifier">EvaluateItem</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.LogicItem.html#evaluateItem"><span class="hs-identifier">evaluateItem</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.LogicItem.html#evaluateWithBits"><span class="hs-identifier">evaluateWithBits</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.LogicItem.html#isTrivial"><span class="hs-identifier">isTrivial</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.LogicItem.html#numberOfVariables"><span class="hs-identifier">numberOfVariables</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-16"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Convert from and to a compact format</span></span><span>
+</span><span id="line-17"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.LogicItem.html#ToCompact"><span class="hs-identifier">ToCompact</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.LogicItem.html#toCompact"><span class="hs-identifier">toCompact</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.LogicItem.html#fromCompact"><span class="hs-identifier">fromCompact</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-18"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Binary encode/decode 'ThreeValues' in an efficient way.</span></span><span>
+</span><span id="line-19"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.LogicItem.html#getThreeList"><span class="hs-identifier">getThreeList</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.LogicItem.html#putThreeList"><span class="hs-identifier">putThreeList</span></a></span><span>
+</span><span id="line-20"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Typesetting variables</span></span><span>
+</span><span id="line-21"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.LogicItem.html#subscriptVariable"><span class="hs-identifier">subscriptVariable</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.LogicItem.html#subscriptNegatedVariable"><span class="hs-identifier">subscriptNegatedVariable</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.LogicItem.html#subscriptConditionVariable"><span class="hs-identifier">subscriptConditionVariable</span></a></span><span>
+</span><span id="line-22"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Alias for 'ThreeValues'</span></span><span>
+</span><span id="line-23"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.LogicItem.html#Item%27"><span class="hs-identifier">Item'</span></a></span><span>
+</span><span id="line-24"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-25"></span><span>
+</span><span id="line-26"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Bits</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Bits</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-operator">(.|.)</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-operator">(.&amp;.)</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">shiftL</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">shiftR</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">testBit</span></span><span class="hs-special">)</span><span>
+</span><span id="line-27"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Binary</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Get</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">Put</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">getWord8</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">putWord8</span></span><span class="hs-special">)</span><span>
+</span><span id="line-28"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Char.Small</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">asSub'</span></span><span class="hs-special">)</span><span>
+</span><span id="line-29"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Text</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Text</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">cons</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">snoc</span></span><span class="hs-special">)</span><span>
+</span><span id="line-30"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Word</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Word8</span></span><span class="hs-special">)</span><span>
+</span><span id="line-31"></span><span>
+</span><span id="line-32"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html"><span class="hs-identifier">Dep.Data.ThreeValue</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier">ThreeValue</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.ThreeValue.html#Zero"><span class="hs-identifier">Zero</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#One"><span class="hs-identifier">One</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#DontCare"><span class="hs-identifier">DontCare</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValues"><span class="hs-identifier">ThreeValues</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-33"></span><span>
+</span><span id="line-34"></span><span class="hs-comment">-- | An alias for 'ThreeValues': an item ('Dep.Data.Product.Product' or 'Dep.Data.Sum.Sum') is a sequence of 'ThreeValue's.</span><span>
+</span><span id="line-35"></span><span class="hs-keyword">type</span><span> </span><span id="Item%27"><span class="annot"><a href="Dep.Data.LogicItem.html#Item%27"><span class="hs-identifier hs-var">Item'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValues"><span class="hs-identifier hs-type">ThreeValues</span></a></span><span>
+</span><span id="line-36"></span><span>
+</span><span id="line-37"></span><span class="hs-comment">-- | A typeclass for objects that can be evaluated to a 'Bool'</span><span>
+</span><span id="line-38"></span><span class="hs-comment">-- based on multiple variables. Numbering of the bits starts by</span><span>
+</span><span id="line-39"></span><span class="hs-comment">-- __one__ because a 'Dep.Data.Sum.CompactSum' and 'Dep.Data.Product.CompactProduct'</span><span>
+</span><span id="line-40"></span><span class="hs-comment">-- start indexes by one, due to the fact that @0@ and @-0@ are equal.</span><span>
+</span><span id="line-41"></span><span class="hs-keyword">class</span><span> </span><span id="EvaluateItem"><span class="annot"><a href="Dep.Data.LogicItem.html#EvaluateItem"><span class="hs-identifier hs-var">EvaluateItem</span></a></span></span><span> </span><span id="local-6989586621679125736"><span class="annot"><a href="#local-6989586621679125736"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-42"></span><span>  </span><span class="hs-comment">-- | Evaluate the given item with a function that derives the value</span><span>
+</span><span id="line-43"></span><span>  </span><span class="hs-comment">-- for the given /i/-th 'Bool'.</span><span>
+</span><span id="line-44"></span><span>  </span><span id="evaluateItem"><span class="annot"><a href="Dep.Data.LogicItem.html#evaluateItem"><span class="hs-identifier hs-type">evaluateItem</span></a></span></span><span>
+</span><span id="line-45"></span><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span>  </span><span class="hs-comment">-- ^ A function to determine the value of the /i/-th 'Bool'.</span><span>
+</span><span id="line-46"></span><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679125736"><span class="hs-identifier hs-type">a</span></a></span><span>  </span><span class="hs-comment">-- ^ The given binary function to evaluate.</span><span>
+</span><span id="line-47"></span><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>  </span><span class="hs-comment">-- ^ The result after evaluating the object.</span><span>
+</span><span id="line-48"></span><span>
+</span><span id="line-49"></span><span>  </span><span class="hs-comment">-- | Determine the outcome of the given 'EvaluateItem' based on the values</span><span>
+</span><span id="line-50"></span><span>  </span><span class="hs-comment">-- specified in a 'Bits' object where the /i/-th 'Bool' is the /i-1/-th bit</span><span>
+</span><span id="line-51"></span><span>  </span><span class="hs-comment">-- of the data.</span><span>
+</span><span id="line-52"></span><span>  </span><span id="local-6989586621679125665"><span id="evaluateWithBits"><span class="annot"><a href="Dep.Data.LogicItem.html#evaluateWithBits"><span class="hs-identifier hs-type">evaluateWithBits</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bits</span></span><span> </span><span class="annot"><a href="#local-6989586621679125665"><span class="hs-identifier hs-type">b</span></a></span><span>
+</span><span id="line-53"></span><span>    </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679125665"><span class="hs-identifier hs-type">b</span></a></span><span>  </span><span class="hs-comment">-- ^ The given 'Bits' object that holds the values for the 'Bool's.</span><span>
+</span><span id="line-54"></span><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679125736"><span class="hs-identifier hs-type">a</span></a></span><span>  </span><span class="hs-comment">-- ^ The given binary function to evaluate.</span><span>
+</span><span id="line-55"></span><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>  </span><span class="hs-comment">-- ^ The result after evluating the given object.</span></span><span>
+</span><span id="line-56"></span><span>  </span><span id="local-6989586621679125664"><span class="annot"><a href="Dep.Data.LogicItem.html#evaluateWithBits"><span class="hs-identifier hs-var hs-var">evaluateWithBits</span></a></span><span> </span><span id="local-6989586621679125663"><span class="annot"><span class="annottext">b
+</span><a href="#local-6989586621679125663"><span class="hs-identifier hs-var">d</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Bool) -&gt; a -&gt; Bool
+forall a. EvaluateItem a =&gt; (Int -&gt; Bool) -&gt; a -&gt; Bool
+</span><a href="Dep.Data.LogicItem.html#evaluateItem"><span class="hs-identifier hs-var">evaluateItem</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Bool
+</span><a href="#local-6989586621679125662"><span class="hs-identifier hs-var">go</span></a></span><span>
+</span><span id="line-57"></span><span>    </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679125662"><span class="annot"><span class="annottext">go :: Int -&gt; Bool
+</span><a href="#local-6989586621679125662"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">b -&gt; Int -&gt; Bool
+forall a. Bits a =&gt; a -&gt; Int -&gt; Bool
+</span><span class="hs-operator hs-var">`testBit`</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(b -&gt; Bool) -&gt; (Int -&gt; b) -&gt; Int -&gt; Bool
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">b -&gt; Int -&gt; b
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">shiftR</span></span><span> </span><span class="annot"><span class="annottext">b
+</span><a href="#local-6989586621679125663"><span class="hs-identifier hs-var">d</span></a></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; b) -&gt; (Int -&gt; Int) -&gt; Int -&gt; b
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int
+forall a. Enum a =&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">pred</span></span><span>
+</span><span id="line-58"></span><span>
+</span><span id="line-59"></span><span>  </span><span class="hs-comment">-- | Check if the given object is trivially 'True' ('One'); 'False' ('Zero'),</span><span>
+</span><span id="line-60"></span><span>  </span><span class="hs-comment">-- or a non-trivial function ('DontCare').</span></span><span>
+</span><span id="line-61"></span><span>  </span><span id="isTrivial"><span class="annot"><a href="Dep.Data.LogicItem.html#isTrivial"><span class="hs-identifier hs-type">isTrivial</span></a></span></span><span>
+</span><span id="line-62"></span><span>    </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679125736"><span class="hs-identifier hs-type">a</span></a></span><span>  </span><span class="hs-comment">-- ^ The given logical item to test.</span><span>
+</span><span id="line-63"></span><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span><span>  </span><span class="hs-comment">-- ^ returns 'One' if the 'EvaluateItem' object always resolves to 'True'; 'Zero' if the object always resolves to 'False'; and 'DontCare' if the function is not trivial.</span><span>
+</span><span id="line-64"></span><span>
+</span><span id="line-65"></span><span>  </span><span class="hs-comment">-- | Determine the largest index of the variables for which the 'EvaluateItem' is sensitive for.</span><span>
+</span><span id="line-66"></span><span>  </span><span id="numberOfVariables"><span class="annot"><a href="Dep.Data.LogicItem.html#numberOfVariables"><span class="hs-identifier hs-type">numberOfVariables</span></a></span></span><span>
+</span><span id="line-67"></span><span>    </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679125736"><span class="hs-identifier hs-type">a</span></a></span><span>  </span><span class="hs-comment">-- ^ The given 'EvaluateItem'.</span><span>
+</span><span id="line-68"></span><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>  </span><span class="hs-comment">-- ^ The largest index of the variables the given 'EvaluateItem' is sensitive for.</span><span>
+</span><span id="line-69"></span><span>  </span><span class="hs-pragma">{-# MINIMAL</span><span> </span><span class="annot"><a href="Dep.Data.LogicItem.html#evaluateItem"><span class="hs-pragma hs-type">evaluateItem</span></a></span><span class="hs-pragma">,</span><span> </span><span class="annot"><a href="Dep.Data.LogicItem.html#isTrivial"><span class="hs-pragma hs-type">isTrivial</span></a></span><span class="hs-pragma">,</span><span> </span><span class="annot"><a href="Dep.Data.LogicItem.html#numberOfVariables"><span class="hs-pragma hs-type">numberOfVariables</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-70"></span><span>
+</span><span id="line-71"></span><span class="hs-comment">-- | A class that specifies that a given logic item can be made more compact, or from a compact form to</span><span>
+</span><span id="line-72"></span><span class="hs-comment">-- its original form. The two functions are not per se fully each others inverse.</span><span>
+</span><span id="line-73"></span><span class="hs-keyword">class</span><span> </span><span id="ToCompact"><span class="annot"><a href="Dep.Data.LogicItem.html#ToCompact"><span class="hs-identifier hs-var">ToCompact</span></a></span></span><span> </span><span id="local-6989586621679125726"><span class="annot"><a href="#local-6989586621679125726"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span id="local-6989586621679125725"><span class="annot"><a href="#local-6989586621679125725"><span class="hs-identifier hs-type">b</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><a href="#local-6989586621679125726"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679125725"><span class="hs-identifier hs-type">b</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-74"></span><span>  </span><span class="hs-comment">-- | Convert the given item to a more compact representation.</span><span>
+</span><span id="line-75"></span><span>  </span><span id="toCompact"><span class="annot"><a href="Dep.Data.LogicItem.html#toCompact"><span class="hs-identifier hs-type">toCompact</span></a></span></span><span>
+</span><span id="line-76"></span><span>    </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679125726"><span class="hs-identifier hs-type">a</span></a></span><span>  </span><span class="hs-comment">-- ^ The given item to turn in a compact form.</span><span>
+</span><span id="line-77"></span><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679125725"><span class="hs-identifier hs-type">b</span></a></span><span>  </span><span class="hs-comment">-- ^ The corresponding compact form.</span><span>
+</span><span id="line-78"></span><span>
+</span><span id="line-79"></span><span>  </span><span class="hs-comment">-- | Convert the given item from a compact representation to its normal presentation.</span><span>
+</span><span id="line-80"></span><span>  </span><span id="fromCompact"><span class="annot"><a href="Dep.Data.LogicItem.html#fromCompact"><span class="hs-identifier hs-type">fromCompact</span></a></span></span><span>
+</span><span id="line-81"></span><span>    </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679125725"><span class="hs-identifier hs-type">b</span></a></span><span>  </span><span class="hs-comment">-- ^ The given compact form that should be represented to the normal form.</span><span>
+</span><span id="line-82"></span><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679125726"><span class="hs-identifier hs-type">a</span></a></span><span>  </span><span class="hs-comment">-- ^ The corresponding normal form.</span><span>
+</span><span id="line-83"></span><span>  </span><span class="hs-pragma">{-# MINIMAL</span><span> </span><span class="annot"><a href="Dep.Data.LogicItem.html#toCompact"><span class="hs-pragma hs-type">toCompact</span></a></span><span class="hs-pragma">,</span><span> </span><span class="annot"><a href="Dep.Data.LogicItem.html#fromCompact"><span class="hs-pragma hs-type">fromCompact</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-84"></span><span>
+</span><span id="line-85"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Dep.Data.LogicItem.html#ToCompact"><span class="hs-identifier hs-type">ToCompact</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">]</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-86"></span><span>  </span><span id="local-6989586621679125656"><span class="annot"><span class="annottext">toCompact :: [ThreeValue] -&gt; [Int]
+</span><a href="#local-6989586621679125656"><span class="hs-identifier hs-var hs-var hs-var hs-var">toCompact</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; [ThreeValue] -&gt; [Int]
+forall a. Num a =&gt; a -&gt; [ThreeValue] -&gt; [a]
+</span><a href="#local-6989586621679125655"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span>
+</span><span id="line-87"></span><span>    </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679125655"><span class="annot"><span class="annottext">go :: a -&gt; [ThreeValue] -&gt; [a]
+</span><a href="#local-6989586621679125655"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="annot"><span class="annottext">a
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><span id="line-88"></span><span>          </span><span class="annot"><a href="#local-6989586621679125655"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679125654"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125654"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#DontCare"><span class="hs-identifier hs-var">DontCare</span></a></span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span id="local-6989586621679125653"><span class="annot"><span class="annottext">[ThreeValue]
+</span><a href="#local-6989586621679125653"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; [ThreeValue] -&gt; [a]
+</span><a href="#local-6989586621679125655"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125654"><span class="hs-identifier hs-var">i</span></a></span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span class="annot"><span class="annottext">a
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[ThreeValue]
+</span><a href="#local-6989586621679125653"><span class="hs-identifier hs-var">xs</span></a></span><span>
+</span><span id="line-89"></span><span>          </span><span class="annot"><a href="#local-6989586621679125655"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span id="local-6989586621679125651"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125651"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#One"><span class="hs-identifier hs-var">One</span></a></span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span id="local-6989586621679125650"><span class="annot"><span class="annottext">[ThreeValue]
+</span><a href="#local-6989586621679125650"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125651"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; [a] -&gt; [a]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; [ThreeValue] -&gt; [a]
+</span><a href="#local-6989586621679125655"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125651"><span class="hs-identifier hs-var">i</span></a></span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span class="annot"><span class="annottext">a
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[ThreeValue]
+</span><a href="#local-6989586621679125650"><span class="hs-identifier hs-var">xs</span></a></span><span>
+</span><span id="line-90"></span><span>          </span><span class="annot"><a href="#local-6989586621679125655"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span id="local-6989586621679125649"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125649"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">~</span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#Zero"><span class="hs-identifier hs-var">Zero</span></a></span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span id="local-6989586621679125648"><span class="annot"><span class="annottext">[ThreeValue]
+</span><a href="#local-6989586621679125648"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-glyph">-</span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125649"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; [a] -&gt; [a]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; [ThreeValue] -&gt; [a]
+</span><a href="#local-6989586621679125655"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125649"><span class="hs-identifier hs-var">i</span></a></span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span class="annot"><span class="annottext">a
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[ThreeValue]
+</span><a href="#local-6989586621679125648"><span class="hs-identifier hs-var">xs</span></a></span><span>
+</span><span id="line-91"></span><span>  </span><span id="local-6989586621679125647"><span class="annot"><span class="annottext">fromCompact :: [Int] -&gt; [ThreeValue]
+</span><a href="#local-6989586621679125647"><span class="hs-identifier hs-var hs-var hs-var hs-var">fromCompact</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; [Int] -&gt; [ThreeValue]
+forall a. (Num a, Ord a) =&gt; a -&gt; [a] -&gt; [ThreeValue]
+</span><a href="#local-6989586621679125646"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span>
+</span><span id="line-92"></span><span>    </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679125646"><span class="annot"><span class="annottext">go :: a -&gt; [a] -&gt; [ThreeValue]
+</span><a href="#local-6989586621679125646"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="annot"><span class="annottext">a
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><span id="line-93"></span><span>          </span><span class="annot"><a href="#local-6989586621679125646"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679125645"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125645"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span id="local-6989586621679125644"><span class="annot"><span class="annottext">xa :: [a]
+</span><a href="#local-6989586621679125644"><span class="hs-identifier hs-var">xa</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span id="local-6989586621679125643"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125643"><span class="hs-identifier hs-var">x</span></a></span></span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span id="local-6989586621679125642"><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679125642"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">)</span><span>
+</span><span id="line-94"></span><span>            </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">a -&gt; a
+forall a. Num a =&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">abs</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125643"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">/=</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125645"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#DontCare"><span class="hs-identifier hs-var">DontCare</span></a></span><span> </span><span class="annot"><span class="annottext">ThreeValue -&gt; [ThreeValue] -&gt; [ThreeValue]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; [a] -&gt; [ThreeValue]
+</span><a href="#local-6989586621679125646"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125645"><span class="hs-identifier hs-var">i</span></a></span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span class="annot"><span class="annottext">a
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679125644"><span class="hs-identifier hs-var">xa</span></a></span><span>
+</span><span id="line-95"></span><span>            </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125643"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#Zero"><span class="hs-identifier hs-var">Zero</span></a></span><span> </span><span class="annot"><span class="annottext">ThreeValue -&gt; [ThreeValue] -&gt; [ThreeValue]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; [a] -&gt; [ThreeValue]
+</span><a href="#local-6989586621679125646"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125645"><span class="hs-identifier hs-var">i</span></a></span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span class="annot"><span class="annottext">a
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679125642"><span class="hs-identifier hs-var">xs</span></a></span><span>
+</span><span id="line-96"></span><span>            </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#One"><span class="hs-identifier hs-var">One</span></a></span><span> </span><span class="annot"><span class="annottext">ThreeValue -&gt; [ThreeValue] -&gt; [ThreeValue]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; [a] -&gt; [ThreeValue]
+</span><a href="#local-6989586621679125646"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125645"><span class="hs-identifier hs-var">i</span></a></span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span class="annot"><span class="annottext">a
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679125642"><span class="hs-identifier hs-var">xs</span></a></span><span>
+</span><span id="line-97"></span><span>
+</span><span id="line-98"></span><span class="hs-comment">-- | Convert the given list of 'ThreeValue's to a writer for a binary stream that</span><span>
+</span><span id="line-99"></span><span class="hs-comment">-- encodes four 'ThreeValue's on one byte.</span><span>
+</span><span id="line-100"></span><span class="annot"><a href="Dep.Data.LogicItem.html#putThreeList"><span class="hs-identifier hs-type">putThreeList</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValues"><span class="hs-identifier hs-type">ThreeValues</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Put</span></span><span>
+</span><span id="line-101"></span><span id="putThreeList"><span class="annot"><span class="annottext">putThreeList :: [ThreeValue] -&gt; Put
+</span><a href="Dep.Data.LogicItem.html#putThreeList"><span class="hs-identifier hs-var hs-var">putThreeList</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[ThreeValue] -&gt; Put
+forall a. Enum a =&gt; [a] -&gt; Put
+</span><a href="#local-6989586621679125638"><span class="hs-identifier hs-var">go</span></a></span><span>
+</span><span id="line-102"></span><span>  </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679125638"><span class="annot"><span class="annottext">go :: [a] -&gt; Put
+</span><a href="#local-6989586621679125638"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Put
+</span><span class="hs-identifier hs-var">putWord8</span></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">0xff</span></span><span>
+</span><span id="line-103"></span><span>        </span><span class="annot"><a href="#local-6989586621679125638"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-glyph">~</span><span class="hs-special">(</span><span id="local-6989586621679125637"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125637"><span class="hs-identifier hs-var">x</span></a></span></span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span id="local-6989586621679125636"><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679125636"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; [a] -&gt; Put
+</span><a href="#local-6989586621679125635"><span class="hs-identifier hs-var">go'</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Word8
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; Int
+forall a. Enum a =&gt; a -&gt; Int
+</span><span class="hs-identifier hs-var">fromEnum</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125637"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679125636"><span class="hs-identifier hs-var">xs</span></a></span><span>
+</span><span id="line-104"></span><span>        </span><span id="local-6989586621679125635"><span class="annot"><span class="annottext">go' :: Word8 -&gt; [a] -&gt; Put
+</span><a href="#local-6989586621679125635"><span class="hs-identifier hs-var hs-var">go'</span></a></span></span><span> </span><span id="local-6989586621679125633"><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679125633"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Put
+</span><span class="hs-identifier hs-var">putWord8</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word8 -&gt; Int -&gt; Word8
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">shiftL</span></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679125633"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">6</span></span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Word8 -&gt; Word8
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.|.</span></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">0x3f</span></span><span class="hs-special">)</span><span>
+</span><span id="line-105"></span><span>        </span><span class="annot"><a href="#local-6989586621679125635"><span class="hs-identifier hs-var">go'</span></a></span><span> </span><span id="local-6989586621679125632"><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679125632"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">~</span><span class="hs-special">(</span><span id="local-6989586621679125631"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125631"><span class="hs-identifier hs-var">x</span></a></span></span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span id="local-6989586621679125630"><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679125630"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; [a] -&gt; Put
+</span><a href="#local-6989586621679125629"><span class="hs-identifier hs-var">go''</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word8 -&gt; a -&gt; Word8
+forall a a. (Bits a, Num a, Enum a) =&gt; a -&gt; a -&gt; a
+</span><a href="#local-6989586621679125628"><span class="hs-identifier hs-var">mv</span></a></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679125632"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125631"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679125630"><span class="hs-identifier hs-var">xs</span></a></span><span>
+</span><span id="line-106"></span><span>        </span><span id="local-6989586621679125629"><span class="annot"><span class="annottext">go'' :: Word8 -&gt; [a] -&gt; Put
+</span><a href="#local-6989586621679125629"><span class="hs-identifier hs-var hs-var">go''</span></a></span></span><span> </span><span id="local-6989586621679125627"><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679125627"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Put
+</span><span class="hs-identifier hs-var">putWord8</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word8 -&gt; Int -&gt; Word8
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">shiftL</span></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679125627"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">4</span></span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Word8 -&gt; Word8
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.|.</span></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">0xf</span></span><span class="hs-special">)</span><span>
+</span><span id="line-107"></span><span>        </span><span class="annot"><a href="#local-6989586621679125629"><span class="hs-identifier hs-var">go''</span></a></span><span> </span><span id="local-6989586621679125626"><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679125626"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">~</span><span class="hs-special">(</span><span id="local-6989586621679125625"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125625"><span class="hs-identifier hs-var">x</span></a></span></span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span id="local-6989586621679125624"><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679125624"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; [a] -&gt; Put
+</span><a href="#local-6989586621679125623"><span class="hs-identifier hs-var">go'''</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word8 -&gt; a -&gt; Word8
+forall a a. (Bits a, Num a, Enum a) =&gt; a -&gt; a -&gt; a
+</span><a href="#local-6989586621679125628"><span class="hs-identifier hs-var">mv</span></a></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679125626"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125625"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679125624"><span class="hs-identifier hs-var">xs</span></a></span><span>
+</span><span id="line-108"></span><span>        </span><span id="local-6989586621679125623"><span class="annot"><span class="annottext">go''' :: Word8 -&gt; [a] -&gt; Put
+</span><a href="#local-6989586621679125623"><span class="hs-identifier hs-var hs-var">go'''</span></a></span></span><span> </span><span id="local-6989586621679125622"><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679125622"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Put
+</span><span class="hs-identifier hs-var">putWord8</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word8 -&gt; Int -&gt; Word8
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">shiftL</span></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679125622"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">2</span></span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Word8 -&gt; Word8
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.|.</span></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">0x3</span></span><span class="hs-special">)</span><span>
+</span><span id="line-109"></span><span>        </span><span class="annot"><a href="#local-6989586621679125623"><span class="hs-identifier hs-var">go'''</span></a></span><span> </span><span id="local-6989586621679125621"><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679125621"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">~</span><span class="hs-special">(</span><span id="local-6989586621679125620"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125620"><span class="hs-identifier hs-var">x</span></a></span></span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span id="local-6989586621679125619"><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679125619"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Put
+</span><span class="hs-identifier hs-var">putWord8</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word8 -&gt; a -&gt; Word8
+forall a a. (Bits a, Num a, Enum a) =&gt; a -&gt; a -&gt; a
+</span><a href="#local-6989586621679125628"><span class="hs-identifier hs-var">mv</span></a></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679125621"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125620"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Put -&gt; Put -&gt; Put
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; m b -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">[a] -&gt; Put
+</span><a href="#local-6989586621679125638"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679125619"><span class="hs-identifier hs-var">xs</span></a></span><span>
+</span><span id="line-110"></span><span>        </span><span id="local-6989586621679125628"><span class="annot"><span class="annottext">mv :: a -&gt; a -&gt; a
+</span><a href="#local-6989586621679125628"><span class="hs-identifier hs-var hs-var">mv</span></a></span></span><span> </span><span id="local-6989586621679125618"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125618"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679125617"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125617"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; Int -&gt; a
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">shiftL</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125618"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">2</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.|.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; a
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; Int
+forall a. Enum a =&gt; a -&gt; Int
+</span><span class="hs-identifier hs-var">fromEnum</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125617"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-111"></span><span>
+</span><span id="line-112"></span><span class="hs-comment">-- | Read a list o 'ThreeValue's from a binary stream where each byte represents</span><span>
+</span><span id="line-113"></span><span class="hs-comment">-- (up to) four 'ThreeValue's.</span><span>
+</span><span id="line-114"></span><span class="annot"><a href="Dep.Data.LogicItem.html#getThreeList"><span class="hs-identifier hs-type">getThreeList</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Get</span></span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValues"><span class="hs-identifier hs-type">ThreeValues</span></a></span><span>
+</span><span id="line-115"></span><span id="getThreeList"><span class="annot"><span class="annottext">getThreeList :: Get [ThreeValue]
+</span><a href="Dep.Data.LogicItem.html#getThreeList"><span class="hs-identifier hs-var hs-var">getThreeList</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Get Word8
+</span><span class="hs-identifier hs-var">getWord8</span></span><span> </span><span class="annot"><span class="annottext">Get Word8 -&gt; (Word8 -&gt; Get [ThreeValue]) -&gt; Get [ThreeValue]
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Get [ThreeValue]
+</span><a href="#local-6989586621679125616"><span class="hs-identifier hs-var">go</span></a></span><span>
+</span><span id="line-116"></span><span>  </span><span class="hs-keyword">where</span><span> </span><span class="annot"><a href="#local-6989586621679125616"><span class="hs-identifier hs-type">go</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word8</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Get</span></span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValues"><span class="hs-identifier hs-type">ThreeValues</span></a></span><span>
+</span><span id="line-117"></span><span>        </span><span id="local-6989586621679125616"><span class="annot"><span class="annottext">go :: Word8 -&gt; Get [ThreeValue]
+</span><a href="#local-6989586621679125616"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">255</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[ThreeValue] -&gt; Get [ThreeValue]
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><span id="line-118"></span><span>        </span><span class="annot"><a href="#local-6989586621679125616"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span id="local-6989586621679125615"><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679125615"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Int -&gt; Word8
+forall a. (Bits a, Num a) =&gt; a -&gt; Int -&gt; a
+</span><a href="#local-6989586621679125614"><span class="hs-identifier hs-var">shr</span></a></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679125615"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Word8 -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">/=</span></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">3</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; [ThreeValue] -&gt; [ThreeValue]
+forall a a. (Integral a, Bits a, Enum a) =&gt; a -&gt; [a] -&gt; [a]
+</span><a href="#local-6989586621679125613"><span class="hs-identifier hs-var">prcs</span></a></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679125615"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">([ThreeValue] -&gt; [ThreeValue])
+-&gt; Get [ThreeValue] -&gt; Get [ThreeValue]
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Get Word8
+</span><span class="hs-identifier hs-var">getWord8</span></span><span> </span><span class="annot"><span class="annottext">Get Word8 -&gt; (Word8 -&gt; Get [ThreeValue]) -&gt; Get [ThreeValue]
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Get [ThreeValue]
+</span><a href="#local-6989586621679125616"><span class="hs-identifier hs-var">go</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-119"></span><span>             </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[ThreeValue] -&gt; Get [ThreeValue]
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word8 -&gt; [ThreeValue] -&gt; [ThreeValue]
+forall a a. (Integral a, Bits a, Enum a) =&gt; a -&gt; [a] -&gt; [a]
+</span><a href="#local-6989586621679125613"><span class="hs-identifier hs-var">prcs</span></a></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679125615"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-120"></span><span>        </span><span id="local-6989586621679125613"><span class="annot"><span class="annottext">prcs :: a -&gt; [a] -&gt; [a]
+</span><a href="#local-6989586621679125613"><span class="hs-identifier hs-var hs-var">prcs</span></a></span></span><span> </span><span id="local-6989586621679125611"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125611"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; Int -&gt; [a] -&gt; [a]
+forall a a. (Integral a, Bits a, Enum a) =&gt; a -&gt; Int -&gt; [a] -&gt; [a]
+</span><a href="#local-6989586621679125610"><span class="hs-identifier hs-var">tk</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125611"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">6</span></span><span> </span><span class="annot"><span class="annottext">([a] -&gt; [a]) -&gt; ([a] -&gt; [a]) -&gt; [a] -&gt; [a]
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; Int -&gt; [a] -&gt; [a]
+forall a a. (Integral a, Bits a, Enum a) =&gt; a -&gt; Int -&gt; [a] -&gt; [a]
+</span><a href="#local-6989586621679125610"><span class="hs-identifier hs-var">tk</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125611"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">4</span></span><span> </span><span class="annot"><span class="annottext">([a] -&gt; [a]) -&gt; ([a] -&gt; [a]) -&gt; [a] -&gt; [a]
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; Int -&gt; [a] -&gt; [a]
+forall a a. (Integral a, Bits a, Enum a) =&gt; a -&gt; Int -&gt; [a] -&gt; [a]
+</span><a href="#local-6989586621679125610"><span class="hs-identifier hs-var">tk</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125611"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">2</span></span><span> </span><span class="annot"><span class="annottext">([a] -&gt; [a]) -&gt; ([a] -&gt; [a]) -&gt; [a] -&gt; [a]
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; Int -&gt; [a] -&gt; [a]
+forall a a. (Integral a, Bits a, Enum a) =&gt; a -&gt; Int -&gt; [a] -&gt; [a]
+</span><a href="#local-6989586621679125610"><span class="hs-identifier hs-var">tk</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125611"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span>
+</span><span id="line-121"></span><span>        </span><span id="local-6989586621679125614"><span class="annot"><span class="annottext">shr :: a -&gt; Int -&gt; a
+</span><a href="#local-6989586621679125614"><span class="hs-identifier hs-var hs-var">shr</span></a></span></span><span> </span><span id="local-6989586621679125609"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125609"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679125608"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679125608"><span class="hs-identifier hs-var">k</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a
+</span><span class="hs-number">0x03</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; a
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.&amp;.</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; Int -&gt; a
+forall a. Bits a =&gt; a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">shiftR</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125609"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679125608"><span class="hs-identifier hs-var">k</span></a></span><span>
+</span><span id="line-122"></span><span>        </span><span id="local-6989586621679125610"><span class="annot"><span class="annottext">tk :: a -&gt; Int -&gt; [a] -&gt; [a]
+</span><a href="#local-6989586621679125610"><span class="hs-identifier hs-var hs-var">tk</span></a></span></span><span> </span><span id="local-6989586621679125607"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125607"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679125606"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679125606"><span class="hs-identifier hs-var">k</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; [a] -&gt; [a]
+forall a a. (Integral a, Enum a) =&gt; a -&gt; [a] -&gt; [a]
+</span><a href="#local-6989586621679125605"><span class="hs-identifier hs-var">prc</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; Int -&gt; a
+forall a. (Bits a, Num a) =&gt; a -&gt; Int -&gt; a
+</span><a href="#local-6989586621679125614"><span class="hs-identifier hs-var">shr</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125607"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679125606"><span class="hs-identifier hs-var">k</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-123"></span><span>        </span><span id="local-6989586621679125605"><span class="annot"><span class="annottext">prc :: a -&gt; [a] -&gt; [a]
+</span><a href="#local-6989586621679125605"><span class="hs-identifier hs-var hs-var">prc</span></a></span></span><span> </span><span id="local-6989586621679125604"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125604"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125604"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><span class="hs-number">3</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; a
+forall a. Enum a =&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">toEnum</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; Int
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125604"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">a -&gt; [a] -&gt; [a]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span class="hs-special">)</span><span>
+</span><span id="line-124"></span><span>              </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[a] -&gt; [a]
+forall a. a -&gt; a
+</span><span class="hs-identifier hs-var">id</span></span><span>
+</span><span id="line-125"></span><span>
+</span><span id="line-126"></span><span class="hs-comment">-- | Convert the given number to a 'Text' object containing the &quot;root&quot; variable</span><span>
+</span><span id="line-127"></span><span class="hs-comment">-- name and the index as subscript.</span><span>
+</span><span id="line-128"></span><span class="annot"><a href="Dep.Data.LogicItem.html#subscriptVariable"><span class="hs-identifier hs-type">subscriptVariable</span></a></span><span>
+</span><span id="line-129"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>  </span><span class="hs-comment">-- ^ The &quot;root&quot; variable that we will use with a subscript.</span><span>
+</span><span id="line-130"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>  </span><span class="hs-comment">-- ^ The subscript that will be added to the character.</span><span>
+</span><span id="line-131"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="hs-comment">-- ^ A text object that contains the &quot;root&quot; variable with the subscript.</span><span>
+</span><span id="line-132"></span><span id="subscriptVariable"><span class="annot"><span class="annottext">subscriptVariable :: Char -&gt; Int -&gt; Text
+</span><a href="Dep.Data.LogicItem.html#subscriptVariable"><span class="hs-identifier hs-var hs-var">subscriptVariable</span></a></span></span><span> </span><span id="local-6989586621679125601"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679125601"><span class="hs-identifier hs-var">ci</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Text -&gt; Text
+</span><span class="hs-identifier hs-var">cons</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679125601"><span class="hs-identifier hs-var">ci</span></a></span><span> </span><span class="annot"><span class="annottext">(Text -&gt; Text) -&gt; (Int -&gt; Text) -&gt; Int -&gt; Text
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Text
+forall i. Integral i =&gt; i -&gt; Text
+</span><span class="hs-identifier hs-var">asSub'</span></span><span>
+</span><span id="line-133"></span><span>
+</span><span id="line-134"></span><span class="hs-comment">-- | Convert the given number to a 'Text' object containing the &quot;root&quot; variable</span><span>
+</span><span id="line-135"></span><span class="hs-comment">-- name and the index as subscript.</span><span>
+</span><span id="line-136"></span><span class="annot"><a href="Dep.Data.LogicItem.html#subscriptNegatedVariable"><span class="hs-identifier hs-type">subscriptNegatedVariable</span></a></span><span>
+</span><span id="line-137"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>  </span><span class="hs-comment">-- ^ The &quot;root&quot; variable that we will use with a subscript.</span><span>
+</span><span id="line-138"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>  </span><span class="hs-comment">-- ^ The subscript that will be added to the character.</span><span>
+</span><span id="line-139"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="hs-comment">-- ^ A text object that contains the &quot;root&quot; variable with the subscript and an accent to mark its negation.</span><span>
+</span><span id="line-140"></span><span id="subscriptNegatedVariable"><span class="annot"><span class="annottext">subscriptNegatedVariable :: Char -&gt; Int -&gt; Text
+</span><a href="Dep.Data.LogicItem.html#subscriptNegatedVariable"><span class="hs-identifier hs-var hs-var">subscriptNegatedVariable</span></a></span></span><span> </span><span id="local-6989586621679125600"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679125600"><span class="hs-identifier hs-var">ci</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Text -&gt; Char -&gt; Text
+</span><span class="hs-operator hs-var">`snoc`</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\''</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Text -&gt; Text) -&gt; (Int -&gt; Text) -&gt; Int -&gt; Text
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Char -&gt; Text -&gt; Text
+</span><span class="hs-identifier hs-var">cons</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679125600"><span class="hs-identifier hs-var">ci</span></a></span><span> </span><span class="annot"><span class="annottext">(Text -&gt; Text) -&gt; (Int -&gt; Text) -&gt; Int -&gt; Text
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Text
+forall i. Integral i =&gt; i -&gt; Text
+</span><span class="hs-identifier hs-var">asSub'</span></span><span>
+</span><span id="line-141"></span><span>
+</span><span id="line-142"></span><span class="hs-comment">-- | Convert the given number to a 'Text' objet that contains the &quot;root&quot; variable,</span><span>
+</span><span id="line-143"></span><span class="hs-comment">-- name, the index, and based on a given 'Bool' can include a quote mark if the</span><span>
+</span><span id="line-144"></span><span class="hs-comment">-- variable should be 'False'.</span><span>
+</span><span id="line-145"></span><span class="annot"><a href="Dep.Data.LogicItem.html#subscriptConditionVariable"><span class="hs-identifier hs-type">subscriptConditionVariable</span></a></span><span>
+</span><span id="line-146"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>  </span><span class="hs-comment">-- ^ The &quot;root&quot; variable that will be used with a subscript.</span><span>
+</span><span id="line-147"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>  </span><span class="hs-comment">-- ^ The subscript that will be added to the variable.</span><span>
+</span><span id="line-148"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>  </span><span class="hs-comment">-- ^ A 'Bool' that is 'False' if the item should be negated; and 'True' otherwise.</span><span>
+</span><span id="line-149"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>  </span><span class="hs-comment">-- ^ A 'Text' object that contains the root variable, the subscript, and an accent if necessary.</span><span>
+</span><span id="line-150"></span><span id="subscriptConditionVariable"><span class="annot"><span class="annottext">subscriptConditionVariable :: Char -&gt; Int -&gt; Bool -&gt; Text
+</span><a href="Dep.Data.LogicItem.html#subscriptConditionVariable"><span class="hs-identifier hs-var hs-var">subscriptConditionVariable</span></a></span></span><span> </span><span id="local-6989586621679125599"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679125599"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span id="local-6989586621679125598"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679125598"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Text
+</span><a href="#local-6989586621679125597"><span class="hs-identifier hs-var">go</span></a></span><span>
+</span><span id="line-151"></span><span>  </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679125597"><span class="annot"><span class="annottext">go :: Bool -&gt; Text
+</span><a href="#local-6989586621679125597"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Int -&gt; Text
+</span><a href="Dep.Data.LogicItem.html#subscriptVariable"><span class="hs-identifier hs-var">subscriptVariable</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679125599"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679125598"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-152"></span><span>        </span><span class="annot"><a href="#local-6989586621679125597"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-glyph">~</span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Int -&gt; Text
+</span><a href="Dep.Data.LogicItem.html#subscriptNegatedVariable"><span class="hs-identifier hs-var">subscriptNegatedVariable</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679125599"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679125598"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-153"></span></pre></body></html>

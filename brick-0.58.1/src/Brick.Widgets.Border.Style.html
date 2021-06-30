@@ -1,0 +1,362 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE OverloadedStrings #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE DeriveGeneric #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE DeriveAnyClass #-}</span><span>
+</span><span id="line-4"></span><span class="hs-comment">-- | This module provides styles for borders as used in terminal</span><span>
+</span><span id="line-5"></span><span class="hs-comment">-- applications. Your mileage may vary on some of the fancier styles</span><span>
+</span><span id="line-6"></span><span class="hs-comment">-- due to varying support for some border characters in the fonts your</span><span>
+</span><span id="line-7"></span><span class="hs-comment">-- users may be using. Because of this, we provide the 'ascii' style in</span><span>
+</span><span id="line-8"></span><span class="hs-comment">-- addition to the Unicode styles. The 'unicode' style is also a safe</span><span>
+</span><span id="line-9"></span><span class="hs-comment">-- bet.</span><span>
+</span><span id="line-10"></span><span class="hs-comment">--</span><span>
+</span><span id="line-11"></span><span class="hs-comment">-- To use these in your widgets, see</span><span>
+</span><span id="line-12"></span><span class="hs-comment">-- 'Brick.Widgets.Core.withBorderStyle'. By default, widgets rendered</span><span>
+</span><span id="line-13"></span><span class="hs-comment">-- without a specified border style use 'unicode' style.</span><span>
+</span><span id="line-14"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Brick.Widgets.Border.Style</span><span>
+</span><span id="line-15"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Brick.Widgets.Border.Style.html#BorderStyle"><span class="hs-identifier">BorderStyle</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-16"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Widgets.Border.Style.html#borderStyleFromChar"><span class="hs-identifier">borderStyleFromChar</span></a></span><span>
+</span><span id="line-17"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Widgets.Border.Style.html#ascii"><span class="hs-identifier">ascii</span></a></span><span>
+</span><span id="line-18"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Widgets.Border.Style.html#unicode"><span class="hs-identifier">unicode</span></a></span><span>
+</span><span id="line-19"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Widgets.Border.Style.html#unicodeBold"><span class="hs-identifier">unicodeBold</span></a></span><span>
+</span><span id="line-20"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Widgets.Border.Style.html#unicodeRounded"><span class="hs-identifier">unicodeRounded</span></a></span><span>
+</span><span id="line-21"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Widgets.Border.Style.html#defaultBorderStyle"><span class="hs-identifier">defaultBorderStyle</span></a></span><span>
+</span><span id="line-22"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-23"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-24"></span><span>
+</span><span id="line-25"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">GHC.Generics</span></span><span>
+</span><span id="line-26"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.DeepSeq</span></span><span>
+</span><span id="line-27"></span><span>
+</span><span id="line-28"></span><span class="hs-comment">-- | A border style for use in any widget that needs to render borders</span><span>
+</span><span id="line-29"></span><span class="hs-comment">-- in a consistent style.</span><span>
+</span><span id="line-30"></span><span id="local-6989586621679369368"><span id="local-6989586621679369369"></span></span><span class="hs-keyword">data</span><span> </span><span id="BorderStyle"><span class="annot"><a href="Brick.Widgets.Border.Style.html#BorderStyle"><span class="hs-identifier hs-var">BorderStyle</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-31"></span><span>    </span><span id="BorderStyle"><span class="annot"><a href="Brick.Widgets.Border.Style.html#BorderStyle"><span class="hs-identifier hs-var">BorderStyle</span></a></span></span><span> </span><span class="hs-special">{</span><span> </span><span id="bsCornerTL"><span class="annot"><span class="annottext">BorderStyle -&gt; Char
+</span><a href="Brick.Widgets.Border.Style.html#bsCornerTL"><span class="hs-identifier hs-var hs-var">bsCornerTL</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>
+</span><span id="line-32"></span><span>                </span><span class="hs-comment">-- ^ Top-left corner character</span><span>
+</span><span id="line-33"></span><span>                </span><span class="hs-special">,</span><span> </span><span id="bsCornerTR"><span class="annot"><span class="annottext">BorderStyle -&gt; Char
+</span><a href="Brick.Widgets.Border.Style.html#bsCornerTR"><span class="hs-identifier hs-var hs-var">bsCornerTR</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>
+</span><span id="line-34"></span><span>                </span><span class="hs-comment">-- ^ Top-right corner character</span><span>
+</span><span id="line-35"></span><span>                </span><span class="hs-special">,</span><span> </span><span id="bsCornerBR"><span class="annot"><span class="annottext">BorderStyle -&gt; Char
+</span><a href="Brick.Widgets.Border.Style.html#bsCornerBR"><span class="hs-identifier hs-var hs-var">bsCornerBR</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>
+</span><span id="line-36"></span><span>                </span><span class="hs-comment">-- ^ Bottom-right corner character</span><span>
+</span><span id="line-37"></span><span>                </span><span class="hs-special">,</span><span> </span><span id="bsCornerBL"><span class="annot"><span class="annottext">BorderStyle -&gt; Char
+</span><a href="Brick.Widgets.Border.Style.html#bsCornerBL"><span class="hs-identifier hs-var hs-var">bsCornerBL</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>
+</span><span id="line-38"></span><span>                </span><span class="hs-comment">-- ^ Bottom-left corner character</span><span>
+</span><span id="line-39"></span><span>                </span><span class="hs-special">,</span><span> </span><span id="bsIntersectFull"><span class="annot"><span class="annottext">BorderStyle -&gt; Char
+</span><a href="Brick.Widgets.Border.Style.html#bsIntersectFull"><span class="hs-identifier hs-var hs-var">bsIntersectFull</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>
+</span><span id="line-40"></span><span>                </span><span class="hs-comment">-- ^ Full intersection (cross)</span><span>
+</span><span id="line-41"></span><span>                </span><span class="hs-special">,</span><span> </span><span id="bsIntersectL"><span class="annot"><span class="annottext">BorderStyle -&gt; Char
+</span><a href="Brick.Widgets.Border.Style.html#bsIntersectL"><span class="hs-identifier hs-var hs-var">bsIntersectL</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>
+</span><span id="line-42"></span><span>                </span><span class="hs-comment">-- ^ Left side of a horizontal border intersecting a vertical one</span><span>
+</span><span id="line-43"></span><span>                </span><span class="hs-special">,</span><span> </span><span id="bsIntersectR"><span class="annot"><span class="annottext">BorderStyle -&gt; Char
+</span><a href="Brick.Widgets.Border.Style.html#bsIntersectR"><span class="hs-identifier hs-var hs-var">bsIntersectR</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>
+</span><span id="line-44"></span><span>                </span><span class="hs-comment">-- ^ Right side of a horizontal border intersecting a vertical one</span><span>
+</span><span id="line-45"></span><span>                </span><span class="hs-special">,</span><span> </span><span id="bsIntersectT"><span class="annot"><span class="annottext">BorderStyle -&gt; Char
+</span><a href="Brick.Widgets.Border.Style.html#bsIntersectT"><span class="hs-identifier hs-var hs-var">bsIntersectT</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>
+</span><span id="line-46"></span><span>                </span><span class="hs-comment">-- ^ Top of a vertical border intersecting a horizontal one</span><span>
+</span><span id="line-47"></span><span>                </span><span class="hs-special">,</span><span> </span><span id="bsIntersectB"><span class="annot"><span class="annottext">BorderStyle -&gt; Char
+</span><a href="Brick.Widgets.Border.Style.html#bsIntersectB"><span class="hs-identifier hs-var hs-var">bsIntersectB</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>
+</span><span id="line-48"></span><span>                </span><span class="hs-comment">-- ^ Bottom of a vertical border intersecting a horizontal one</span><span>
+</span><span id="line-49"></span><span>                </span><span class="hs-special">,</span><span> </span><span id="bsHorizontal"><span class="annot"><span class="annottext">BorderStyle -&gt; Char
+</span><a href="Brick.Widgets.Border.Style.html#bsHorizontal"><span class="hs-identifier hs-var hs-var">bsHorizontal</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>
+</span><span id="line-50"></span><span>                </span><span class="hs-comment">-- ^ Horizontal border character</span><span>
+</span><span id="line-51"></span><span>                </span><span class="hs-special">,</span><span> </span><span id="bsVertical"><span class="annot"><span class="annottext">BorderStyle -&gt; Char
+</span><a href="Brick.Widgets.Border.Style.html#bsVertical"><span class="hs-identifier hs-var hs-var">bsVertical</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>
+</span><span id="line-52"></span><span>                </span><span class="hs-comment">-- ^ Vertical border character</span><span>
+</span><span id="line-53"></span><span>                </span><span class="hs-special">}</span><span>
+</span><span id="line-54"></span><span>                </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679369350"><span id="local-6989586621679369352"><span id="local-6989586621679369354"><span class="annot"><span class="annottext">Int -&gt; BorderStyle -&gt; ShowS
+[BorderStyle] -&gt; ShowS
+BorderStyle -&gt; String
+(Int -&gt; BorderStyle -&gt; ShowS)
+-&gt; (BorderStyle -&gt; String)
+-&gt; ([BorderStyle] -&gt; ShowS)
+-&gt; Show BorderStyle
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [BorderStyle] -&gt; ShowS
+$cshowList :: [BorderStyle] -&gt; ShowS
+show :: BorderStyle -&gt; String
+$cshow :: BorderStyle -&gt; String
+showsPrec :: Int -&gt; BorderStyle -&gt; ShowS
+$cshowsPrec :: Int -&gt; BorderStyle -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679369341"><span id="local-6989586621679369343"><span id="local-6989586621679369345"><span id="local-6989586621679369347"><span class="annot"><span class="annottext">ReadPrec [BorderStyle]
+ReadPrec BorderStyle
+Int -&gt; ReadS BorderStyle
+ReadS [BorderStyle]
+(Int -&gt; ReadS BorderStyle)
+-&gt; ReadS [BorderStyle]
+-&gt; ReadPrec BorderStyle
+-&gt; ReadPrec [BorderStyle]
+-&gt; Read BorderStyle
+forall a.
+(Int -&gt; ReadS a)
+-&gt; ReadS [a] -&gt; ReadPrec a -&gt; ReadPrec [a] -&gt; Read a
+readListPrec :: ReadPrec [BorderStyle]
+$creadListPrec :: ReadPrec [BorderStyle]
+readPrec :: ReadPrec BorderStyle
+$creadPrec :: ReadPrec BorderStyle
+readList :: ReadS [BorderStyle]
+$creadList :: ReadS [BorderStyle]
+readsPrec :: Int -&gt; ReadS BorderStyle
+$creadsPrec :: Int -&gt; ReadS BorderStyle
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Read</span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679369336"><span id="local-6989586621679369338"><span class="annot"><span class="annottext">BorderStyle -&gt; BorderStyle -&gt; Bool
+(BorderStyle -&gt; BorderStyle -&gt; Bool)
+-&gt; (BorderStyle -&gt; BorderStyle -&gt; Bool) -&gt; Eq BorderStyle
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: BorderStyle -&gt; BorderStyle -&gt; Bool
+$c/= :: BorderStyle -&gt; BorderStyle -&gt; Bool
+== :: BorderStyle -&gt; BorderStyle -&gt; Bool
+$c== :: BorderStyle -&gt; BorderStyle -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(forall x. BorderStyle -&gt; Rep BorderStyle x)
+-&gt; (forall x. Rep BorderStyle x -&gt; BorderStyle)
+-&gt; Generic BorderStyle
+forall x. Rep BorderStyle x -&gt; BorderStyle
+forall x. BorderStyle -&gt; Rep BorderStyle x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+$cto :: forall x. Rep BorderStyle x -&gt; BorderStyle
+$cfrom :: forall x. BorderStyle -&gt; Rep BorderStyle x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679369330"><span class="annot"><span class="annottext">BorderStyle -&gt; ()
+(BorderStyle -&gt; ()) -&gt; NFData BorderStyle
+forall a. (a -&gt; ()) -&gt; NFData a
+rnf :: BorderStyle -&gt; ()
+$crnf :: BorderStyle -&gt; ()
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">NFData</span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-55"></span><span>
+</span><span id="line-56"></span><span class="annot"><a href="Brick.Widgets.Border.Style.html#defaultBorderStyle"><span class="hs-identifier hs-type">defaultBorderStyle</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Widgets.Border.Style.html#BorderStyle"><span class="hs-identifier hs-type">BorderStyle</span></a></span><span>
+</span><span id="line-57"></span><span id="defaultBorderStyle"><span class="annot"><span class="annottext">defaultBorderStyle :: BorderStyle
+</span><a href="Brick.Widgets.Border.Style.html#defaultBorderStyle"><span class="hs-identifier hs-var hs-var">defaultBorderStyle</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">BorderStyle
+</span><a href="Brick.Widgets.Border.Style.html#unicode"><span class="hs-identifier hs-var">unicode</span></a></span><span>
+</span><span id="line-58"></span><span>
+</span><span id="line-59"></span><span class="hs-comment">-- | Make a border style using the specified character everywhere.</span><span>
+</span><span id="line-60"></span><span class="annot"><a href="Brick.Widgets.Border.Style.html#borderStyleFromChar"><span class="hs-identifier hs-type">borderStyleFromChar</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Widgets.Border.Style.html#BorderStyle"><span class="hs-identifier hs-type">BorderStyle</span></a></span><span>
+</span><span id="line-61"></span><span id="borderStyleFromChar"><span class="annot"><span class="annottext">borderStyleFromChar :: Char -&gt; BorderStyle
+</span><a href="Brick.Widgets.Border.Style.html#borderStyleFromChar"><span class="hs-identifier hs-var hs-var">borderStyleFromChar</span></a></span></span><span> </span><span id="local-6989586621679369328"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679369328"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-62"></span><span>    </span><span class="annot"><span class="annottext">Char
+-&gt; Char
+-&gt; Char
+-&gt; Char
+-&gt; Char
+-&gt; Char
+-&gt; Char
+-&gt; Char
+-&gt; Char
+-&gt; Char
+-&gt; Char
+-&gt; BorderStyle
+</span><a href="Brick.Widgets.Border.Style.html#BorderStyle"><span class="hs-identifier hs-var">BorderStyle</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679369328"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679369328"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679369328"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679369328"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679369328"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679369328"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679369328"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679369328"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679369328"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679369328"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679369328"><span class="hs-identifier hs-var">c</span></a></span><span>
+</span><span id="line-63"></span><span>
+</span><span id="line-64"></span><span class="hs-comment">-- |An ASCII border style which will work in any terminal.</span><span>
+</span><span id="line-65"></span><span class="annot"><a href="Brick.Widgets.Border.Style.html#ascii"><span class="hs-identifier hs-type">ascii</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Widgets.Border.Style.html#BorderStyle"><span class="hs-identifier hs-type">BorderStyle</span></a></span><span>
+</span><span id="line-66"></span><span id="ascii"><span class="annot"><span class="annottext">ascii :: BorderStyle
+</span><a href="Brick.Widgets.Border.Style.html#ascii"><span class="hs-identifier hs-var hs-var">ascii</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-67"></span><span>    </span><span class="annot"><span class="annottext">BorderStyle :: Char
+-&gt; Char
+-&gt; Char
+-&gt; Char
+-&gt; Char
+-&gt; Char
+-&gt; Char
+-&gt; Char
+-&gt; Char
+-&gt; Char
+-&gt; Char
+-&gt; BorderStyle
+</span><a href="Brick.Widgets.Border.Style.html#BorderStyle"><span class="hs-identifier hs-type">BorderStyle</span></a></span><span> </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">bsCornerTL :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsCornerTL"><span class="hs-identifier hs-var">bsCornerTL</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'+'</span></span><span>
+</span><span id="line-68"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">bsCornerTR :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsCornerTR"><span class="hs-identifier hs-var">bsCornerTR</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'+'</span></span><span>
+</span><span id="line-69"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">bsCornerBR :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsCornerBR"><span class="hs-identifier hs-var">bsCornerBR</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'+'</span></span><span>
+</span><span id="line-70"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">bsCornerBL :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsCornerBL"><span class="hs-identifier hs-var">bsCornerBL</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'+'</span></span><span>
+</span><span id="line-71"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">bsIntersectFull :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsIntersectFull"><span class="hs-identifier hs-var">bsIntersectFull</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'+'</span></span><span>
+</span><span id="line-72"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">bsIntersectL :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsIntersectL"><span class="hs-identifier hs-var">bsIntersectL</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'+'</span></span><span>
+</span><span id="line-73"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">bsIntersectR :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsIntersectR"><span class="hs-identifier hs-var">bsIntersectR</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'+'</span></span><span>
+</span><span id="line-74"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">bsIntersectT :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsIntersectT"><span class="hs-identifier hs-var">bsIntersectT</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'+'</span></span><span>
+</span><span id="line-75"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">bsIntersectB :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsIntersectB"><span class="hs-identifier hs-var">bsIntersectB</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'+'</span></span><span>
+</span><span id="line-76"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">bsHorizontal :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsHorizontal"><span class="hs-identifier hs-var">bsHorizontal</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'-'</span></span><span>
+</span><span id="line-77"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">bsVertical :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsVertical"><span class="hs-identifier hs-var">bsVertical</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'|'</span></span><span>
+</span><span id="line-78"></span><span>                </span><span class="hs-special">}</span><span>
+</span><span id="line-79"></span><span>
+</span><span id="line-80"></span><span class="hs-comment">-- |A unicode border style with real corner and intersection characters.</span><span>
+</span><span id="line-81"></span><span class="annot"><a href="Brick.Widgets.Border.Style.html#unicode"><span class="hs-identifier hs-type">unicode</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Widgets.Border.Style.html#BorderStyle"><span class="hs-identifier hs-type">BorderStyle</span></a></span><span>
+</span><span id="line-82"></span><span id="unicode"><span class="annot"><span class="annottext">unicode :: BorderStyle
+</span><a href="Brick.Widgets.Border.Style.html#unicode"><span class="hs-identifier hs-var hs-var">unicode</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-83"></span><span>    </span><span class="annot"><span class="annottext">BorderStyle :: Char
+-&gt; Char
+-&gt; Char
+-&gt; Char
+-&gt; Char
+-&gt; Char
+-&gt; Char
+-&gt; Char
+-&gt; Char
+-&gt; Char
+-&gt; Char
+-&gt; BorderStyle
+</span><a href="Brick.Widgets.Border.Style.html#BorderStyle"><span class="hs-identifier hs-type">BorderStyle</span></a></span><span> </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">bsCornerTL :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsCornerTL"><span class="hs-identifier hs-var">bsCornerTL</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'&#9484;'</span></span><span>
+</span><span id="line-84"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">bsCornerTR :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsCornerTR"><span class="hs-identifier hs-var">bsCornerTR</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'&#9488;'</span></span><span>
+</span><span id="line-85"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">bsCornerBR :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsCornerBR"><span class="hs-identifier hs-var">bsCornerBR</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'&#9496;'</span></span><span>
+</span><span id="line-86"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">bsCornerBL :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsCornerBL"><span class="hs-identifier hs-var">bsCornerBL</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'&#9492;'</span></span><span>
+</span><span id="line-87"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">bsIntersectFull :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsIntersectFull"><span class="hs-identifier hs-var">bsIntersectFull</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'&#9532;'</span></span><span>
+</span><span id="line-88"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">bsIntersectL :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsIntersectL"><span class="hs-identifier hs-var">bsIntersectL</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'&#9500;'</span></span><span>
+</span><span id="line-89"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">bsIntersectR :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsIntersectR"><span class="hs-identifier hs-var">bsIntersectR</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'&#9508;'</span></span><span>
+</span><span id="line-90"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">bsIntersectT :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsIntersectT"><span class="hs-identifier hs-var">bsIntersectT</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'&#9516;'</span></span><span>
+</span><span id="line-91"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">bsIntersectB :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsIntersectB"><span class="hs-identifier hs-var">bsIntersectB</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'&#9524;'</span></span><span>
+</span><span id="line-92"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">bsHorizontal :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsHorizontal"><span class="hs-identifier hs-var">bsHorizontal</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'&#9472;'</span></span><span>
+</span><span id="line-93"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">bsVertical :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsVertical"><span class="hs-identifier hs-var">bsVertical</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'&#9474;'</span></span><span>
+</span><span id="line-94"></span><span>                </span><span class="hs-special">}</span><span>
+</span><span id="line-95"></span><span>
+</span><span id="line-96"></span><span class="hs-comment">-- |A unicode border style in a bold typeface.</span><span>
+</span><span id="line-97"></span><span class="annot"><a href="Brick.Widgets.Border.Style.html#unicodeBold"><span class="hs-identifier hs-type">unicodeBold</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Widgets.Border.Style.html#BorderStyle"><span class="hs-identifier hs-type">BorderStyle</span></a></span><span>
+</span><span id="line-98"></span><span id="unicodeBold"><span class="annot"><span class="annottext">unicodeBold :: BorderStyle
+</span><a href="Brick.Widgets.Border.Style.html#unicodeBold"><span class="hs-identifier hs-var hs-var">unicodeBold</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-99"></span><span>    </span><span class="annot"><span class="annottext">BorderStyle :: Char
+-&gt; Char
+-&gt; Char
+-&gt; Char
+-&gt; Char
+-&gt; Char
+-&gt; Char
+-&gt; Char
+-&gt; Char
+-&gt; Char
+-&gt; Char
+-&gt; BorderStyle
+</span><a href="Brick.Widgets.Border.Style.html#BorderStyle"><span class="hs-identifier hs-type">BorderStyle</span></a></span><span> </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">bsCornerTL :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsCornerTL"><span class="hs-identifier hs-var">bsCornerTL</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'&#9487;'</span></span><span>
+</span><span id="line-100"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">bsCornerTR :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsCornerTR"><span class="hs-identifier hs-var">bsCornerTR</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'&#9491;'</span></span><span>
+</span><span id="line-101"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">bsCornerBR :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsCornerBR"><span class="hs-identifier hs-var">bsCornerBR</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'&#9499;'</span></span><span>
+</span><span id="line-102"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">bsCornerBL :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsCornerBL"><span class="hs-identifier hs-var">bsCornerBL</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'&#9495;'</span></span><span>
+</span><span id="line-103"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">bsIntersectFull :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsIntersectFull"><span class="hs-identifier hs-var">bsIntersectFull</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'&#9547;'</span></span><span>
+</span><span id="line-104"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">bsIntersectL :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsIntersectL"><span class="hs-identifier hs-var">bsIntersectL</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'&#9507;'</span></span><span>
+</span><span id="line-105"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">bsIntersectR :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsIntersectR"><span class="hs-identifier hs-var">bsIntersectR</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'&#9515;'</span></span><span>
+</span><span id="line-106"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">bsIntersectT :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsIntersectT"><span class="hs-identifier hs-var">bsIntersectT</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'&#9523;'</span></span><span>
+</span><span id="line-107"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">bsIntersectB :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsIntersectB"><span class="hs-identifier hs-var">bsIntersectB</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'&#9531;'</span></span><span>
+</span><span id="line-108"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">bsHorizontal :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsHorizontal"><span class="hs-identifier hs-var">bsHorizontal</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'&#9473;'</span></span><span>
+</span><span id="line-109"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">bsVertical :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsVertical"><span class="hs-identifier hs-var">bsVertical</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'&#9475;'</span></span><span>
+</span><span id="line-110"></span><span>                </span><span class="hs-special">}</span><span>
+</span><span id="line-111"></span><span>
+</span><span id="line-112"></span><span class="hs-comment">-- |A unicode border style with rounded corners.</span><span>
+</span><span id="line-113"></span><span class="annot"><a href="Brick.Widgets.Border.Style.html#unicodeRounded"><span class="hs-identifier hs-type">unicodeRounded</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Widgets.Border.Style.html#BorderStyle"><span class="hs-identifier hs-type">BorderStyle</span></a></span><span>
+</span><span id="line-114"></span><span id="unicodeRounded"><span class="annot"><span class="annottext">unicodeRounded :: BorderStyle
+</span><a href="Brick.Widgets.Border.Style.html#unicodeRounded"><span class="hs-identifier hs-var hs-var">unicodeRounded</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-115"></span><span>    </span><span class="annot"><span class="annottext">BorderStyle :: Char
+-&gt; Char
+-&gt; Char
+-&gt; Char
+-&gt; Char
+-&gt; Char
+-&gt; Char
+-&gt; Char
+-&gt; Char
+-&gt; Char
+-&gt; Char
+-&gt; BorderStyle
+</span><a href="Brick.Widgets.Border.Style.html#BorderStyle"><span class="hs-identifier hs-type">BorderStyle</span></a></span><span> </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">bsCornerTL :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsCornerTL"><span class="hs-identifier hs-var">bsCornerTL</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'&#9581;'</span></span><span>
+</span><span id="line-116"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">bsCornerTR :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsCornerTR"><span class="hs-identifier hs-var">bsCornerTR</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'&#9582;'</span></span><span>
+</span><span id="line-117"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">bsCornerBR :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsCornerBR"><span class="hs-identifier hs-var">bsCornerBR</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'&#9583;'</span></span><span>
+</span><span id="line-118"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">bsCornerBL :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsCornerBL"><span class="hs-identifier hs-var">bsCornerBL</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'&#9584;'</span></span><span>
+</span><span id="line-119"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">bsIntersectFull :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsIntersectFull"><span class="hs-identifier hs-var">bsIntersectFull</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'&#9532;'</span></span><span>
+</span><span id="line-120"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">bsIntersectL :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsIntersectL"><span class="hs-identifier hs-var">bsIntersectL</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'&#9500;'</span></span><span>
+</span><span id="line-121"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">bsIntersectR :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsIntersectR"><span class="hs-identifier hs-var">bsIntersectR</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'&#9508;'</span></span><span>
+</span><span id="line-122"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">bsIntersectT :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsIntersectT"><span class="hs-identifier hs-var">bsIntersectT</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'&#9516;'</span></span><span>
+</span><span id="line-123"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">bsIntersectB :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsIntersectB"><span class="hs-identifier hs-var">bsIntersectB</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'&#9524;'</span></span><span>
+</span><span id="line-124"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">bsHorizontal :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsHorizontal"><span class="hs-identifier hs-var">bsHorizontal</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'&#9472;'</span></span><span>
+</span><span id="line-125"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">bsVertical :: Char
+</span><a href="Brick.Widgets.Border.Style.html#bsVertical"><span class="hs-identifier hs-var">bsVertical</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'&#9474;'</span></span><span>
+</span><span id="line-126"></span><span>                </span><span class="hs-special">}</span><span>
+</span><span id="line-127"></span></pre></body></html>

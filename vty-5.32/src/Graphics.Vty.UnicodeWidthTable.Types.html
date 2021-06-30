@@ -1,0 +1,73 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Graphics.Vty.UnicodeWidthTable.Types</span><span>
+</span><span id="line-2"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Graphics.Vty.UnicodeWidthTable.Types.html#UnicodeWidthTable"><span class="hs-identifier">UnicodeWidthTable</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-3"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.UnicodeWidthTable.Types.html#WidthTableRange"><span class="hs-identifier">WidthTableRange</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-4"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-5"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-6"></span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Word</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Word8</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">Word32</span></span><span class="hs-special">)</span><span>
+</span><span id="line-8"></span><span>
+</span><span id="line-9"></span><span class="hs-comment">-- | A range of code points in a width table.</span><span>
+</span><span id="line-10"></span><span class="hs-keyword">data</span><span> </span><span id="WidthTableRange"><span class="annot"><a href="Graphics.Vty.UnicodeWidthTable.Types.html#WidthTableRange"><span class="hs-identifier hs-var">WidthTableRange</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-11"></span><span>    </span><span id="WidthTableRange"><span class="annot"><a href="Graphics.Vty.UnicodeWidthTable.Types.html#WidthTableRange"><span class="hs-identifier hs-var">WidthTableRange</span></a></span></span><span> </span><span class="hs-special">{</span><span> </span><span id="rangeStart"><span class="annot"><span class="annottext">WidthTableRange -&gt; Word32
+</span><a href="Graphics.Vty.UnicodeWidthTable.Types.html#rangeStart"><span class="hs-identifier hs-var hs-var">rangeStart</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word32</span></span><span>
+</span><span id="line-12"></span><span>                    </span><span class="hs-comment">-- ^ The range's starting code point.</span><span>
+</span><span id="line-13"></span><span>                    </span><span class="hs-special">,</span><span> </span><span id="rangeSize"><span class="annot"><span class="annottext">WidthTableRange -&gt; Word32
+</span><a href="Graphics.Vty.UnicodeWidthTable.Types.html#rangeSize"><span class="hs-identifier hs-var hs-var">rangeSize</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word32</span></span><span>
+</span><span id="line-14"></span><span>                    </span><span class="hs-comment">-- ^ The number of code points in the contiguous</span><span>
+</span><span id="line-15"></span><span>                    </span><span class="hs-comment">-- range, beginning with the starting code point</span><span>
+</span><span id="line-16"></span><span>                    </span><span class="hs-comment">-- ('rangeStart').</span><span>
+</span><span id="line-17"></span><span>                    </span><span class="hs-special">,</span><span> </span><span id="rangeColumns"><span class="annot"><span class="annottext">WidthTableRange -&gt; Word8
+</span><a href="Graphics.Vty.UnicodeWidthTable.Types.html#rangeColumns"><span class="hs-identifier hs-var hs-var">rangeColumns</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word8</span></span><span>
+</span><span id="line-18"></span><span>                    </span><span class="hs-comment">-- ^ The terminal width, in columns, of all of the</span><span>
+</span><span id="line-19"></span><span>                    </span><span class="hs-comment">-- characters corresponding to the code points in</span><span>
+</span><span id="line-20"></span><span>                    </span><span class="hs-comment">-- this range.</span><span>
+</span><span id="line-21"></span><span>                    </span><span class="hs-special">}</span><span>
+</span><span id="line-22"></span><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679369072"><span id="local-6989586621679369074"><span class="annot"><span class="annottext">WidthTableRange -&gt; WidthTableRange -&gt; Bool
+(WidthTableRange -&gt; WidthTableRange -&gt; Bool)
+-&gt; (WidthTableRange -&gt; WidthTableRange -&gt; Bool)
+-&gt; Eq WidthTableRange
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: WidthTableRange -&gt; WidthTableRange -&gt; Bool
+$c/= :: WidthTableRange -&gt; WidthTableRange -&gt; Bool
+== :: WidthTableRange -&gt; WidthTableRange -&gt; Bool
+$c== :: WidthTableRange -&gt; WidthTableRange -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679369065"><span id="local-6989586621679369067"><span id="local-6989586621679369069"><span class="annot"><span class="annottext">Int -&gt; WidthTableRange -&gt; ShowS
+[WidthTableRange] -&gt; ShowS
+WidthTableRange -&gt; String
+(Int -&gt; WidthTableRange -&gt; ShowS)
+-&gt; (WidthTableRange -&gt; String)
+-&gt; ([WidthTableRange] -&gt; ShowS)
+-&gt; Show WidthTableRange
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [WidthTableRange] -&gt; ShowS
+$cshowList :: [WidthTableRange] -&gt; ShowS
+show :: WidthTableRange -&gt; String
+$cshow :: WidthTableRange -&gt; String
+showsPrec :: Int -&gt; WidthTableRange -&gt; ShowS
+$cshowsPrec :: Int -&gt; WidthTableRange -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-23"></span><span>
+</span><span id="line-24"></span><span class="hs-comment">-- | A run-length-encoded table of Unicode character widths.</span><span>
+</span><span id="line-25"></span><span class="hs-keyword">data</span><span> </span><span id="UnicodeWidthTable"><span class="annot"><a href="Graphics.Vty.UnicodeWidthTable.Types.html#UnicodeWidthTable"><span class="hs-identifier hs-var">UnicodeWidthTable</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-26"></span><span>    </span><span id="UnicodeWidthTable"><span class="annot"><a href="Graphics.Vty.UnicodeWidthTable.Types.html#UnicodeWidthTable"><span class="hs-identifier hs-var">UnicodeWidthTable</span></a></span></span><span> </span><span class="hs-special">{</span><span> </span><span id="unicodeWidthTableRanges"><span class="annot"><span class="annottext">UnicodeWidthTable -&gt; [WidthTableRange]
+</span><a href="Graphics.Vty.UnicodeWidthTable.Types.html#unicodeWidthTableRanges"><span class="hs-identifier hs-var hs-var">unicodeWidthTableRanges</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Graphics.Vty.UnicodeWidthTable.Types.html#WidthTableRange"><span class="hs-identifier hs-type">WidthTableRange</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-27"></span><span>                      </span><span class="hs-comment">-- ^ The ranges in the table.</span><span>
+</span><span id="line-28"></span><span>                      </span><span class="hs-special">}</span><span>
+</span><span id="line-29"></span><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679369056"><span id="local-6989586621679369058"><span id="local-6989586621679369060"><span class="annot"><span class="annottext">Int -&gt; UnicodeWidthTable -&gt; ShowS
+[UnicodeWidthTable] -&gt; ShowS
+UnicodeWidthTable -&gt; String
+(Int -&gt; UnicodeWidthTable -&gt; ShowS)
+-&gt; (UnicodeWidthTable -&gt; String)
+-&gt; ([UnicodeWidthTable] -&gt; ShowS)
+-&gt; Show UnicodeWidthTable
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [UnicodeWidthTable] -&gt; ShowS
+$cshowList :: [UnicodeWidthTable] -&gt; ShowS
+show :: UnicodeWidthTable -&gt; String
+$cshow :: UnicodeWidthTable -&gt; String
+showsPrec :: Int -&gt; UnicodeWidthTable -&gt; ShowS
+$cshowsPrec :: Int -&gt; UnicodeWidthTable -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-30"></span></pre></body></html>

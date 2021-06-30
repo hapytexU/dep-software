@@ -1,0 +1,116 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">{-|
+Module      : Dep.Bricks.Negation
+Description : A module to create images with /negations/ for the /gate/ and /wires/.
+Maintainer  : hapytexeu+gh@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+A module to create images with negations for gates, wires, and other modules.
+-}</span><span>
+</span><span id="line-10"></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Dep.Bricks.Negation</span><span> </span><span class="hs-special">(</span><span>
+</span><span id="line-12"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Negation for a single wire</span></span><span>
+</span><span id="line-13"></span><span>    </span><span class="annot"><a href="Dep.Bricks.Negation.html#negation"><span class="hs-identifier">negation</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Bricks.Negation.html#negationH"><span class="hs-identifier">negationH</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Bricks.Negation.html#negationV"><span class="hs-identifier">negationV</span></a></span><span>
+</span><span id="line-14"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Negation for a list of wires</span></span><span>
+</span><span id="line-15"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Bricks.Negation.html#negationList"><span class="hs-identifier">negationList</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Bricks.Negation.html#negationHList"><span class="hs-identifier">negationHList</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Bricks.Negation.html#negationVList"><span class="hs-identifier">negationVList</span></a></span><span>
+</span><span id="line-16"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-17"></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Bool</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">bool</span></span><span class="hs-special">)</span><span>
+</span><span id="line-19"></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Dep.Bricks.Box.html"><span class="hs-identifier">Dep.Bricks.Box</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Bricks.Box.html#negator"><span class="hs-identifier">negator</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Bricks.Box.html#linev"><span class="hs-identifier">linev</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Bricks.Box.html#lineh"><span class="hs-identifier">lineh</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Graphics.Vty.Attributes</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Attr</span></span><span class="hs-special">)</span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Graphics.Vty.Image</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Image</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-operator">(&lt;|&gt;)</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-operator">(&lt;-&gt;)</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">char</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">emptyImage</span></span><span class="hs-special">)</span><span>
+</span><span id="line-24"></span><span>
+</span><span id="line-25"></span><span class="hs-comment">-- | Create an Image that contains a single character that is either the 'negator' or the given 'Char'.</span><span>
+</span><span id="line-26"></span><span class="annot"><a href="Dep.Bricks.Negation.html#negation"><span class="hs-identifier hs-type">negation</span></a></span><span>
+</span><span id="line-27"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>  </span><span class="hs-comment">-- ^ The 'Char' to use in case we do not negate.</span><span>
+</span><span id="line-28"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>  </span><span class="hs-comment">-- ^ A 'Bool' that specifies if this is a negator.</span><span>
+</span><span id="line-29"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Attr</span></span><span>  </span><span class="hs-comment">-- ^ The 'Attr' to use when rendering the image.</span><span>
+</span><span id="line-30"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Image</span></span><span>  </span><span class="hs-comment">-- ^ The corresponding 'Image' for the given (optional) negator.</span><span>
+</span><span id="line-31"></span><span id="negation"><span class="annot"><span class="annottext">negation :: Char -&gt; Bool -&gt; Attr -&gt; Image
+</span><a href="Dep.Bricks.Negation.html#negation"><span class="hs-identifier hs-var hs-var">negation</span></a></span></span><span> </span><span id="local-6989586621679124990"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679124990"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Attr -&gt; Char -&gt; Image) -&gt; Char -&gt; Attr -&gt; Image
+forall a b c. (a -&gt; b -&gt; c) -&gt; b -&gt; a -&gt; c
+</span><span class="hs-identifier hs-var">flip</span></span><span> </span><span class="annot"><span class="annottext">Attr -&gt; Char -&gt; Image
+</span><span class="hs-identifier hs-var">char</span></span><span> </span><span class="annot"><span class="annottext">(Char -&gt; Attr -&gt; Image) -&gt; (Bool -&gt; Char) -&gt; Bool -&gt; Attr -&gt; Image
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Char -&gt; Char -&gt; Bool -&gt; Char
+forall a. a -&gt; a -&gt; Bool -&gt; a
+</span><span class="hs-identifier hs-var">bool</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679124990"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="Dep.Bricks.Box.html#negator"><span class="hs-identifier hs-var">negator</span></a></span><span>
+</span><span id="line-32"></span><span>
+</span><span id="line-33"></span><span class="hs-comment">-- | Create an image for a negator on a /horizontal/ wire.</span><span>
+</span><span id="line-34"></span><span class="annot"><a href="Dep.Bricks.Negation.html#negationH"><span class="hs-identifier hs-type">negationH</span></a></span><span>
+</span><span id="line-35"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>  </span><span class="hs-comment">-- ^ Specifies if this is a simple wire ('False'), or a negator ('True').</span><span>
+</span><span id="line-36"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Attr</span></span><span>  </span><span class="hs-comment">-- ^ The 'Attr' to use when rendering the image.</span><span>
+</span><span id="line-37"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Image</span></span><span>  </span><span class="hs-comment">-- ^ The corresponding 'Image' for the given (optional) negator.</span><span>
+</span><span id="line-38"></span><span id="negationH"><span class="annot"><span class="annottext">negationH :: Bool -&gt; Attr -&gt; Image
+</span><a href="Dep.Bricks.Negation.html#negationH"><span class="hs-identifier hs-var hs-var">negationH</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Bool -&gt; Attr -&gt; Image
+</span><a href="Dep.Bricks.Negation.html#negation"><span class="hs-identifier hs-var">negation</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="Dep.Bricks.Box.html#linev"><span class="hs-identifier hs-var">linev</span></a></span><span>
+</span><span id="line-39"></span><span>
+</span><span id="line-40"></span><span class="hs-comment">-- | Create an image for a negator on a /vertical/ wire.</span><span>
+</span><span id="line-41"></span><span class="annot"><a href="Dep.Bricks.Negation.html#negationV"><span class="hs-identifier hs-type">negationV</span></a></span><span>
+</span><span id="line-42"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>  </span><span class="hs-comment">-- ^ Specifies if this is a simple wire ('False'), or a negator ('True').</span><span>
+</span><span id="line-43"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Attr</span></span><span>  </span><span class="hs-comment">-- ^ The 'Attr' to use when rendering the image.</span><span>
+</span><span id="line-44"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Image</span></span><span>  </span><span class="hs-comment">-- ^ The corresponding 'Image' for the given (optional) negator.</span><span>
+</span><span id="line-45"></span><span id="negationV"><span class="annot"><span class="annottext">negationV :: Bool -&gt; Attr -&gt; Image
+</span><a href="Dep.Bricks.Negation.html#negationV"><span class="hs-identifier hs-var hs-var">negationV</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Bool -&gt; Attr -&gt; Image
+</span><a href="Dep.Bricks.Negation.html#negation"><span class="hs-identifier hs-var">negation</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="Dep.Bricks.Box.html#lineh"><span class="hs-identifier hs-var">lineh</span></a></span><span>
+</span><span id="line-46"></span><span>
+</span><span id="line-47"></span><span class="hs-comment">-- | Create a list of negators in one of the two directions. The 'Char' specifies</span><span>
+</span><span id="line-48"></span><span class="hs-comment">-- what to render in case it is not a negator.</span><span>
+</span><span id="line-49"></span><span class="annot"><a href="Dep.Bricks.Negation.html#negationList"><span class="hs-identifier hs-type">negationList</span></a></span><span>
+</span><span id="line-50"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Image</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Image</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Image</span></span><span class="hs-special">)</span><span>  </span><span class="hs-comment">-- ^ A function to merge two 'Image's together.</span><span>
+</span><span id="line-51"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>  </span><span class="hs-comment">-- ^ A 'Char' that specifies what to render in case we do not render a negator.</span><span>
+</span><span id="line-52"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">]</span><span>  </span><span class="hs-comment">-- ^ The list of 'Bool's that specifies when a negator occurs.</span><span>
+</span><span id="line-53"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Attr</span></span><span>  </span><span class="hs-comment">-- ^ The 'Attr' that specifies the style of the negators.</span><span>
+</span><span id="line-54"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Image</span></span><span>  </span><span class="hs-comment">-- ^ The corresponding 'Image' that contains wires and negators.</span><span>
+</span><span id="line-55"></span><span id="negationList"><span class="annot"><span class="annottext">negationList :: (Image -&gt; Image -&gt; Image) -&gt; Char -&gt; [Bool] -&gt; Attr -&gt; Image
+</span><a href="Dep.Bricks.Negation.html#negationList"><span class="hs-identifier hs-var hs-var">negationList</span></a></span></span><span> </span><span id="local-6989586621679124987"><span class="annot"><span class="annottext">Image -&gt; Image -&gt; Image
+</span><a href="#local-6989586621679124987"><span class="hs-identifier hs-var">mgr</span></a></span></span><span> </span><span id="local-6989586621679124986"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679124986"><span class="hs-identifier hs-var">lns</span></a></span></span><span> </span><span id="local-6989586621679124985"><span class="annot"><span class="annottext">[Bool]
+</span><a href="#local-6989586621679124985"><span class="hs-identifier hs-var">bls</span></a></span></span><span> </span><span id="local-6989586621679124984"><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679124984"><span class="hs-identifier hs-var">attr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; Image -&gt; Image) -&gt; Image -&gt; [Bool] -&gt; Image
+forall (t :: * -&gt; *) a b.
+Foldable t =&gt;
+(a -&gt; b -&gt; b) -&gt; b -&gt; t a -&gt; b
+</span><span class="hs-identifier hs-var">foldr</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Image -&gt; Image -&gt; Image
+</span><a href="#local-6989586621679124987"><span class="hs-identifier hs-var">mgr</span></a></span><span> </span><span class="annot"><span class="annottext">(Image -&gt; Image -&gt; Image)
+-&gt; (Bool -&gt; Image) -&gt; Bool -&gt; Image -&gt; Image
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool -&gt; Attr -&gt; Image
+</span><a href="#local-6989586621679124982"><span class="hs-operator hs-var">`go`</span></a></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679124984"><span class="hs-identifier hs-var">attr</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Image
+</span><span class="hs-identifier hs-var">emptyImage</span></span><span> </span><span class="annot"><span class="annottext">[Bool]
+</span><a href="#local-6989586621679124985"><span class="hs-identifier hs-var">bls</span></a></span><span>
+</span><span id="line-56"></span><span>  </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679124982"><span class="annot"><span class="annottext">go :: Bool -&gt; Attr -&gt; Image
+</span><a href="#local-6989586621679124982"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Bool -&gt; Attr -&gt; Image
+</span><a href="Dep.Bricks.Negation.html#negation"><span class="hs-identifier hs-var">negation</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679124986"><span class="hs-identifier hs-var">lns</span></a></span><span>
+</span><span id="line-57"></span><span>
+</span><span id="line-58"></span><span class="hs-comment">-- | Create an 'Image' of negators in the /horizontal/ direction. The wires here are in the /vertical/ direction.</span><span>
+</span><span id="line-59"></span><span class="annot"><a href="Dep.Bricks.Negation.html#negationHList"><span class="hs-identifier hs-type">negationHList</span></a></span><span>
+</span><span id="line-60"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">]</span><span>  </span><span class="hs-comment">-- ^ The list of 'Bool's that specifies when a negator occurs.</span><span>
+</span><span id="line-61"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Attr</span></span><span>  </span><span class="hs-comment">-- ^ The 'Attr' that specifies the style of the negators.</span><span>
+</span><span id="line-62"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Image</span></span><span>  </span><span class="hs-comment">-- ^ The corresponding 'Image' that contains wires and negators.</span><span>
+</span><span id="line-63"></span><span id="negationHList"><span class="annot"><span class="annottext">negationHList :: [Bool] -&gt; Attr -&gt; Image
+</span><a href="Dep.Bricks.Negation.html#negationHList"><span class="hs-identifier hs-var hs-var">negationHList</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Image -&gt; Image -&gt; Image) -&gt; Char -&gt; [Bool] -&gt; Attr -&gt; Image
+</span><a href="Dep.Bricks.Negation.html#negationList"><span class="hs-identifier hs-var">negationList</span></a></span><span> </span><span class="annot"><span class="annottext">Image -&gt; Image -&gt; Image
+</span><span class="hs-operator hs-var">(&lt;|&gt;)</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="Dep.Bricks.Box.html#linev"><span class="hs-identifier hs-var">linev</span></a></span><span>
+</span><span id="line-64"></span><span>
+</span><span id="line-65"></span><span class="hs-comment">-- | Create an 'Image' of negators in the /vertical/ direction. The wires here are in the /horizontal/ direction.</span><span>
+</span><span id="line-66"></span><span class="annot"><a href="Dep.Bricks.Negation.html#negationVList"><span class="hs-identifier hs-type">negationVList</span></a></span><span>
+</span><span id="line-67"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">]</span><span>  </span><span class="hs-comment">-- ^ The list of 'Bool's that specifies when a negator occurs.</span><span>
+</span><span id="line-68"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Attr</span></span><span>  </span><span class="hs-comment">-- ^ The 'Attr' that specifies the style of the negators.</span><span>
+</span><span id="line-69"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Image</span></span><span>  </span><span class="hs-comment">-- ^ The corresponding 'Image' that contains wires and negators.</span><span>
+</span><span id="line-70"></span><span id="negationVList"><span class="annot"><span class="annottext">negationVList :: [Bool] -&gt; Attr -&gt; Image
+</span><a href="Dep.Bricks.Negation.html#negationVList"><span class="hs-identifier hs-var hs-var">negationVList</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Image -&gt; Image -&gt; Image) -&gt; Char -&gt; [Bool] -&gt; Attr -&gt; Image
+</span><a href="Dep.Bricks.Negation.html#negationList"><span class="hs-identifier hs-var">negationList</span></a></span><span> </span><span class="annot"><span class="annottext">Image -&gt; Image -&gt; Image
+</span><span class="hs-operator hs-var">(&lt;-&gt;)</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="Dep.Bricks.Box.html#lineh"><span class="hs-identifier hs-var">lineh</span></a></span><span>
+</span><span id="line-71"></span></pre></body></html>

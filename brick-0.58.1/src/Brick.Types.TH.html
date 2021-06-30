@@ -1,0 +1,50 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Brick.Types.TH</span><span>
+</span><span id="line-2"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Brick.Types.TH.html#suffixLenses"><span class="hs-identifier">suffixLenses</span></a></span><span>
+</span><span id="line-3"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-4"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-5"></span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Language.Haskell.TH.Syntax</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">TH</span></span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Language.Haskell.TH.Lib</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">TH</span></span><span>
+</span><span id="line-8"></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Lens.Micro</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-operator">(&amp;)</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-operator">(.~)</span></span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Lens.Micro.TH</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">DefName</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">makeLensesWith</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">lensRules</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">lensField</span></span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span>
+</span><span id="line-12"></span><span class="hs-comment">-- | A template haskell function to build lenses for a record type. This</span><span>
+</span><span id="line-13"></span><span class="hs-comment">-- function differs from the 'Control.Lens.makeLenses' function in that</span><span>
+</span><span id="line-14"></span><span class="hs-comment">-- it does not require the record fields to be prefixed with underscores</span><span>
+</span><span id="line-15"></span><span class="hs-comment">-- and it adds an &quot;L&quot; suffix to lens names to make it clear that they</span><span>
+</span><span id="line-16"></span><span class="hs-comment">-- are lenses.</span><span>
+</span><span id="line-17"></span><span class="annot"><a href="Brick.Types.TH.html#suffixLenses"><span class="hs-identifier hs-type">suffixLenses</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">TH.Name</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">TH.DecsQ</span></span><span>
+</span><span id="line-18"></span><span id="suffixLenses"><span class="annot"><span class="annottext">suffixLenses :: Name -&gt; DecsQ
+</span><a href="Brick.Types.TH.html#suffixLenses"><span class="hs-identifier hs-var hs-var">suffixLenses</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">LensRules -&gt; Name -&gt; DecsQ
+</span><span class="hs-identifier hs-var">makeLensesWith</span></span><span> </span><span class="annot"><span class="annottext">(LensRules -&gt; Name -&gt; DecsQ) -&gt; LensRules -&gt; Name -&gt; DecsQ
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-19"></span><span>  </span><span class="annot"><span class="annottext">LensRules
+</span><span class="hs-identifier hs-var">lensRules</span></span><span> </span><span class="annot"><span class="annottext">LensRules -&gt; (LensRules -&gt; LensRules) -&gt; LensRules
+forall a b. a -&gt; (a -&gt; b) -&gt; b
+</span><span class="hs-operator hs-var">&amp;</span></span><span> </span><span class="annot"><span class="annottext">((Name -&gt; [Name] -&gt; Name -&gt; [DefName])
+ -&gt; Identity (Name -&gt; [Name] -&gt; Name -&gt; [DefName]))
+-&gt; LensRules -&gt; Identity LensRules
+Lens' LensRules (Name -&gt; [Name] -&gt; Name -&gt; [DefName])
+</span><span class="hs-identifier hs-var">lensField</span></span><span> </span><span class="annot"><span class="annottext">(((Name -&gt; [Name] -&gt; Name -&gt; [DefName])
+  -&gt; Identity (Name -&gt; [Name] -&gt; Name -&gt; [DefName]))
+ -&gt; LensRules -&gt; Identity LensRules)
+-&gt; (Name -&gt; [Name] -&gt; Name -&gt; [DefName]) -&gt; LensRules -&gt; LensRules
+forall s t a b. ASetter s t a b -&gt; b -&gt; s -&gt; t
+</span><span class="hs-operator hs-var">.~</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="annot"><span class="annottext">Name
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">[Name]
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679368577"><span class="annot"><span class="annottext">Name
+</span><a href="#local-6989586621679368577"><span class="hs-identifier hs-var">name</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Name -&gt; DefName
+</span><span class="hs-identifier hs-var">TopName</span></span><span> </span><span class="annot"><span class="annottext">(Name -&gt; DefName) -&gt; Name -&gt; DefName
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; Name
+</span><span class="hs-identifier hs-var">TH.mkName</span></span><span> </span><span class="annot"><span class="annottext">(String -&gt; Name) -&gt; String -&gt; Name
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Name -&gt; String
+</span><span class="hs-identifier hs-var">TH.nameBase</span></span><span> </span><span class="annot"><span class="annottext">Name
+</span><a href="#local-6989586621679368577"><span class="hs-identifier hs-var">name</span></a></span><span> </span><span class="annot"><span class="annottext">String -&gt; String -&gt; String
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;L&quot;</span></span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-20"></span></pre></body></html>

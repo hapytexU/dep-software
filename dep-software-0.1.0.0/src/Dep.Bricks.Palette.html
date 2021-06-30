@@ -1,0 +1,149 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">{-|
+Module      : Dep.Bricks.Palette
+Description : A module to aims to make it easier to select colors that are distant from each other.
+Maintainer  : hapytexeu+gh@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+This module generates palettes. A 'Palette' is an infinite list of 'Color's that endlessly repeats
+itself. This is used to obtain colors to typeset different items on the screen.
+-}</span><span>
+</span><span id="line-11"></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Dep.Bricks.Palette</span><span> </span><span class="hs-special">(</span><span>
+</span><span id="line-13"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Palettes</span></span><span>
+</span><span id="line-14"></span><span>    </span><span class="annot"><a href="Dep.Bricks.Palette.html#Palette"><span class="hs-identifier">Palette</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Bricks.Palette.html#isoColorPalette"><span class="hs-identifier">isoColorPalette</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Bricks.Palette.html#brightIsoColorPalette"><span class="hs-identifier">brightIsoColorPalette</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Bricks.Palette.html#color240Palette"><span class="hs-identifier">color240Palette</span></a></span><span>
+</span><span id="line-15"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Determine other color for 'ISOColor's</span></span><span>
+</span><span id="line-16"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Bricks.Palette.html#swapIsoColorBright"><span class="hs-identifier">swapIsoColorBright</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Bricks.Palette.html#isoColorToBright"><span class="hs-identifier">isoColorToBright</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Bricks.Palette.html#isoColorFromBright"><span class="hs-identifier">isoColorFromBright</span></a></span><span>
+</span><span id="line-17"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-18"></span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Graphics.Vty.Attributes.Color</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Color</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ISOColor</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">Color240</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-20"></span><span>
+</span><span id="line-21"></span><span class="hs-comment">-- | A palette is an (endless) list of 'Color's.</span><span>
+</span><span id="line-22"></span><span class="hs-keyword">type</span><span> </span><span id="Palette"><span class="annot"><a href="Dep.Bricks.Palette.html#Palette"><span class="hs-identifier hs-var">Palette</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Color</span></span><span class="hs-special">]</span><span>
+</span><span id="line-23"></span><span>
+</span><span id="line-24"></span><span class="hs-comment">-- | Work with a color palette of the six ISO colors.</span><span>
+</span><span id="line-25"></span><span class="annot"><a href="Dep.Bricks.Palette.html#isoColorPalette"><span class="hs-identifier hs-type">isoColorPalette</span></a></span><span>
+</span><span id="line-26"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Dep.Bricks.Palette.html#Palette"><span class="hs-identifier hs-type">Palette</span></a></span><span>  </span><span class="hs-comment">-- ^ A palette that endlessly repeats itself and exhaustively enumerates the possible /ISO colors/.</span><span>
+</span><span id="line-27"></span><span id="isoColorPalette"><span class="annot"><span class="annottext">isoColorPalette :: Palette
+</span><a href="Dep.Bricks.Palette.html#isoColorPalette"><span class="hs-identifier hs-var hs-var">isoColorPalette</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Palette -&gt; Palette
+forall a. [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">cycle</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word8 -&gt; Color
+</span><span class="hs-identifier hs-var">ISOColor</span></span><span> </span><span class="annot"><span class="annottext">(Word8 -&gt; Color) -&gt; [Word8] -&gt; Palette
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">1</span></span><span> </span><span class="hs-glyph">..</span><span> </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">6</span></span><span> </span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-28"></span><span>
+</span><span id="line-29"></span><span class="hs-comment">-- | Work with a color palette of the six ISO colors.</span><span>
+</span><span id="line-30"></span><span class="annot"><a href="Dep.Bricks.Palette.html#brightIsoColorPalette"><span class="hs-identifier hs-type">brightIsoColorPalette</span></a></span><span>
+</span><span id="line-31"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Dep.Bricks.Palette.html#Palette"><span class="hs-identifier hs-type">Palette</span></a></span><span>  </span><span class="hs-comment">-- ^ A palette that endlessly repeats itself and exhaustively enumerates the possible /ISO colors/.</span><span>
+</span><span id="line-32"></span><span id="brightIsoColorPalette"><span class="annot"><span class="annottext">brightIsoColorPalette :: Palette
+</span><a href="Dep.Bricks.Palette.html#brightIsoColorPalette"><span class="hs-identifier hs-var hs-var">brightIsoColorPalette</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Palette -&gt; Palette
+forall a. [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">cycle</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word8 -&gt; Color
+</span><span class="hs-identifier hs-var">ISOColor</span></span><span> </span><span class="annot"><span class="annottext">(Word8 -&gt; Color) -&gt; [Word8] -&gt; Palette
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">9</span></span><span> </span><span class="hs-glyph">..</span><span> </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">14</span></span><span> </span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-33"></span><span>
+</span><span id="line-34"></span><span class="hs-comment">-- | Swap between the bright mode and the normal mode of the given 'Color'.</span><span>
+</span><span id="line-35"></span><span class="annot"><a href="Dep.Bricks.Palette.html#swapIsoColorBright"><span class="hs-identifier hs-type">swapIsoColorBright</span></a></span><span>
+</span><span id="line-36"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Color</span></span><span>  </span><span class="hs-comment">-- ^ The given 'Color' to convert to a more/less bright color.</span><span>
+</span><span id="line-37"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Color</span></span><span>  </span><span class="hs-comment">-- ^ The corresponding variant that is more/less bright of the given 'Color'.</span><span>
+</span><span id="line-38"></span><span id="swapIsoColorBright"><span class="annot"><span class="annottext">swapIsoColorBright :: Color -&gt; Color
+</span><a href="Dep.Bricks.Palette.html#swapIsoColorBright"><span class="hs-identifier hs-var hs-var">swapIsoColorBright</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">ISOColor</span></span><span> </span><span id="local-6989586621679125128"><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679125128"><span class="hs-identifier hs-var">i</span></a></span></span><span class="hs-special">)</span><span>
+</span><span id="line-39"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679125128"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Word8 -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">8</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Color
+</span><span class="hs-identifier hs-var">ISOColor</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679125128"><span class="hs-identifier hs-var">i</span></a></span><span class="annot"><span class="annottext">Word8 -&gt; Word8 -&gt; Word8
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">8</span></span><span class="hs-special">)</span><span>
+</span><span id="line-40"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Color
+</span><span class="hs-identifier hs-var">ISOColor</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679125128"><span class="hs-identifier hs-var">i</span></a></span><span class="annot"><span class="annottext">Word8 -&gt; Word8 -&gt; Word8
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">8</span></span><span class="hs-special">)</span><span>
+</span><span id="line-41"></span><span class="annot"><a href="Dep.Bricks.Palette.html#swapIsoColorBright"><span class="hs-identifier hs-var">swapIsoColorBright</span></a></span><span> </span><span id="local-6989586621679125125"><span class="annot"><span class="annottext">Color
+</span><a href="#local-6989586621679125125"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Color
+</span><a href="#local-6989586621679125125"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-42"></span><span>
+</span><span id="line-43"></span><span class="hs-comment">-- | Create the brighter color</span><span>
+</span><span id="line-44"></span><span class="annot"><a href="Dep.Bricks.Palette.html#isoColorToBright"><span class="hs-identifier hs-type">isoColorToBright</span></a></span><span>
+</span><span id="line-45"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Color</span></span><span>  </span><span class="hs-comment">-- ^ The given 'Color' to make /bright/.</span><span>
+</span><span id="line-46"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Color</span></span><span>  </span><span class="hs-comment">-- ^ The corresponding /bright/ variant of the given 'Color'.</span><span>
+</span><span id="line-47"></span><span id="isoColorToBright"><span class="annot"><span class="annottext">isoColorToBright :: Color -&gt; Color
+</span><a href="Dep.Bricks.Palette.html#isoColorToBright"><span class="hs-identifier hs-var hs-var">isoColorToBright</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">ISOColor</span></span><span> </span><span id="local-6989586621679125124"><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679125124"><span class="hs-identifier hs-var">i</span></a></span></span><span class="hs-special">)</span><span>
+</span><span id="line-48"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679125124"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Word8 -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">8</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Color
+</span><span class="hs-identifier hs-var">ISOColor</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679125124"><span class="hs-identifier hs-var">i</span></a></span><span class="annot"><span class="annottext">Word8 -&gt; Word8 -&gt; Word8
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">8</span></span><span class="hs-special">)</span><span>
+</span><span id="line-49"></span><span class="annot"><a href="Dep.Bricks.Palette.html#isoColorToBright"><span class="hs-identifier hs-var">isoColorToBright</span></a></span><span> </span><span id="local-6989586621679125123"><span class="annot"><span class="annottext">Color
+</span><a href="#local-6989586621679125123"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Color
+</span><a href="#local-6989586621679125123"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-50"></span><span>
+</span><span id="line-51"></span><span class="hs-comment">-- | Obtain the equivalent color that is /not/ bright.</span><span>
+</span><span id="line-52"></span><span class="annot"><a href="Dep.Bricks.Palette.html#isoColorFromBright"><span class="hs-identifier hs-type">isoColorFromBright</span></a></span><span>
+</span><span id="line-53"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Color</span></span><span>  </span><span class="hs-comment">-- ^ The given 'Color' to make a 'Color' that is less bright.</span><span>
+</span><span id="line-54"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Color</span></span><span>  </span><span class="hs-comment">-- ^ The corresponding less bright variant of the given 'Color'.</span><span>
+</span><span id="line-55"></span><span id="isoColorFromBright"><span class="annot"><span class="annottext">isoColorFromBright :: Color -&gt; Color
+</span><a href="Dep.Bricks.Palette.html#isoColorFromBright"><span class="hs-identifier hs-var hs-var">isoColorFromBright</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">ISOColor</span></span><span> </span><span id="local-6989586621679125122"><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679125122"><span class="hs-identifier hs-var">i</span></a></span></span><span class="hs-special">)</span><span>
+</span><span id="line-56"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679125122"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Word8 -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;=</span></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">8</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Color
+</span><span class="hs-identifier hs-var">ISOColor</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word8
+</span><a href="#local-6989586621679125122"><span class="hs-identifier hs-var">i</span></a></span><span class="annot"><span class="annottext">Word8 -&gt; Word8 -&gt; Word8
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">8</span></span><span class="hs-special">)</span><span>
+</span><span id="line-57"></span><span class="annot"><a href="Dep.Bricks.Palette.html#isoColorFromBright"><span class="hs-identifier hs-var">isoColorFromBright</span></a></span><span> </span><span id="local-6989586621679125121"><span class="annot"><span class="annottext">Color
+</span><a href="#local-6989586621679125121"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Color
+</span><a href="#local-6989586621679125121"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-58"></span><span>
+</span><span id="line-59"></span><span class="hs-comment">-- | Work with a color palette with 240 colors, but only 238 are selected, since black and white are not considered to be colors for the palette.</span><span>
+</span><span id="line-60"></span><span class="annot"><a href="Dep.Bricks.Palette.html#color240Palette"><span class="hs-identifier hs-type">color240Palette</span></a></span><span>
+</span><span id="line-61"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Dep.Bricks.Palette.html#Palette"><span class="hs-identifier hs-type">Palette</span></a></span><span> </span><span class="hs-comment">-- ^ A palette that endlessly repeats itself and exhaustively enumerates the possible /colors 240s/.</span><span>
+</span><span id="line-62"></span><span id="color240Palette"><span class="annot"><span class="annottext">color240Palette :: Palette
+</span><a href="Dep.Bricks.Palette.html#color240Palette"><span class="hs-identifier hs-var hs-var">color240Palette</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Palette -&gt; Palette
+forall a. [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">cycle</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word8 -&gt; Color
+</span><span class="hs-identifier hs-var">Color240</span></span><span> </span><span class="annot"><span class="annottext">(Word8 -&gt; Color) -&gt; [Word8] -&gt; Palette
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; [Word8] -&gt; [Word8]
+forall a. Int -&gt; [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">take</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">238</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Word8 -&gt; Word8) -&gt; Word8 -&gt; [Word8]
+forall a. (a -&gt; a) -&gt; a -&gt; [a]
+</span><span class="hs-identifier hs-var">iterate</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">1</span></span><span class="annot"><span class="annottext">Word8 -&gt; Word8 -&gt; Word8
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span class="hs-special">)</span><span class="annot"><span class="annottext">(Word8 -&gt; Word8) -&gt; (Word8 -&gt; Word8) -&gt; Word8 -&gt; Word8
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word8 -&gt; Word8 -&gt; Word8
+forall a. Integral a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">`mod`</span></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">238</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Word8 -&gt; Word8) -&gt; (Word8 -&gt; Word8) -&gt; Word8 -&gt; Word8
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">82</span></span><span class="annot"><span class="annottext">Word8 -&gt; Word8 -&gt; Word8
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-63"></span></pre></body></html>

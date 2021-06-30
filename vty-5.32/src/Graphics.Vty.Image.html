@@ -1,0 +1,1141 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- Copyright 2009-2010 Corey O'Connor</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE BangPatterns #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE NamedFieldPuns #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE DisambiguateRecordFields #-}</span><span>
+</span><span id="line-5"></span><span class="hs-comment">-- | A Vty program makes 'Picture's from 'Image's. This module provides</span><span>
+</span><span id="line-6"></span><span class="hs-comment">-- the core constructors for creating, combining, and modifying</span><span>
+</span><span id="line-7"></span><span class="hs-comment">-- 'Image's.</span><span>
+</span><span id="line-8"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Graphics.Vty.Image</span><span>
+</span><span id="line-9"></span><span>  </span><span class="hs-special">(</span><span>
+</span><span id="line-10"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Images</span></span><span>
+</span><span id="line-11"></span><span>    </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier">Image</span></a></span><span>
+</span><span id="line-12"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#imageWidth"><span class="hs-identifier">imageWidth</span></a></span><span>
+</span><span id="line-13"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#imageHeight"><span class="hs-identifier">imageHeight</span></a></span><span>
+</span><span id="line-14"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Image constructors</span></span><span>
+</span><span id="line-15"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html#emptyImage"><span class="hs-identifier">emptyImage</span></a></span><span>
+</span><span id="line-16"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html#char"><span class="hs-identifier">char</span></a></span><span>
+</span><span id="line-17"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html#string"><span class="hs-identifier">string</span></a></span><span>
+</span><span id="line-18"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html#iso10646String"><span class="hs-identifier">iso10646String</span></a></span><span>
+</span><span id="line-19"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html#utf8String"><span class="hs-identifier">utf8String</span></a></span><span>
+</span><span id="line-20"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html#text"><span class="hs-identifier">text</span></a></span><span>
+</span><span id="line-21"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html#text%27"><span class="hs-identifier">text'</span></a></span><span>
+</span><span id="line-22"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html#backgroundFill"><span class="hs-identifier">backgroundFill</span></a></span><span>
+</span><span id="line-23"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html#utf8Bytestring"><span class="hs-identifier">utf8Bytestring</span></a></span><span>
+</span><span id="line-24"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html#utf8Bytestring%27"><span class="hs-identifier">utf8Bytestring'</span></a></span><span>
+</span><span id="line-25"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html#charFill"><span class="hs-identifier">charFill</span></a></span><span>
+</span><span id="line-26"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Combinators</span></span><span>
+</span><span id="line-27"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#horizJoin"><span class="hs-identifier">horizJoin</span></a></span><span>
+</span><span id="line-28"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html#%3C%7C%3E"><span class="hs-operator">(&lt;|&gt;)</span></a></span><span>
+</span><span id="line-29"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#vertJoin"><span class="hs-identifier">vertJoin</span></a></span><span>
+</span><span id="line-30"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html#%3C-%3E"><span class="hs-operator">(&lt;-&gt;)</span></a></span><span>
+</span><span id="line-31"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html#horizCat"><span class="hs-identifier">horizCat</span></a></span><span>
+</span><span id="line-32"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html#vertCat"><span class="hs-identifier">vertCat</span></a></span><span>
+</span><span id="line-33"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Image modifications</span></span><span>
+</span><span id="line-34"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html#crop"><span class="hs-identifier">crop</span></a></span><span>
+</span><span id="line-35"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html#cropRight"><span class="hs-identifier">cropRight</span></a></span><span>
+</span><span id="line-36"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html#cropLeft"><span class="hs-identifier">cropLeft</span></a></span><span>
+</span><span id="line-37"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html#cropBottom"><span class="hs-identifier">cropBottom</span></a></span><span>
+</span><span id="line-38"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html#cropTop"><span class="hs-identifier">cropTop</span></a></span><span>
+</span><span id="line-39"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html#pad"><span class="hs-identifier">pad</span></a></span><span>
+</span><span id="line-40"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html#resize"><span class="hs-identifier">resize</span></a></span><span>
+</span><span id="line-41"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html#resizeWidth"><span class="hs-identifier">resizeWidth</span></a></span><span>
+</span><span id="line-42"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html#resizeHeight"><span class="hs-identifier">resizeHeight</span></a></span><span>
+</span><span id="line-43"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html#translate"><span class="hs-identifier">translate</span></a></span><span>
+</span><span id="line-44"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html#translateX"><span class="hs-identifier">translateX</span></a></span><span>
+</span><span id="line-45"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html#translateY"><span class="hs-identifier">translateY</span></a></span><span>
+</span><span id="line-46"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Character width functions</span></span><span>
+</span><span id="line-47"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Text.Width.html#safeWcwidth"><span class="hs-identifier">safeWcwidth</span></a></span><span>
+</span><span id="line-48"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Text.Width.html#safeWcswidth"><span class="hs-identifier">safeWcswidth</span></a></span><span>
+</span><span id="line-49"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Text.Width.html#safeWctwidth"><span class="hs-identifier">safeWctwidth</span></a></span><span>
+</span><span id="line-50"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Text.Width.html#safeWctlwidth"><span class="hs-identifier">safeWctlwidth</span></a></span><span>
+</span><span id="line-51"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Text.Width.html#wcwidth"><span class="hs-identifier">wcwidth</span></a></span><span>
+</span><span id="line-52"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Text.Width.html#wcswidth"><span class="hs-identifier">wcswidth</span></a></span><span>
+</span><span id="line-53"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Text.Width.html#wctwidth"><span class="hs-identifier">wctwidth</span></a></span><span>
+</span><span id="line-54"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Text.Width.html#wctlwidth"><span class="hs-identifier">wctlwidth</span></a></span><span>
+</span><span id="line-55"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Display Regions</span></span><span>
+</span><span id="line-56"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#DisplayText"><span class="hs-identifier">DisplayText</span></a></span><span>
+</span><span id="line-57"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html#DisplayRegion"><span class="hs-identifier">DisplayRegion</span></a></span><span>
+</span><span id="line-58"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html#regionWidth"><span class="hs-identifier">regionWidth</span></a></span><span>
+</span><span id="line-59"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html#regionHeight"><span class="hs-identifier">regionHeight</span></a></span><span>
+</span><span id="line-60"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-61"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-62"></span><span>
+</span><span id="line-63"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html"><span class="hs-identifier">Graphics.Vty.Attributes</span></a></span><span>
+</span><span id="line-64"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html"><span class="hs-identifier">Graphics.Vty.Image.Internal</span></a></span><span>
+</span><span id="line-65"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Graphics.Text.Width.html"><span class="hs-identifier">Graphics.Text.Width</span></a></span><span>
+</span><span id="line-66"></span><span>
+</span><span id="line-67"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.ByteString</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">B</span></span><span>
+</span><span id="line-68"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.ByteString.Lazy</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">BL</span></span><span>
+</span><span id="line-69"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Text</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">T</span></span><span>
+</span><span id="line-70"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Text.Encoding</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">T</span></span><span>
+</span><span id="line-71"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Text.Lazy</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">TL</span></span><span>
+</span><span id="line-72"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Text.Lazy.Encoding</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">TL</span></span><span>
+</span><span id="line-73"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Word</span></span><span>
+</span><span id="line-74"></span><span>
+</span><span id="line-75"></span><span class="hs-comment">-- | A region of the display (first width, then height)</span><span>
+</span><span id="line-76"></span><span class="hs-keyword">type</span><span> </span><span id="DisplayRegion"><span class="annot"><a href="Graphics.Vty.Image.html#DisplayRegion"><span class="hs-identifier hs-var">DisplayRegion</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span>
+</span><span id="line-77"></span><span>
+</span><span id="line-78"></span><span class="annot"><a href="Graphics.Vty.Image.html#regionWidth"><span class="hs-identifier hs-type">regionWidth</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html#DisplayRegion"><span class="hs-identifier hs-type">DisplayRegion</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-79"></span><span id="regionWidth"><span class="annot"><span class="annottext">regionWidth :: DisplayRegion -&gt; Int
+</span><a href="Graphics.Vty.Image.html#regionWidth"><span class="hs-identifier hs-var hs-var">regionWidth</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DisplayRegion -&gt; Int
+forall a b. (a, b) -&gt; a
+</span><span class="hs-identifier hs-var">fst</span></span><span>
+</span><span id="line-80"></span><span>
+</span><span id="line-81"></span><span class="annot"><a href="Graphics.Vty.Image.html#regionHeight"><span class="hs-identifier hs-type">regionHeight</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html#DisplayRegion"><span class="hs-identifier hs-type">DisplayRegion</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-82"></span><span id="regionHeight"><span class="annot"><span class="annottext">regionHeight :: DisplayRegion -&gt; Int
+</span><a href="Graphics.Vty.Image.html#regionHeight"><span class="hs-identifier hs-var hs-var">regionHeight</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DisplayRegion -&gt; Int
+forall a b. (a, b) -&gt; b
+</span><span class="hs-identifier hs-var">snd</span></span><span>
+</span><span id="line-83"></span><span>
+</span><span id="line-84"></span><span class="hs-keyword">infixr</span><span> </span><span class="hs-number">5</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html#%3C%7C%3E"><span class="hs-operator hs-type">&lt;|&gt;</span></a></span><span>
+</span><span id="line-85"></span><span class="hs-keyword">infixr</span><span> </span><span class="hs-number">4</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html#%3C-%3E"><span class="hs-operator hs-type">&lt;-&gt;</span></a></span><span>
+</span><span id="line-86"></span><span>
+</span><span id="line-87"></span><span class="hs-comment">-- | An area of the picture's background (See 'Background').</span><span>
+</span><span id="line-88"></span><span class="annot"><a href="Graphics.Vty.Image.html#backgroundFill"><span class="hs-identifier hs-type">backgroundFill</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-89"></span><span>               </span><span class="hs-comment">-- ^ Fill width in columns</span><span>
+</span><span id="line-90"></span><span>               </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-91"></span><span>               </span><span class="hs-comment">-- ^ Fill height in rows</span><span>
+</span><span id="line-92"></span><span>               </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span>
+</span><span id="line-93"></span><span id="backgroundFill"><span class="annot"><span class="annottext">backgroundFill :: Int -&gt; Int -&gt; Image
+</span><a href="Graphics.Vty.Image.html#backgroundFill"><span class="hs-identifier hs-var hs-var">backgroundFill</span></a></span></span><span> </span><span id="local-6989586621679365601"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365601"><span class="hs-identifier hs-var">w</span></a></span></span><span> </span><span id="local-6989586621679365600"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365600"><span class="hs-identifier hs-var">h</span></a></span></span><span>
+</span><span id="line-94"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365601"><span class="hs-identifier hs-var">w</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="Graphics.Vty.Image.Internal.html#EmptyImage"><span class="hs-identifier hs-var">EmptyImage</span></a></span><span>
+</span><span id="line-95"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365600"><span class="hs-identifier hs-var">h</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="Graphics.Vty.Image.Internal.html#EmptyImage"><span class="hs-identifier hs-var">EmptyImage</span></a></span><span>
+</span><span id="line-96"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Image
+</span><a href="Graphics.Vty.Image.Internal.html#BGFill"><span class="hs-identifier hs-var">BGFill</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365601"><span class="hs-identifier hs-var">w</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365600"><span class="hs-identifier hs-var">h</span></a></span><span>
+</span><span id="line-97"></span><span>
+</span><span id="line-98"></span><span class="hs-comment">-- | Combines two images horizontally. This is an alias for 'horizJoin'.</span><span>
+</span><span id="line-99"></span><span class="hs-comment">--</span><span>
+</span><span id="line-100"></span><span class="hs-comment">-- infixr 5</span><span>
+</span><span id="line-101"></span><span class="annot"><a href="Graphics.Vty.Image.html#%3C%7C%3E"><span class="hs-operator hs-type">(&lt;|&gt;)</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span>
+</span><span id="line-102"></span><span id="%3C%7C%3E"><span class="annot"><span class="annottext">&lt;|&gt; :: Image -&gt; Image -&gt; Image
+</span><a href="Graphics.Vty.Image.html#%3C%7C%3E"><span class="hs-operator hs-var hs-var">(&lt;|&gt;)</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image -&gt; Image -&gt; Image
+</span><a href="Graphics.Vty.Image.Internal.html#horizJoin"><span class="hs-identifier hs-var">horizJoin</span></a></span><span>
+</span><span id="line-103"></span><span>
+</span><span id="line-104"></span><span class="hs-comment">-- | Combines two images vertically. This is an alias for 'vertJoin'.</span><span>
+</span><span id="line-105"></span><span class="hs-comment">--</span><span>
+</span><span id="line-106"></span><span class="hs-comment">-- infixr 4</span><span>
+</span><span id="line-107"></span><span class="annot"><a href="Graphics.Vty.Image.html#%3C-%3E"><span class="hs-operator hs-type">(&lt;-&gt;)</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span>
+</span><span id="line-108"></span><span id="%3C-%3E"><span class="annot"><span class="annottext">&lt;-&gt; :: Image -&gt; Image -&gt; Image
+</span><a href="Graphics.Vty.Image.html#%3C-%3E"><span class="hs-operator hs-var hs-var">(&lt;-&gt;)</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image -&gt; Image -&gt; Image
+</span><a href="Graphics.Vty.Image.Internal.html#vertJoin"><span class="hs-identifier hs-var">vertJoin</span></a></span><span>
+</span><span id="line-109"></span><span>
+</span><span id="line-110"></span><span class="hs-comment">-- | Compose any number of images together horizontally, with the first</span><span>
+</span><span id="line-111"></span><span class="hs-comment">-- in the list being leftmost.</span><span>
+</span><span id="line-112"></span><span class="annot"><a href="Graphics.Vty.Image.html#horizCat"><span class="hs-identifier hs-type">horizCat</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span>
+</span><span id="line-113"></span><span id="horizCat"><span class="annot"><span class="annottext">horizCat :: [Image] -&gt; Image
+</span><a href="Graphics.Vty.Image.html#horizCat"><span class="hs-identifier hs-var hs-var">horizCat</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Image -&gt; Image -&gt; Image) -&gt; Image -&gt; [Image] -&gt; Image
+forall (t :: * -&gt; *) a b.
+Foldable t =&gt;
+(a -&gt; b -&gt; b) -&gt; b -&gt; t a -&gt; b
+</span><span class="hs-identifier hs-var">foldr</span></span><span> </span><span class="annot"><span class="annottext">Image -&gt; Image -&gt; Image
+</span><a href="Graphics.Vty.Image.Internal.html#horizJoin"><span class="hs-identifier hs-var">horizJoin</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="Graphics.Vty.Image.Internal.html#EmptyImage"><span class="hs-identifier hs-var">EmptyImage</span></a></span><span>
+</span><span id="line-114"></span><span>
+</span><span id="line-115"></span><span class="hs-comment">-- | Compose any number of images vertically, with the first in the list</span><span>
+</span><span id="line-116"></span><span class="hs-comment">-- being topmost.</span><span>
+</span><span id="line-117"></span><span class="annot"><a href="Graphics.Vty.Image.html#vertCat"><span class="hs-identifier hs-type">vertCat</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span>
+</span><span id="line-118"></span><span id="vertCat"><span class="annot"><span class="annottext">vertCat :: [Image] -&gt; Image
+</span><a href="Graphics.Vty.Image.html#vertCat"><span class="hs-identifier hs-var hs-var">vertCat</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Image -&gt; Image -&gt; Image) -&gt; Image -&gt; [Image] -&gt; Image
+forall (t :: * -&gt; *) a b.
+Foldable t =&gt;
+(a -&gt; b -&gt; b) -&gt; b -&gt; t a -&gt; b
+</span><span class="hs-identifier hs-var">foldr</span></span><span> </span><span class="annot"><span class="annottext">Image -&gt; Image -&gt; Image
+</span><a href="Graphics.Vty.Image.Internal.html#vertJoin"><span class="hs-identifier hs-var">vertJoin</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="Graphics.Vty.Image.Internal.html#EmptyImage"><span class="hs-identifier hs-var">EmptyImage</span></a></span><span>
+</span><span id="line-119"></span><span>
+</span><span id="line-120"></span><span class="hs-comment">-- | Make an 'Image' from a lazy text value. The text value should be</span><span>
+</span><span id="line-121"></span><span class="hs-comment">-- sanitized of escape sequences (ASCII 27) and carriage returns;</span><span>
+</span><span id="line-122"></span><span class="hs-comment">-- otherwise layout and attribute problems may result.</span><span>
+</span><span id="line-123"></span><span class="annot"><a href="Graphics.Vty.Image.html#text"><span class="hs-identifier hs-type">text</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#Attr"><span class="hs-identifier hs-type">Attr</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">TL.Text</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span>
+</span><span id="line-124"></span><span id="text"><span class="annot"><span class="annottext">text :: Attr -&gt; Text -&gt; Image
+</span><a href="Graphics.Vty.Image.html#text"><span class="hs-identifier hs-var hs-var">text</span></a></span></span><span> </span><span id="local-6989586621679365596"><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679365596"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679365595"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679365595"><span class="hs-identifier hs-var">txt</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679365594"><span class="annot"><span class="annottext">displayWidth :: Int
+</span><a href="#local-6989586621679365594"><span class="hs-identifier hs-var hs-var">displayWidth</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Int
+</span><a href="Graphics.Text.Width.html#safeWctlwidth"><span class="hs-identifier hs-var">safeWctlwidth</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679365595"><span class="hs-identifier hs-var">txt</span></a></span><span>
+</span><span id="line-125"></span><span>             </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">Attr -&gt; Text -&gt; Int -&gt; Int -&gt; Image
+</span><a href="Graphics.Vty.Image.Internal.html#HorizText"><span class="hs-identifier hs-var">HorizText</span></a></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679365596"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679365595"><span class="hs-identifier hs-var">txt</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365594"><span class="hs-identifier hs-var">displayWidth</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int64 -&gt; Int
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">(Int64 -&gt; Int) -&gt; Int64 -&gt; Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$!</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Int64
+</span><span class="hs-identifier hs-var">TL.length</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679365595"><span class="hs-identifier hs-var">txt</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-126"></span><span>
+</span><span id="line-127"></span><span class="hs-comment">-- | Make an 'Image' from a text value. The text value should be</span><span>
+</span><span id="line-128"></span><span class="hs-comment">-- sanitized of escape sequences (ASCII 27) and carriage returns;</span><span>
+</span><span id="line-129"></span><span class="hs-comment">-- otherwise layout and attribute problems may result.</span><span>
+</span><span id="line-130"></span><span class="annot"><a href="Graphics.Vty.Image.html#text%27"><span class="hs-identifier hs-type">text'</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#Attr"><span class="hs-identifier hs-type">Attr</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">T.Text</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span>
+</span><span id="line-131"></span><span id="text%27"><span class="annot"><span class="annottext">text' :: Attr -&gt; Text -&gt; Image
+</span><a href="Graphics.Vty.Image.html#text%27"><span class="hs-identifier hs-var hs-var">text'</span></a></span></span><span> </span><span id="local-6989586621679365590"><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679365590"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679365589"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679365589"><span class="hs-identifier hs-var">txt</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679365588"><span class="annot"><span class="annottext">displayWidth :: Int
+</span><a href="#local-6989586621679365588"><span class="hs-identifier hs-var hs-var">displayWidth</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Int
+</span><a href="Graphics.Text.Width.html#safeWctwidth"><span class="hs-identifier hs-var">safeWctwidth</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679365589"><span class="hs-identifier hs-var">txt</span></a></span><span>
+</span><span id="line-132"></span><span>              </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">Attr -&gt; Text -&gt; Int -&gt; Int -&gt; Image
+</span><a href="Graphics.Vty.Image.Internal.html#HorizText"><span class="hs-identifier hs-var">HorizText</span></a></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679365590"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Text -&gt; Text
+</span><span class="hs-identifier hs-var">TL.fromStrict</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679365589"><span class="hs-identifier hs-var">txt</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365588"><span class="hs-identifier hs-var">displayWidth</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Text -&gt; Int
+</span><span class="hs-identifier hs-var">T.length</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679365589"><span class="hs-identifier hs-var">txt</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-133"></span><span>
+</span><span id="line-134"></span><span class="hs-comment">-- | Make an image from a single character. This is a standard Haskell</span><span>
+</span><span id="line-135"></span><span class="hs-comment">-- 31-bit character assumed to be in the ISO-10646 encoding.</span><span>
+</span><span id="line-136"></span><span class="annot"><a href="Graphics.Vty.Image.html#char"><span class="hs-identifier hs-type">char</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#Attr"><span class="hs-identifier hs-type">Attr</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span>
+</span><span id="line-137"></span><span id="char"><span class="annot"><span class="annottext">char :: Attr -&gt; Char -&gt; Image
+</span><a href="Graphics.Vty.Image.html#char"><span class="hs-identifier hs-var hs-var">char</span></a></span></span><span> </span><span id="local-6989586621679365585"><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679365585"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679365584"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679365584"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-138"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679365583"><span class="annot"><span class="annottext">displayWidth :: Int
+</span><a href="#local-6989586621679365583"><span class="hs-identifier hs-var hs-var">displayWidth</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Int
+</span><a href="Graphics.Text.Width.html#safeWcwidth"><span class="hs-identifier hs-var">safeWcwidth</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679365584"><span class="hs-identifier hs-var">c</span></a></span><span>
+</span><span id="line-139"></span><span>    </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">Attr -&gt; Text -&gt; Int -&gt; Int -&gt; Image
+</span><a href="Graphics.Vty.Image.Internal.html#HorizText"><span class="hs-identifier hs-var">HorizText</span></a></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679365585"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Char -&gt; Text
+</span><span class="hs-identifier hs-var">TL.singleton</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679365584"><span class="hs-identifier hs-var">c</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365583"><span class="hs-identifier hs-var">displayWidth</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span>
+</span><span id="line-140"></span><span>
+</span><span id="line-141"></span><span class="hs-comment">-- | Make an image from a string of characters layed out on a single</span><span>
+</span><span id="line-142"></span><span class="hs-comment">-- row with the same display attribute. The string is assumed to be a</span><span>
+</span><span id="line-143"></span><span class="hs-comment">-- sequence of ISO-10646 characters. The input string should be</span><span>
+</span><span id="line-144"></span><span class="hs-comment">-- sanitized of escape sequences (ASCII 27) and carriage returns;</span><span>
+</span><span id="line-145"></span><span class="hs-comment">-- otherwise layout and attribute problems may result.</span><span>
+</span><span id="line-146"></span><span class="hs-comment">--</span><span>
+</span><span id="line-147"></span><span class="hs-comment">-- Note: depending on how the Haskell compiler represents string</span><span>
+</span><span id="line-148"></span><span class="hs-comment">-- literals, a string literal in a UTF-8 encoded source file, for</span><span>
+</span><span id="line-149"></span><span class="hs-comment">-- example, may be represented as a ISO-10646 string. That is, I think,</span><span>
+</span><span id="line-150"></span><span class="hs-comment">-- the case with GHC 6.10. This means, for the most part, you don't need</span><span>
+</span><span id="line-151"></span><span class="hs-comment">-- to worry about the encoding format when outputting string literals.</span><span>
+</span><span id="line-152"></span><span class="hs-comment">-- Just provide the string literal directly to iso10646String or string.</span><span>
+</span><span id="line-153"></span><span class="annot"><a href="Graphics.Vty.Image.html#iso10646String"><span class="hs-identifier hs-type">iso10646String</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#Attr"><span class="hs-identifier hs-type">Attr</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span>
+</span><span id="line-154"></span><span id="iso10646String"><span class="annot"><span class="annottext">iso10646String :: Attr -&gt; String -&gt; Image
+</span><a href="Graphics.Vty.Image.html#iso10646String"><span class="hs-identifier hs-var hs-var">iso10646String</span></a></span></span><span> </span><span id="local-6989586621679365581"><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679365581"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679365580"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679365580"><span class="hs-identifier hs-var">str</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-155"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679365579"><span class="annot"><span class="annottext">displayWidth :: Int
+</span><a href="#local-6989586621679365579"><span class="hs-identifier hs-var hs-var">displayWidth</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String -&gt; Int
+</span><a href="Graphics.Text.Width.html#safeWcswidth"><span class="hs-identifier hs-var">safeWcswidth</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679365580"><span class="hs-identifier hs-var">str</span></a></span><span>
+</span><span id="line-156"></span><span>    </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">Attr -&gt; Text -&gt; Int -&gt; Int -&gt; Image
+</span><a href="Graphics.Vty.Image.Internal.html#HorizText"><span class="hs-identifier hs-var">HorizText</span></a></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679365581"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; Text
+</span><span class="hs-identifier hs-var">TL.pack</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679365580"><span class="hs-identifier hs-var">str</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365579"><span class="hs-identifier hs-var">displayWidth</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; Int
+forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Int
+</span><span class="hs-identifier hs-var">length</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679365580"><span class="hs-identifier hs-var">str</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-157"></span><span>
+</span><span id="line-158"></span><span class="hs-comment">-- | Make an 'Image' from a 'String'.</span><span>
+</span><span id="line-159"></span><span class="hs-comment">--</span><span>
+</span><span id="line-160"></span><span class="hs-comment">-- This is an alias for iso10646String since the usual case is that a</span><span>
+</span><span id="line-161"></span><span class="hs-comment">-- literal string like &quot;foo&quot; is represented internally as a list of ISO</span><span>
+</span><span id="line-162"></span><span class="hs-comment">-- 10646 31 bit characters.</span><span>
+</span><span id="line-163"></span><span class="hs-comment">--</span><span>
+</span><span id="line-164"></span><span class="hs-comment">-- Note: Keep in mind that GHC will compile source encoded as UTF-8</span><span>
+</span><span id="line-165"></span><span class="hs-comment">-- but the literal strings, while UTF-8 encoded in the source, will be</span><span>
+</span><span id="line-166"></span><span class="hs-comment">-- transcoded to a ISO 10646 31 bit characters runtime representation.</span><span>
+</span><span id="line-167"></span><span class="annot"><a href="Graphics.Vty.Image.html#string"><span class="hs-identifier hs-type">string</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#Attr"><span class="hs-identifier hs-type">Attr</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span>
+</span><span id="line-168"></span><span id="string"><span class="annot"><span class="annottext">string :: Attr -&gt; String -&gt; Image
+</span><a href="Graphics.Vty.Image.html#string"><span class="hs-identifier hs-var hs-var">string</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Attr -&gt; String -&gt; Image
+</span><a href="Graphics.Vty.Image.html#iso10646String"><span class="hs-identifier hs-var">iso10646String</span></a></span><span>
+</span><span id="line-169"></span><span>
+</span><span id="line-170"></span><span class="hs-comment">-- | Make an 'Image' from a string of characters layed out on a single</span><span>
+</span><span id="line-171"></span><span class="hs-comment">-- row. The input is assumed to be the bytes for UTF-8 encoded text.</span><span>
+</span><span id="line-172"></span><span class="annot"><a href="Graphics.Vty.Image.html#utf8String"><span class="hs-identifier hs-type">utf8String</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#Attr"><span class="hs-identifier hs-type">Attr</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Word8</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span>
+</span><span id="line-173"></span><span id="utf8String"><span class="annot"><span class="annottext">utf8String :: Attr -&gt; [Word8] -&gt; Image
+</span><a href="Graphics.Vty.Image.html#utf8String"><span class="hs-identifier hs-var hs-var">utf8String</span></a></span></span><span> </span><span id="local-6989586621679365576"><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679365576"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679365575"><span class="annot"><span class="annottext">[Word8]
+</span><a href="#local-6989586621679365575"><span class="hs-identifier hs-var">bytes</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Attr -&gt; ByteString -&gt; Image
+</span><a href="Graphics.Vty.Image.html#utf8Bytestring"><span class="hs-identifier hs-var">utf8Bytestring</span></a></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679365576"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[Word8] -&gt; ByteString
+</span><span class="hs-identifier hs-var">BL.pack</span></span><span> </span><span class="annot"><span class="annottext">[Word8]
+</span><a href="#local-6989586621679365575"><span class="hs-identifier hs-var">bytes</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-174"></span><span>
+</span><span id="line-175"></span><span class="hs-comment">-- | Make an 'Image' from a UTF-8 encoded lazy bytestring.</span><span>
+</span><span id="line-176"></span><span class="annot"><a href="Graphics.Vty.Image.html#utf8Bytestring"><span class="hs-identifier hs-type">utf8Bytestring</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#Attr"><span class="hs-identifier hs-type">Attr</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">BL.ByteString</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span>
+</span><span id="line-177"></span><span id="utf8Bytestring"><span class="annot"><span class="annottext">utf8Bytestring :: Attr -&gt; ByteString -&gt; Image
+</span><a href="Graphics.Vty.Image.html#utf8Bytestring"><span class="hs-identifier hs-var hs-var">utf8Bytestring</span></a></span></span><span> </span><span id="local-6989586621679365573"><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679365573"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679365572"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679365572"><span class="hs-identifier hs-var">bs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Attr -&gt; Text -&gt; Image
+</span><a href="Graphics.Vty.Image.html#text"><span class="hs-identifier hs-var">text</span></a></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679365573"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ByteString -&gt; Text
+</span><span class="hs-identifier hs-var">TL.decodeUtf8</span></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679365572"><span class="hs-identifier hs-var">bs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-178"></span><span>
+</span><span id="line-179"></span><span class="hs-comment">-- | Make an 'Image' from a UTF-8 encoded strict bytestring.</span><span>
+</span><span id="line-180"></span><span class="annot"><a href="Graphics.Vty.Image.html#utf8Bytestring%27"><span class="hs-identifier hs-type">utf8Bytestring'</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#Attr"><span class="hs-identifier hs-type">Attr</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">B.ByteString</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span>
+</span><span id="line-181"></span><span id="utf8Bytestring%27"><span class="annot"><span class="annottext">utf8Bytestring' :: Attr -&gt; ByteString -&gt; Image
+</span><a href="Graphics.Vty.Image.html#utf8Bytestring%27"><span class="hs-identifier hs-var hs-var">utf8Bytestring'</span></a></span></span><span> </span><span id="local-6989586621679365570"><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679365570"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679365569"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679365569"><span class="hs-identifier hs-var">bs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Attr -&gt; Text -&gt; Image
+</span><a href="Graphics.Vty.Image.html#text%27"><span class="hs-identifier hs-var">text'</span></a></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679365570"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ByteString -&gt; Text
+</span><span class="hs-identifier hs-var">T.decodeUtf8</span></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679365569"><span class="hs-identifier hs-var">bs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-182"></span><span>
+</span><span id="line-183"></span><span class="hs-comment">-- | Make an image filling a region with the specified character.</span><span>
+</span><span id="line-184"></span><span class="hs-comment">--</span><span>
+</span><span id="line-185"></span><span class="hs-comment">-- If either the width or height are less than or equal to 0, then</span><span>
+</span><span id="line-186"></span><span class="hs-comment">-- the result is the empty image.</span><span>
+</span><span id="line-187"></span><span id="local-6989586621679365567"><span class="annot"><a href="Graphics.Vty.Image.html#charFill"><span class="hs-identifier hs-type">charFill</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integral</span></span><span> </span><span class="annot"><a href="#local-6989586621679365567"><span class="hs-identifier hs-type">d</span></a></span><span>
+</span><span id="line-188"></span><span>         </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#Attr"><span class="hs-identifier hs-type">Attr</span></a></span><span>
+</span><span id="line-189"></span><span>         </span><span class="hs-comment">-- ^ The attribute to use.</span><span>
+</span><span id="line-190"></span><span>         </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>
+</span><span id="line-191"></span><span>         </span><span class="hs-comment">-- ^ The character to use in filling the region.</span><span>
+</span><span id="line-192"></span><span>         </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679365567"><span class="hs-identifier hs-type">d</span></a></span><span>
+</span><span id="line-193"></span><span>         </span><span class="hs-comment">-- ^ The region width.</span><span>
+</span><span id="line-194"></span><span>         </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679365567"><span class="hs-identifier hs-type">d</span></a></span><span>
+</span><span id="line-195"></span><span>         </span><span class="hs-comment">-- ^ The region height.</span><span>
+</span><span id="line-196"></span><span>         </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span></span><span>
+</span><span id="line-197"></span><span id="charFill"><span class="annot"><span class="annottext">charFill :: Attr -&gt; Char -&gt; d -&gt; d -&gt; Image
+</span><a href="Graphics.Vty.Image.html#charFill"><span class="hs-identifier hs-var hs-var">charFill</span></a></span></span><span> </span><span id="local-6989586621679365566"><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679365566"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679365565"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679365565"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span id="local-6989586621679365564"><span class="annot"><span class="annottext">d
+</span><a href="#local-6989586621679365564"><span class="hs-identifier hs-var">w</span></a></span></span><span> </span><span id="local-6989586621679365563"><span class="annot"><span class="annottext">d
+</span><a href="#local-6989586621679365563"><span class="hs-identifier hs-var">h</span></a></span></span><span>
+</span><span id="line-198"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">d
+</span><a href="#local-6989586621679365564"><span class="hs-identifier hs-var">w</span></a></span><span> </span><span class="annot"><span class="annottext">d -&gt; d -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">d
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">||</span></span><span> </span><span class="annot"><span class="annottext">d
+</span><a href="#local-6989586621679365563"><span class="hs-identifier hs-var">h</span></a></span><span> </span><span class="annot"><span class="annottext">d -&gt; d -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">d
+</span><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="Graphics.Vty.Image.Internal.html#EmptyImage"><span class="hs-identifier hs-var">EmptyImage</span></a></span><span>
+</span><span id="line-199"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span>        </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Image] -&gt; Image
+</span><a href="Graphics.Vty.Image.html#vertCat"><span class="hs-identifier hs-var">vertCat</span></a></span><span>
+</span><span id="line-200"></span><span>                     </span><span class="annot"><span class="annottext">([Image] -&gt; Image) -&gt; [Image] -&gt; Image
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Image -&gt; [Image]
+forall a. Int -&gt; a -&gt; [a]
+</span><span class="hs-identifier hs-var">replicate</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">d -&gt; Int
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">d
+</span><a href="#local-6989586621679365563"><span class="hs-identifier hs-var">h</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-201"></span><span>                     </span><span class="annot"><span class="annottext">(Image -&gt; [Image]) -&gt; Image -&gt; [Image]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Attr -&gt; Text -&gt; Int -&gt; Int -&gt; Image
+</span><a href="Graphics.Vty.Image.Internal.html#HorizText"><span class="hs-identifier hs-var">HorizText</span></a></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679365566"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679365559"><span class="hs-identifier hs-var">txt</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365558"><span class="hs-identifier hs-var">displayWidth</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+forall a. Num a =&gt; a
+</span><a href="#local-6989586621679365557"><span class="hs-identifier hs-var">charWidth</span></a></span><span>
+</span><span id="line-202"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-203"></span><span>    </span><span id="local-6989586621679365559"><span class="annot"><span class="annottext">txt :: Text
+</span><a href="#local-6989586621679365559"><span class="hs-identifier hs-var hs-var">txt</span></a></span></span><span>          </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int64 -&gt; Text -&gt; Text
+</span><span class="hs-identifier hs-var">TL.replicate</span></span><span> </span><span class="annot"><span class="annottext">Int64
+forall a. Num a =&gt; a
+</span><a href="#local-6989586621679365557"><span class="hs-identifier hs-var">charWidth</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Char -&gt; Text
+</span><span class="hs-identifier hs-var">TL.singleton</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679365565"><span class="hs-identifier hs-var">c</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-204"></span><span>    </span><span id="local-6989586621679365558"><span class="annot"><span class="annottext">displayWidth :: Int
+</span><a href="#local-6989586621679365558"><span class="hs-identifier hs-var hs-var">displayWidth</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Int
+</span><a href="Graphics.Text.Width.html#safeWcwidth"><span class="hs-identifier hs-var">safeWcwidth</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679365565"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">Int
+forall a. Num a =&gt; a
+</span><a href="#local-6989586621679365557"><span class="hs-identifier hs-var">charWidth</span></a></span><span>
+</span><span id="line-205"></span><span>
+</span><span id="line-206"></span><span>    </span><span id="local-6989586621679365649"><span class="annot"><a href="#local-6989586621679365557"><span class="hs-identifier hs-type">charWidth</span></a></span><span>   </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Num</span></span><span> </span><span class="annot"><a href="#local-6989586621679365649"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679365649"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-207"></span><span>    </span><span id="local-6989586621679365557"><span class="annot"><span class="annottext">charWidth :: a
+</span><a href="#local-6989586621679365557"><span class="hs-identifier hs-var hs-var">charWidth</span></a></span></span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">d -&gt; a
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">d
+</span><a href="#local-6989586621679365564"><span class="hs-identifier hs-var">w</span></a></span><span>
+</span><span id="line-208"></span><span>
+</span><span id="line-209"></span><span class="hs-comment">-- | The empty image. Useful for fold combinators. These occupy no space</span><span>
+</span><span id="line-210"></span><span class="hs-comment">-- and do not affect display attributes.</span><span>
+</span><span id="line-211"></span><span class="annot"><a href="Graphics.Vty.Image.html#emptyImage"><span class="hs-identifier hs-type">emptyImage</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span>
+</span><span id="line-212"></span><span id="emptyImage"><span class="annot"><span class="annottext">emptyImage :: Image
+</span><a href="Graphics.Vty.Image.html#emptyImage"><span class="hs-identifier hs-var hs-var">emptyImage</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="Graphics.Vty.Image.Internal.html#EmptyImage"><span class="hs-identifier hs-var">EmptyImage</span></a></span><span>
+</span><span id="line-213"></span><span>
+</span><span id="line-214"></span><span class="hs-comment">-- | Pad the given image. This adds background character fills to the</span><span>
+</span><span id="line-215"></span><span class="hs-comment">-- left, top, right, bottom.</span><span>
+</span><span id="line-216"></span><span class="annot"><a href="Graphics.Vty.Image.html#pad"><span class="hs-identifier hs-type">pad</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-217"></span><span>    </span><span class="hs-comment">-- ^ How much padding to add to the left side of the image.</span><span>
+</span><span id="line-218"></span><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-219"></span><span>    </span><span class="hs-comment">-- ^ How much padding to add to the top of the image.</span><span>
+</span><span id="line-220"></span><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-221"></span><span>    </span><span class="hs-comment">-- ^ How much padding to add to the right side of the image.</span><span>
+</span><span id="line-222"></span><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-223"></span><span>    </span><span class="hs-comment">-- ^ How much padding to add to the bottom of the image.</span><span>
+</span><span id="line-224"></span><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span>
+</span><span id="line-225"></span><span>    </span><span class="hs-comment">-- ^ The image to pad.</span><span>
+</span><span id="line-226"></span><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span>
+</span><span id="line-227"></span><span id="pad"><span class="annot"><span class="annottext">pad :: Int -&gt; Int -&gt; Int -&gt; Int -&gt; Image -&gt; Image
+</span><a href="Graphics.Vty.Image.html#pad"><span class="hs-identifier hs-var hs-var">pad</span></a></span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span id="local-6989586621679365554"><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365554"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365554"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-228"></span><span class="annot"><a href="Graphics.Vty.Image.html#pad"><span class="hs-identifier hs-var">pad</span></a></span><span> </span><span id="local-6989586621679365553"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365553"><span class="hs-identifier hs-var">inL</span></a></span></span><span> </span><span id="local-6989586621679365552"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365552"><span class="hs-identifier hs-var">inT</span></a></span></span><span> </span><span id="local-6989586621679365551"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365551"><span class="hs-identifier hs-var">inR</span></a></span></span><span> </span><span id="local-6989586621679365550"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365550"><span class="hs-identifier hs-var">inB</span></a></span></span><span> </span><span id="local-6989586621679365549"><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365549"><span class="hs-identifier hs-var">inImage</span></a></span></span><span>
+</span><span id="line-229"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365553"><span class="hs-identifier hs-var">inL</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">||</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365552"><span class="hs-identifier hs-var">inT</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">||</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365551"><span class="hs-identifier hs-var">inR</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">||</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365550"><span class="hs-identifier hs-var">inB</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String -&gt; Image
+forall a. HasCallStack =&gt; String -&gt; a
+</span><span class="hs-identifier hs-var">error</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;cannot pad by negative amount&quot;</span></span><span>
+</span><span id="line-230"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int -&gt; Int -&gt; Image -&gt; Image
+</span><a href="#local-6989586621679365546"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365553"><span class="hs-identifier hs-var">inL</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365552"><span class="hs-identifier hs-var">inT</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365551"><span class="hs-identifier hs-var">inR</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365550"><span class="hs-identifier hs-var">inB</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365549"><span class="hs-identifier hs-var">inImage</span></a></span><span>
+</span><span id="line-231"></span><span>        </span><span class="hs-keyword">where</span><span>
+</span><span id="line-232"></span><span>            </span><span id="local-6989586621679365546"><span class="annot"><span class="annottext">go :: Int -&gt; Int -&gt; Int -&gt; Int -&gt; Image -&gt; Image
+</span><a href="#local-6989586621679365546"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span id="local-6989586621679365545"><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365545"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365545"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-233"></span><span>            </span><span class="annot"><a href="#local-6989586621679365546"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span id="local-6989586621679365544"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365544"><span class="hs-identifier hs-var">b</span></a></span></span><span> </span><span id="local-6989586621679365543"><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365543"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image -&gt; Image -&gt; Int -&gt; Int -&gt; Image
+</span><a href="Graphics.Vty.Image.Internal.html#VertJoin"><span class="hs-identifier hs-var">VertJoin</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365543"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Image
+</span><a href="Graphics.Vty.Image.Internal.html#BGFill"><span class="hs-identifier hs-var">BGFill</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365541"><span class="hs-identifier hs-var">w</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365544"><span class="hs-identifier hs-var">b</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365541"><span class="hs-identifier hs-var">w</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365540"><span class="hs-identifier hs-var">h</span></a></span><span>
+</span><span id="line-234"></span><span>                </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679365541"><span class="annot"><span class="annottext">w :: Int
+</span><a href="#local-6989586621679365541"><span class="hs-identifier hs-var hs-var">w</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><a href="Graphics.Vty.Image.Internal.html#imageWidth"><span class="hs-identifier hs-var">imageWidth</span></a></span><span>  </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365543"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-235"></span><span>                      </span><span id="local-6989586621679365540"><span class="annot"><span class="annottext">h :: Int
+</span><a href="#local-6989586621679365540"><span class="hs-identifier hs-var hs-var">h</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><a href="Graphics.Vty.Image.Internal.html#imageHeight"><span class="hs-identifier hs-var">imageHeight</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365543"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365544"><span class="hs-identifier hs-var">b</span></a></span><span>
+</span><span id="line-236"></span><span>            </span><span class="annot"><a href="#local-6989586621679365546"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span id="local-6989586621679365538"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365538"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span id="local-6989586621679365537"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365537"><span class="hs-identifier hs-var">b</span></a></span></span><span> </span><span id="local-6989586621679365536"><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365536"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int -&gt; Int -&gt; Image -&gt; Image
+</span><a href="#local-6989586621679365546"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365537"><span class="hs-identifier hs-var">b</span></a></span><span> </span><span class="annot"><span class="annottext">(Image -&gt; Image) -&gt; Image -&gt; Image
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Image -&gt; Image -&gt; Int -&gt; Int -&gt; Image
+</span><a href="Graphics.Vty.Image.Internal.html#HorizJoin"><span class="hs-identifier hs-var">HorizJoin</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365536"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Image
+</span><a href="Graphics.Vty.Image.Internal.html#BGFill"><span class="hs-identifier hs-var">BGFill</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365538"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365534"><span class="hs-identifier hs-var">h</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365533"><span class="hs-identifier hs-var">w</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365534"><span class="hs-identifier hs-var">h</span></a></span><span>
+</span><span id="line-237"></span><span>                </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679365533"><span class="annot"><span class="annottext">w :: Int
+</span><a href="#local-6989586621679365533"><span class="hs-identifier hs-var hs-var">w</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><a href="Graphics.Vty.Image.Internal.html#imageWidth"><span class="hs-identifier hs-var">imageWidth</span></a></span><span>  </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365536"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365538"><span class="hs-identifier hs-var">r</span></a></span><span>
+</span><span id="line-238"></span><span>                      </span><span id="local-6989586621679365534"><span class="annot"><span class="annottext">h :: Int
+</span><a href="#local-6989586621679365534"><span class="hs-identifier hs-var hs-var">h</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><a href="Graphics.Vty.Image.Internal.html#imageHeight"><span class="hs-identifier hs-var">imageHeight</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365536"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-239"></span><span>            </span><span class="annot"><a href="#local-6989586621679365546"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span id="local-6989586621679365532"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365532"><span class="hs-identifier hs-var">t</span></a></span></span><span> </span><span id="local-6989586621679365531"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365531"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span id="local-6989586621679365530"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365530"><span class="hs-identifier hs-var">b</span></a></span></span><span> </span><span id="local-6989586621679365529"><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365529"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int -&gt; Int -&gt; Image -&gt; Image
+</span><a href="#local-6989586621679365546"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365531"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365530"><span class="hs-identifier hs-var">b</span></a></span><span> </span><span class="annot"><span class="annottext">(Image -&gt; Image) -&gt; Image -&gt; Image
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Image -&gt; Image -&gt; Int -&gt; Int -&gt; Image
+</span><a href="Graphics.Vty.Image.Internal.html#VertJoin"><span class="hs-identifier hs-var">VertJoin</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Image
+</span><a href="Graphics.Vty.Image.Internal.html#BGFill"><span class="hs-identifier hs-var">BGFill</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365528"><span class="hs-identifier hs-var">w</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365532"><span class="hs-identifier hs-var">t</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365529"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365528"><span class="hs-identifier hs-var">w</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365527"><span class="hs-identifier hs-var">h</span></a></span><span>
+</span><span id="line-240"></span><span>                </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679365528"><span class="annot"><span class="annottext">w :: Int
+</span><a href="#local-6989586621679365528"><span class="hs-identifier hs-var hs-var">w</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><a href="Graphics.Vty.Image.Internal.html#imageWidth"><span class="hs-identifier hs-var">imageWidth</span></a></span><span>  </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365529"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-241"></span><span>                      </span><span id="local-6989586621679365527"><span class="annot"><span class="annottext">h :: Int
+</span><a href="#local-6989586621679365527"><span class="hs-identifier hs-var hs-var">h</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><a href="Graphics.Vty.Image.Internal.html#imageHeight"><span class="hs-identifier hs-var">imageHeight</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365529"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365532"><span class="hs-identifier hs-var">t</span></a></span><span>
+</span><span id="line-242"></span><span>            </span><span class="annot"><a href="#local-6989586621679365546"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span id="local-6989586621679365526"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365526"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span id="local-6989586621679365525"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365525"><span class="hs-identifier hs-var">t</span></a></span></span><span> </span><span id="local-6989586621679365524"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365524"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span id="local-6989586621679365523"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365523"><span class="hs-identifier hs-var">b</span></a></span></span><span> </span><span id="local-6989586621679365522"><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365522"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int -&gt; Int -&gt; Image -&gt; Image
+</span><a href="#local-6989586621679365546"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365525"><span class="hs-identifier hs-var">t</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365524"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365523"><span class="hs-identifier hs-var">b</span></a></span><span> </span><span class="annot"><span class="annottext">(Image -&gt; Image) -&gt; Image -&gt; Image
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Image -&gt; Image -&gt; Int -&gt; Int -&gt; Image
+</span><a href="Graphics.Vty.Image.Internal.html#HorizJoin"><span class="hs-identifier hs-var">HorizJoin</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Image
+</span><a href="Graphics.Vty.Image.Internal.html#BGFill"><span class="hs-identifier hs-var">BGFill</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365526"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365521"><span class="hs-identifier hs-var">h</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365522"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365520"><span class="hs-identifier hs-var">w</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365521"><span class="hs-identifier hs-var">h</span></a></span><span>
+</span><span id="line-243"></span><span>                </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679365520"><span class="annot"><span class="annottext">w :: Int
+</span><a href="#local-6989586621679365520"><span class="hs-identifier hs-var hs-var">w</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><a href="Graphics.Vty.Image.Internal.html#imageWidth"><span class="hs-identifier hs-var">imageWidth</span></a></span><span>  </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365522"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365526"><span class="hs-identifier hs-var">l</span></a></span><span>
+</span><span id="line-244"></span><span>                      </span><span id="local-6989586621679365521"><span class="annot"><span class="annottext">h :: Int
+</span><a href="#local-6989586621679365521"><span class="hs-identifier hs-var hs-var">h</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><a href="Graphics.Vty.Image.Internal.html#imageHeight"><span class="hs-identifier hs-var">imageHeight</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365522"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-245"></span><span>
+</span><span id="line-246"></span><span class="hs-comment">-- | Translates an image by padding or cropping the left and top.</span><span>
+</span><span id="line-247"></span><span class="hs-comment">--</span><span>
+</span><span id="line-248"></span><span class="hs-comment">-- If translation offsets are negative then the image is cropped.</span><span>
+</span><span id="line-249"></span><span class="annot"><a href="Graphics.Vty.Image.html#translate"><span class="hs-identifier hs-type">translate</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-250"></span><span>          </span><span class="hs-comment">-- ^ The horizontal translation offset (can be negative)</span><span>
+</span><span id="line-251"></span><span>          </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-252"></span><span>          </span><span class="hs-comment">-- ^ The vertical translation offset (can be negative)</span><span>
+</span><span id="line-253"></span><span>          </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span>
+</span><span id="line-254"></span><span>          </span><span class="hs-comment">-- ^ The image to translate.</span><span>
+</span><span id="line-255"></span><span>          </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span>
+</span><span id="line-256"></span><span id="translate"><span class="annot"><span class="annottext">translate :: Int -&gt; Int -&gt; Image -&gt; Image
+</span><a href="Graphics.Vty.Image.html#translate"><span class="hs-identifier hs-var hs-var">translate</span></a></span></span><span> </span><span id="local-6989586621679365519"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365519"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span id="local-6989586621679365518"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365518"><span class="hs-identifier hs-var">y</span></a></span></span><span> </span><span id="local-6989586621679365517"><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365517"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Image -&gt; Image
+</span><a href="Graphics.Vty.Image.html#translateX"><span class="hs-identifier hs-var">translateX</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365519"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Image -&gt; Image
+</span><a href="Graphics.Vty.Image.html#translateY"><span class="hs-identifier hs-var">translateY</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365518"><span class="hs-identifier hs-var">y</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365517"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-257"></span><span>
+</span><span id="line-258"></span><span class="hs-comment">-- | Translates an image by padding or cropping its left side.</span><span>
+</span><span id="line-259"></span><span class="annot"><a href="Graphics.Vty.Image.html#translateX"><span class="hs-identifier hs-type">translateX</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span>
+</span><span id="line-260"></span><span id="translateX"><span class="annot"><span class="annottext">translateX :: Int -&gt; Image -&gt; Image
+</span><a href="Graphics.Vty.Image.html#translateX"><span class="hs-identifier hs-var hs-var">translateX</span></a></span></span><span> </span><span id="local-6989586621679365516"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365516"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span id="local-6989586621679365515"><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365515"><span class="hs-identifier hs-var">i</span></a></span></span><span>
+</span><span id="line-261"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365516"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">abs</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365516"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><a href="Graphics.Vty.Image.Internal.html#imageWidth"><span class="hs-identifier hs-var">imageWidth</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365515"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="Graphics.Vty.Image.html#emptyImage"><span class="hs-identifier hs-var">emptyImage</span></a></span><span>
+</span><span id="line-262"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365516"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span>     </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679365511"><span class="annot"><span class="annottext">s :: Int
+</span><a href="#local-6989586621679365511"><span class="hs-identifier hs-var hs-var">s</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">abs</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365516"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">Image -&gt; Int -&gt; Int -&gt; Int -&gt; Image
+</span><a href="Graphics.Vty.Image.Internal.html#CropLeft"><span class="hs-identifier hs-var">CropLeft</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365515"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365511"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><a href="Graphics.Vty.Image.Internal.html#imageWidth"><span class="hs-identifier hs-var">imageWidth</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365515"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365511"><span class="hs-identifier hs-var">s</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><a href="Graphics.Vty.Image.Internal.html#imageHeight"><span class="hs-identifier hs-var">imageHeight</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365515"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-263"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365516"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365515"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-264"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679365509"><span class="annot"><span class="annottext">h :: Int
+</span><a href="#local-6989586621679365509"><span class="hs-identifier hs-var hs-var">h</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><a href="Graphics.Vty.Image.Internal.html#imageHeight"><span class="hs-identifier hs-var">imageHeight</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365515"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">Image -&gt; Image -&gt; Int -&gt; Int -&gt; Image
+</span><a href="Graphics.Vty.Image.Internal.html#HorizJoin"><span class="hs-identifier hs-var">HorizJoin</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Image
+</span><a href="Graphics.Vty.Image.Internal.html#BGFill"><span class="hs-identifier hs-var">BGFill</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365516"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365509"><span class="hs-identifier hs-var">h</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365515"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><a href="Graphics.Vty.Image.Internal.html#imageWidth"><span class="hs-identifier hs-var">imageWidth</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365515"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365516"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365509"><span class="hs-identifier hs-var">h</span></a></span><span>
+</span><span id="line-265"></span><span>
+</span><span id="line-266"></span><span class="hs-comment">-- | Translates an image by padding or cropping its top.</span><span>
+</span><span id="line-267"></span><span class="annot"><a href="Graphics.Vty.Image.html#translateY"><span class="hs-identifier hs-type">translateY</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span>
+</span><span id="line-268"></span><span id="translateY"><span class="annot"><span class="annottext">translateY :: Int -&gt; Image -&gt; Image
+</span><a href="Graphics.Vty.Image.html#translateY"><span class="hs-identifier hs-var hs-var">translateY</span></a></span></span><span> </span><span id="local-6989586621679365508"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365508"><span class="hs-identifier hs-var">y</span></a></span></span><span> </span><span id="local-6989586621679365507"><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365507"><span class="hs-identifier hs-var">i</span></a></span></span><span>
+</span><span id="line-269"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365508"><span class="hs-identifier hs-var">y</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">abs</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365508"><span class="hs-identifier hs-var">y</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><a href="Graphics.Vty.Image.Internal.html#imageHeight"><span class="hs-identifier hs-var">imageHeight</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365507"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="Graphics.Vty.Image.html#emptyImage"><span class="hs-identifier hs-var">emptyImage</span></a></span><span>
+</span><span id="line-270"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365508"><span class="hs-identifier hs-var">y</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span>     </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679365506"><span class="annot"><span class="annottext">s :: Int
+</span><a href="#local-6989586621679365506"><span class="hs-identifier hs-var hs-var">s</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">abs</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365508"><span class="hs-identifier hs-var">y</span></a></span><span> </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">Image -&gt; Int -&gt; Int -&gt; Int -&gt; Image
+</span><a href="Graphics.Vty.Image.Internal.html#CropTop"><span class="hs-identifier hs-var">CropTop</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365507"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365506"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><a href="Graphics.Vty.Image.Internal.html#imageWidth"><span class="hs-identifier hs-var">imageWidth</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365507"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><a href="Graphics.Vty.Image.Internal.html#imageHeight"><span class="hs-identifier hs-var">imageHeight</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365507"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365506"><span class="hs-identifier hs-var">s</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-271"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365508"><span class="hs-identifier hs-var">y</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365507"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-272"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679365504"><span class="annot"><span class="annottext">w :: Int
+</span><a href="#local-6989586621679365504"><span class="hs-identifier hs-var hs-var">w</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><a href="Graphics.Vty.Image.Internal.html#imageWidth"><span class="hs-identifier hs-var">imageWidth</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365507"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">Image -&gt; Image -&gt; Int -&gt; Int -&gt; Image
+</span><a href="Graphics.Vty.Image.Internal.html#VertJoin"><span class="hs-identifier hs-var">VertJoin</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Image
+</span><a href="Graphics.Vty.Image.Internal.html#BGFill"><span class="hs-identifier hs-var">BGFill</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365504"><span class="hs-identifier hs-var">w</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365508"><span class="hs-identifier hs-var">y</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365507"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365504"><span class="hs-identifier hs-var">w</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><a href="Graphics.Vty.Image.Internal.html#imageHeight"><span class="hs-identifier hs-var">imageHeight</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365507"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365508"><span class="hs-identifier hs-var">y</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-273"></span><span>
+</span><span id="line-274"></span><span class="hs-comment">-- | Ensure an image is no larger than the provided size. If the image</span><span>
+</span><span id="line-275"></span><span class="hs-comment">-- is larger then crop the right or bottom.</span><span>
+</span><span id="line-276"></span><span class="hs-comment">--</span><span>
+</span><span id="line-277"></span><span class="hs-comment">-- This is equivalent to a vertical crop from the bottom followed by</span><span>
+</span><span id="line-278"></span><span class="hs-comment">-- horizontal crop from the right.</span><span>
+</span><span id="line-279"></span><span class="annot"><a href="Graphics.Vty.Image.html#crop"><span class="hs-identifier hs-type">crop</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-280"></span><span>     </span><span class="hs-comment">-- ^ Cropping width</span><span>
+</span><span id="line-281"></span><span>     </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-282"></span><span>     </span><span class="hs-comment">-- ^ Cropping height</span><span>
+</span><span id="line-283"></span><span>     </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span>
+</span><span id="line-284"></span><span>     </span><span class="hs-comment">-- ^ The image to crop</span><span>
+</span><span id="line-285"></span><span>     </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span>
+</span><span id="line-286"></span><span id="crop"><span class="annot"><span class="annottext">crop :: Int -&gt; Int -&gt; Image -&gt; Image
+</span><a href="Graphics.Vty.Image.html#crop"><span class="hs-identifier hs-var hs-var">crop</span></a></span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">Image
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="Graphics.Vty.Image.Internal.html#EmptyImage"><span class="hs-identifier hs-var">EmptyImage</span></a></span><span>
+</span><span id="line-287"></span><span class="annot"><a href="Graphics.Vty.Image.html#crop"><span class="hs-identifier hs-var">crop</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Image
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="Graphics.Vty.Image.Internal.html#EmptyImage"><span class="hs-identifier hs-var">EmptyImage</span></a></span><span>
+</span><span id="line-288"></span><span class="annot"><a href="Graphics.Vty.Image.html#crop"><span class="hs-identifier hs-var">crop</span></a></span><span> </span><span id="local-6989586621679365503"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365503"><span class="hs-identifier hs-var">w</span></a></span></span><span> </span><span id="local-6989586621679365502"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365502"><span class="hs-identifier hs-var">h</span></a></span></span><span> </span><span id="local-6989586621679365501"><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365501"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Image -&gt; Image
+</span><a href="Graphics.Vty.Image.html#cropBottom"><span class="hs-identifier hs-var">cropBottom</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365502"><span class="hs-identifier hs-var">h</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Image -&gt; Image
+</span><a href="Graphics.Vty.Image.html#cropRight"><span class="hs-identifier hs-var">cropRight</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365503"><span class="hs-identifier hs-var">w</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365501"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-289"></span><span>
+</span><span id="line-290"></span><span class="hs-comment">-- | Crop an image's height. If the image's height is less than or equal</span><span>
+</span><span id="line-291"></span><span class="hs-comment">-- to the specified height then this operation has no effect. Otherwise</span><span>
+</span><span id="line-292"></span><span class="hs-comment">-- the image is cropped from the bottom.</span><span>
+</span><span id="line-293"></span><span class="annot"><a href="Graphics.Vty.Image.html#cropBottom"><span class="hs-identifier hs-type">cropBottom</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span>
+</span><span id="line-294"></span><span id="cropBottom"><span class="annot"><span class="annottext">cropBottom :: Int -&gt; Image -&gt; Image
+</span><a href="Graphics.Vty.Image.html#cropBottom"><span class="hs-identifier hs-var hs-var">cropBottom</span></a></span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Image
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="Graphics.Vty.Image.Internal.html#EmptyImage"><span class="hs-identifier hs-var">EmptyImage</span></a></span><span>
+</span><span id="line-295"></span><span class="annot"><a href="Graphics.Vty.Image.html#cropBottom"><span class="hs-identifier hs-var">cropBottom</span></a></span><span> </span><span id="local-6989586621679365500"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365500"><span class="hs-identifier hs-var">h</span></a></span></span><span> </span><span id="local-6989586621679365499"><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365499"><span class="hs-identifier hs-var">inI</span></a></span></span><span>
+</span><span id="line-296"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365500"><span class="hs-identifier hs-var">h</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span>     </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String -&gt; Image
+forall a. HasCallStack =&gt; String -&gt; a
+</span><span class="hs-identifier hs-var">error</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;cannot crop height to less than zero&quot;</span></span><span>
+</span><span id="line-297"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image -&gt; Image
+</span><a href="#local-6989586621679365498"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365499"><span class="hs-identifier hs-var">inI</span></a></span><span>
+</span><span id="line-298"></span><span>        </span><span class="hs-keyword">where</span><span>
+</span><span id="line-299"></span><span>            </span><span id="local-6989586621679365498"><span class="annot"><span class="annottext">go :: Image -&gt; Image
+</span><a href="#local-6989586621679365498"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="Graphics.Vty.Image.Internal.html#EmptyImage"><span class="hs-identifier hs-var">EmptyImage</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="Graphics.Vty.Image.Internal.html#EmptyImage"><span class="hs-identifier hs-var">EmptyImage</span></a></span><span>
+</span><span id="line-300"></span><span>            </span><span class="annot"><a href="#local-6989586621679365498"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span id="local-6989586621679365497"><span class="annot"><span class="annottext">i :: Image
+</span><a href="#local-6989586621679365497"><span class="hs-identifier hs-var">i</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#CropBottom"><span class="hs-identifier hs-type">CropBottom</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679365495"><span class="annot"><span class="annottext">Image
+croppedImage :: Image -&gt; Image
+croppedImage :: Image
+</span><a href="Graphics.Vty.Image.Internal.html#croppedImage"><span class="hs-identifier hs-var hs-var">croppedImage</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679365493"><span class="annot"><span class="annottext">Int
+outputWidth :: Image -&gt; Int
+outputWidth :: Int
+</span><a href="Graphics.Vty.Image.Internal.html#outputWidth"><span class="hs-identifier hs-var hs-var">outputWidth</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679365491"><span class="annot"><span class="annottext">Int
+outputHeight :: Image -&gt; Int
+outputHeight :: Int
+</span><a href="Graphics.Vty.Image.Internal.html#outputHeight"><span class="hs-identifier hs-var hs-var">outputHeight</span></a></span></span><span class="hs-special">}</span><span class="hs-special">)</span><span>
+</span><span id="line-301"></span><span>                </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365491"><span class="hs-identifier hs-var">outputHeight</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365500"><span class="hs-identifier hs-var">h</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365497"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-302"></span><span>                </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span>          </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image -&gt; Int -&gt; Int -&gt; Image
+</span><a href="Graphics.Vty.Image.Internal.html#CropBottom"><span class="hs-identifier hs-var">CropBottom</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365495"><span class="hs-identifier hs-var">croppedImage</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365493"><span class="hs-identifier hs-var">outputWidth</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365500"><span class="hs-identifier hs-var">h</span></a></span><span>
+</span><span id="line-303"></span><span>            </span><span class="annot"><a href="#local-6989586621679365498"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span id="local-6989586621679365489"><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365489"><span class="hs-identifier hs-var">i</span></a></span></span><span>
+</span><span id="line-304"></span><span>                </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365500"><span class="hs-identifier hs-var">h</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;=</span></span><span> </span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><a href="Graphics.Vty.Image.Internal.html#imageHeight"><span class="hs-identifier hs-var">imageHeight</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365489"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365489"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-305"></span><span>                </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span>           </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image -&gt; Int -&gt; Int -&gt; Image
+</span><a href="Graphics.Vty.Image.Internal.html#CropBottom"><span class="hs-identifier hs-var">CropBottom</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365489"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><a href="Graphics.Vty.Image.Internal.html#imageWidth"><span class="hs-identifier hs-var">imageWidth</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365489"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365500"><span class="hs-identifier hs-var">h</span></a></span><span>
+</span><span id="line-306"></span><span>
+</span><span id="line-307"></span><span class="hs-comment">-- | Crop an image's width. If the image's width is less than or equal</span><span>
+</span><span id="line-308"></span><span class="hs-comment">-- to the specified width then this operation has no effect. Otherwise</span><span>
+</span><span id="line-309"></span><span class="hs-comment">-- the image is cropped from the right.</span><span>
+</span><span id="line-310"></span><span class="annot"><a href="Graphics.Vty.Image.html#cropRight"><span class="hs-identifier hs-type">cropRight</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span>
+</span><span id="line-311"></span><span id="cropRight"><span class="annot"><span class="annottext">cropRight :: Int -&gt; Image -&gt; Image
+</span><a href="Graphics.Vty.Image.html#cropRight"><span class="hs-identifier hs-var hs-var">cropRight</span></a></span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Image
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="Graphics.Vty.Image.Internal.html#EmptyImage"><span class="hs-identifier hs-var">EmptyImage</span></a></span><span>
+</span><span id="line-312"></span><span class="annot"><a href="Graphics.Vty.Image.html#cropRight"><span class="hs-identifier hs-var">cropRight</span></a></span><span> </span><span id="local-6989586621679365488"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365488"><span class="hs-identifier hs-var">w</span></a></span></span><span> </span><span id="local-6989586621679365487"><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365487"><span class="hs-identifier hs-var">inI</span></a></span></span><span>
+</span><span id="line-313"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365488"><span class="hs-identifier hs-var">w</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span>     </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String -&gt; Image
+forall a. HasCallStack =&gt; String -&gt; a
+</span><span class="hs-identifier hs-var">error</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;cannot crop width to less than zero&quot;</span></span><span>
+</span><span id="line-314"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image -&gt; Image
+</span><a href="#local-6989586621679365486"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365487"><span class="hs-identifier hs-var">inI</span></a></span><span>
+</span><span id="line-315"></span><span>        </span><span class="hs-keyword">where</span><span>
+</span><span id="line-316"></span><span>            </span><span id="local-6989586621679365486"><span class="annot"><span class="annottext">go :: Image -&gt; Image
+</span><a href="#local-6989586621679365486"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="Graphics.Vty.Image.Internal.html#EmptyImage"><span class="hs-identifier hs-var">EmptyImage</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="Graphics.Vty.Image.Internal.html#EmptyImage"><span class="hs-identifier hs-var">EmptyImage</span></a></span><span>
+</span><span id="line-317"></span><span>            </span><span class="annot"><a href="#local-6989586621679365486"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span id="local-6989586621679365485"><span class="annot"><span class="annottext">i :: Image
+</span><a href="#local-6989586621679365485"><span class="hs-identifier hs-var">i</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#CropRight"><span class="hs-identifier hs-type">CropRight</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679365483"><span class="annot"><span class="annottext">Image
+croppedImage :: Image
+croppedImage :: Image -&gt; Image
+</span><a href="#local-6989586621679365483"><span class="hs-identifier hs-var hs-var">croppedImage</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679365482"><span class="annot"><span class="annottext">Int
+outputWidth :: Int
+outputWidth :: Image -&gt; Int
+</span><a href="#local-6989586621679365482"><span class="hs-identifier hs-var hs-var">outputWidth</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679365481"><span class="annot"><span class="annottext">Int
+outputHeight :: Int
+outputHeight :: Image -&gt; Int
+</span><a href="#local-6989586621679365481"><span class="hs-identifier hs-var hs-var">outputHeight</span></a></span></span><span class="hs-special">}</span><span class="hs-special">)</span><span>
+</span><span id="line-318"></span><span>                </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365482"><span class="hs-identifier hs-var">outputWidth</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365488"><span class="hs-identifier hs-var">w</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365485"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-319"></span><span>                </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span>         </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image -&gt; Int -&gt; Int -&gt; Image
+</span><a href="Graphics.Vty.Image.Internal.html#CropRight"><span class="hs-identifier hs-var">CropRight</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365483"><span class="hs-identifier hs-var">croppedImage</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365488"><span class="hs-identifier hs-var">w</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365481"><span class="hs-identifier hs-var">outputHeight</span></a></span><span>
+</span><span id="line-320"></span><span>            </span><span class="annot"><a href="#local-6989586621679365486"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span id="local-6989586621679365480"><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365480"><span class="hs-identifier hs-var">i</span></a></span></span><span>
+</span><span id="line-321"></span><span>                </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365488"><span class="hs-identifier hs-var">w</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;=</span></span><span> </span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><a href="Graphics.Vty.Image.Internal.html#imageWidth"><span class="hs-identifier hs-var">imageWidth</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365480"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365480"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-322"></span><span>                </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span>          </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image -&gt; Int -&gt; Int -&gt; Image
+</span><a href="Graphics.Vty.Image.Internal.html#CropRight"><span class="hs-identifier hs-var">CropRight</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365480"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365488"><span class="hs-identifier hs-var">w</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><a href="Graphics.Vty.Image.Internal.html#imageHeight"><span class="hs-identifier hs-var">imageHeight</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365480"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-323"></span><span>
+</span><span id="line-324"></span><span class="hs-comment">-- | Crop an image's width. If the image's width is less than or equal</span><span>
+</span><span id="line-325"></span><span class="hs-comment">-- to the specified width then this operation has no effect. Otherwise</span><span>
+</span><span id="line-326"></span><span class="hs-comment">-- the image is cropped from the left.</span><span>
+</span><span id="line-327"></span><span class="annot"><a href="Graphics.Vty.Image.html#cropLeft"><span class="hs-identifier hs-type">cropLeft</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span>
+</span><span id="line-328"></span><span id="cropLeft"><span class="annot"><span class="annottext">cropLeft :: Int -&gt; Image -&gt; Image
+</span><a href="Graphics.Vty.Image.html#cropLeft"><span class="hs-identifier hs-var hs-var">cropLeft</span></a></span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Image
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="Graphics.Vty.Image.Internal.html#EmptyImage"><span class="hs-identifier hs-var">EmptyImage</span></a></span><span>
+</span><span id="line-329"></span><span class="annot"><a href="Graphics.Vty.Image.html#cropLeft"><span class="hs-identifier hs-var">cropLeft</span></a></span><span> </span><span id="local-6989586621679365479"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365479"><span class="hs-identifier hs-var">w</span></a></span></span><span> </span><span id="local-6989586621679365478"><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365478"><span class="hs-identifier hs-var">inI</span></a></span></span><span>
+</span><span id="line-330"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365479"><span class="hs-identifier hs-var">w</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span>     </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String -&gt; Image
+forall a. HasCallStack =&gt; String -&gt; a
+</span><span class="hs-identifier hs-var">error</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;cannot crop the width to less than zero&quot;</span></span><span>
+</span><span id="line-331"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image -&gt; Image
+</span><a href="#local-6989586621679365477"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365478"><span class="hs-identifier hs-var">inI</span></a></span><span>
+</span><span id="line-332"></span><span>        </span><span class="hs-keyword">where</span><span>
+</span><span id="line-333"></span><span>            </span><span id="local-6989586621679365477"><span class="annot"><span class="annottext">go :: Image -&gt; Image
+</span><a href="#local-6989586621679365477"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="Graphics.Vty.Image.Internal.html#EmptyImage"><span class="hs-identifier hs-var">EmptyImage</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="Graphics.Vty.Image.Internal.html#EmptyImage"><span class="hs-identifier hs-var">EmptyImage</span></a></span><span>
+</span><span id="line-334"></span><span>            </span><span class="annot"><a href="#local-6989586621679365477"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span id="local-6989586621679365476"><span class="annot"><span class="annottext">i :: Image
+</span><a href="#local-6989586621679365476"><span class="hs-identifier hs-var">i</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#CropLeft"><span class="hs-identifier hs-type">CropLeft</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679365475"><span class="annot"><span class="annottext">Image
+croppedImage :: Image
+croppedImage :: Image -&gt; Image
+</span><a href="#local-6989586621679365475"><span class="hs-identifier hs-var hs-var">croppedImage</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679365474"><span class="annot"><span class="annottext">Int
+leftSkip :: Image -&gt; Int
+leftSkip :: Int
+</span><a href="Graphics.Vty.Image.Internal.html#leftSkip"><span class="hs-identifier hs-var hs-var">leftSkip</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679365472"><span class="annot"><span class="annottext">Int
+outputWidth :: Int
+outputWidth :: Image -&gt; Int
+</span><a href="#local-6989586621679365472"><span class="hs-identifier hs-var hs-var">outputWidth</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679365471"><span class="annot"><span class="annottext">Int
+outputHeight :: Int
+outputHeight :: Image -&gt; Int
+</span><a href="#local-6989586621679365471"><span class="hs-identifier hs-var hs-var">outputHeight</span></a></span></span><span class="hs-special">}</span><span class="hs-special">)</span><span>
+</span><span id="line-335"></span><span>                </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365472"><span class="hs-identifier hs-var">outputWidth</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365479"><span class="hs-identifier hs-var">w</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365476"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-336"></span><span>                </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span>         </span><span class="hs-glyph">=</span><span>
+</span><span id="line-337"></span><span>                    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679365470"><span class="annot"><span class="annottext">leftSkip' :: Int
+</span><a href="#local-6989586621679365470"><span class="hs-identifier hs-var hs-var">leftSkip'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365474"><span class="hs-identifier hs-var">leftSkip</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365472"><span class="hs-identifier hs-var">outputWidth</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365479"><span class="hs-identifier hs-var">w</span></a></span><span>
+</span><span id="line-338"></span><span>                    </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">Image -&gt; Int -&gt; Int -&gt; Int -&gt; Image
+</span><a href="Graphics.Vty.Image.Internal.html#CropLeft"><span class="hs-identifier hs-var">CropLeft</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365475"><span class="hs-identifier hs-var">croppedImage</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365470"><span class="hs-identifier hs-var">leftSkip'</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365479"><span class="hs-identifier hs-var">w</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365471"><span class="hs-identifier hs-var">outputHeight</span></a></span><span>
+</span><span id="line-339"></span><span>            </span><span class="annot"><a href="#local-6989586621679365477"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span id="local-6989586621679365469"><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365469"><span class="hs-identifier hs-var">i</span></a></span></span><span>
+</span><span id="line-340"></span><span>                </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><a href="Graphics.Vty.Image.Internal.html#imageWidth"><span class="hs-identifier hs-var">imageWidth</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365469"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365479"><span class="hs-identifier hs-var">w</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365469"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-341"></span><span>                </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span>          </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image -&gt; Int -&gt; Int -&gt; Int -&gt; Image
+</span><a href="Graphics.Vty.Image.Internal.html#CropLeft"><span class="hs-identifier hs-var">CropLeft</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365469"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><a href="Graphics.Vty.Image.Internal.html#imageWidth"><span class="hs-identifier hs-var">imageWidth</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365469"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365479"><span class="hs-identifier hs-var">w</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365479"><span class="hs-identifier hs-var">w</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><a href="Graphics.Vty.Image.Internal.html#imageHeight"><span class="hs-identifier hs-var">imageHeight</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365469"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-342"></span><span>
+</span><span id="line-343"></span><span class="hs-comment">-- | Crop an image's height. If the image's height is less than or equal</span><span>
+</span><span id="line-344"></span><span class="hs-comment">-- to the specified height then this operation has no effect. Otherwise</span><span>
+</span><span id="line-345"></span><span class="hs-comment">-- the image is cropped from the top.</span><span>
+</span><span id="line-346"></span><span class="annot"><a href="Graphics.Vty.Image.html#cropTop"><span class="hs-identifier hs-type">cropTop</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span>
+</span><span id="line-347"></span><span id="cropTop"><span class="annot"><span class="annottext">cropTop :: Int -&gt; Image -&gt; Image
+</span><a href="Graphics.Vty.Image.html#cropTop"><span class="hs-identifier hs-var hs-var">cropTop</span></a></span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Image
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="Graphics.Vty.Image.Internal.html#EmptyImage"><span class="hs-identifier hs-var">EmptyImage</span></a></span><span>
+</span><span id="line-348"></span><span class="annot"><a href="Graphics.Vty.Image.html#cropTop"><span class="hs-identifier hs-var">cropTop</span></a></span><span> </span><span id="local-6989586621679365468"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365468"><span class="hs-identifier hs-var">h</span></a></span></span><span> </span><span id="local-6989586621679365467"><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365467"><span class="hs-identifier hs-var">inI</span></a></span></span><span>
+</span><span id="line-349"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365468"><span class="hs-identifier hs-var">h</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String -&gt; Image
+forall a. HasCallStack =&gt; String -&gt; a
+</span><span class="hs-identifier hs-var">error</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;cannot crop the height to less than zero&quot;</span></span><span>
+</span><span id="line-350"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image -&gt; Image
+</span><a href="#local-6989586621679365466"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365467"><span class="hs-identifier hs-var">inI</span></a></span><span>
+</span><span id="line-351"></span><span>        </span><span class="hs-keyword">where</span><span>
+</span><span id="line-352"></span><span>            </span><span id="local-6989586621679365466"><span class="annot"><span class="annottext">go :: Image -&gt; Image
+</span><a href="#local-6989586621679365466"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="Graphics.Vty.Image.Internal.html#EmptyImage"><span class="hs-identifier hs-var">EmptyImage</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="Graphics.Vty.Image.Internal.html#EmptyImage"><span class="hs-identifier hs-var">EmptyImage</span></a></span><span>
+</span><span id="line-353"></span><span>            </span><span class="annot"><a href="#local-6989586621679365466"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span id="local-6989586621679365465"><span class="annot"><span class="annottext">i :: Image
+</span><a href="#local-6989586621679365465"><span class="hs-identifier hs-var">i</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#CropTop"><span class="hs-identifier hs-type">CropTop</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679365464"><span class="annot"><span class="annottext">Image
+croppedImage :: Image
+croppedImage :: Image -&gt; Image
+</span><a href="#local-6989586621679365464"><span class="hs-identifier hs-var hs-var">croppedImage</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679365463"><span class="annot"><span class="annottext">Int
+topSkip :: Image -&gt; Int
+topSkip :: Int
+</span><a href="Graphics.Vty.Image.Internal.html#topSkip"><span class="hs-identifier hs-var hs-var">topSkip</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679365461"><span class="annot"><span class="annottext">Int
+outputWidth :: Int
+outputWidth :: Image -&gt; Int
+</span><a href="#local-6989586621679365461"><span class="hs-identifier hs-var hs-var">outputWidth</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679365460"><span class="annot"><span class="annottext">Int
+outputHeight :: Int
+outputHeight :: Image -&gt; Int
+</span><a href="#local-6989586621679365460"><span class="hs-identifier hs-var hs-var">outputHeight</span></a></span></span><span class="hs-special">}</span><span class="hs-special">)</span><span>
+</span><span id="line-354"></span><span>                </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365460"><span class="hs-identifier hs-var">outputHeight</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365468"><span class="hs-identifier hs-var">h</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365465"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-355"></span><span>                </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span>         </span><span class="hs-glyph">=</span><span>
+</span><span id="line-356"></span><span>                    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679365459"><span class="annot"><span class="annottext">topSkip' :: Int
+</span><a href="#local-6989586621679365459"><span class="hs-identifier hs-var hs-var">topSkip'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365463"><span class="hs-identifier hs-var">topSkip</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365460"><span class="hs-identifier hs-var">outputHeight</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365468"><span class="hs-identifier hs-var">h</span></a></span><span>
+</span><span id="line-357"></span><span>                    </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">Image -&gt; Int -&gt; Int -&gt; Int -&gt; Image
+</span><a href="Graphics.Vty.Image.Internal.html#CropTop"><span class="hs-identifier hs-var">CropTop</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365464"><span class="hs-identifier hs-var">croppedImage</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365459"><span class="hs-identifier hs-var">topSkip'</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365461"><span class="hs-identifier hs-var">outputWidth</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365468"><span class="hs-identifier hs-var">h</span></a></span><span>
+</span><span id="line-358"></span><span>            </span><span class="annot"><a href="#local-6989586621679365466"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span id="local-6989586621679365458"><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365458"><span class="hs-identifier hs-var">i</span></a></span></span><span>
+</span><span id="line-359"></span><span>                </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><a href="Graphics.Vty.Image.Internal.html#imageHeight"><span class="hs-identifier hs-var">imageHeight</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365458"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365468"><span class="hs-identifier hs-var">h</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365458"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-360"></span><span>                </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span>          </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image -&gt; Int -&gt; Int -&gt; Int -&gt; Image
+</span><a href="Graphics.Vty.Image.Internal.html#CropTop"><span class="hs-identifier hs-var">CropTop</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365458"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><a href="Graphics.Vty.Image.Internal.html#imageHeight"><span class="hs-identifier hs-var">imageHeight</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365458"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365468"><span class="hs-identifier hs-var">h</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><a href="Graphics.Vty.Image.Internal.html#imageWidth"><span class="hs-identifier hs-var">imageWidth</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365458"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365468"><span class="hs-identifier hs-var">h</span></a></span><span>
+</span><span id="line-361"></span><span>
+</span><span id="line-362"></span><span class="hs-comment">-- | Generic resize. Pads and crops are added to ensure that the</span><span>
+</span><span id="line-363"></span><span class="hs-comment">-- resulting image matches the specified dimensions. This is biased to</span><span>
+</span><span id="line-364"></span><span class="hs-comment">-- pad/crop the right and bottom.</span><span>
+</span><span id="line-365"></span><span class="annot"><a href="Graphics.Vty.Image.html#resize"><span class="hs-identifier hs-type">resize</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span>
+</span><span id="line-366"></span><span id="resize"><span class="annot"><span class="annottext">resize :: Int -&gt; Int -&gt; Image -&gt; Image
+</span><a href="Graphics.Vty.Image.html#resize"><span class="hs-identifier hs-var hs-var">resize</span></a></span></span><span> </span><span id="local-6989586621679365457"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365457"><span class="hs-identifier hs-var">w</span></a></span></span><span> </span><span id="local-6989586621679365456"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365456"><span class="hs-identifier hs-var">h</span></a></span></span><span> </span><span id="local-6989586621679365455"><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365455"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Image -&gt; Image
+</span><a href="Graphics.Vty.Image.html#resizeHeight"><span class="hs-identifier hs-var">resizeHeight</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365456"><span class="hs-identifier hs-var">h</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Image -&gt; Image
+</span><a href="Graphics.Vty.Image.html#resizeWidth"><span class="hs-identifier hs-var">resizeWidth</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365457"><span class="hs-identifier hs-var">w</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365455"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-367"></span><span>
+</span><span id="line-368"></span><span class="hs-comment">-- | Resize the width. Pads and crops as required to assure the given</span><span>
+</span><span id="line-369"></span><span class="hs-comment">-- display width. This is biased to pad/crop on the right.</span><span>
+</span><span id="line-370"></span><span class="annot"><a href="Graphics.Vty.Image.html#resizeWidth"><span class="hs-identifier hs-type">resizeWidth</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span>
+</span><span id="line-371"></span><span id="resizeWidth"><span class="annot"><span class="annottext">resizeWidth :: Int -&gt; Image -&gt; Image
+</span><a href="Graphics.Vty.Image.html#resizeWidth"><span class="hs-identifier hs-var hs-var">resizeWidth</span></a></span></span><span> </span><span id="local-6989586621679365454"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365454"><span class="hs-identifier hs-var">w</span></a></span></span><span> </span><span id="local-6989586621679365453"><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365453"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365454"><span class="hs-identifier hs-var">w</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Ordering
+forall a. Ord a =&gt; a -&gt; a -&gt; Ordering
+</span><span class="hs-operator hs-var">`compare`</span></span><span> </span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><a href="Graphics.Vty.Image.Internal.html#imageWidth"><span class="hs-identifier hs-var">imageWidth</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365453"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-372"></span><span>    </span><span class="annot"><span class="annottext">Ordering
+</span><span class="hs-identifier hs-var">LT</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Image -&gt; Image
+</span><a href="Graphics.Vty.Image.html#cropRight"><span class="hs-identifier hs-var">cropRight</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365454"><span class="hs-identifier hs-var">w</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365453"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-373"></span><span>    </span><span class="annot"><span class="annottext">Ordering
+</span><span class="hs-identifier hs-var">EQ</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365453"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-374"></span><span>    </span><span class="annot"><span class="annottext">Ordering
+</span><span class="hs-identifier hs-var">GT</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365453"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Image -&gt; Image -&gt; Image
+</span><a href="Graphics.Vty.Image.html#%3C%7C%3E"><span class="hs-operator hs-var">&lt;|&gt;</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Image
+</span><a href="Graphics.Vty.Image.Internal.html#BGFill"><span class="hs-identifier hs-var">BGFill</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365454"><span class="hs-identifier hs-var">w</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><a href="Graphics.Vty.Image.Internal.html#imageWidth"><span class="hs-identifier hs-var">imageWidth</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365453"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><a href="Graphics.Vty.Image.Internal.html#imageHeight"><span class="hs-identifier hs-var">imageHeight</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365453"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-375"></span><span>
+</span><span id="line-376"></span><span class="hs-comment">-- | Resize the height. Pads and crops as required to assure the given</span><span>
+</span><span id="line-377"></span><span class="hs-comment">-- display height. This is biased to pad/crop on the bottom.</span><span>
+</span><span id="line-378"></span><span class="annot"><a href="Graphics.Vty.Image.html#resizeHeight"><span class="hs-identifier hs-type">resizeHeight</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span>
+</span><span id="line-379"></span><span id="resizeHeight"><span class="annot"><span class="annottext">resizeHeight :: Int -&gt; Image -&gt; Image
+</span><a href="Graphics.Vty.Image.html#resizeHeight"><span class="hs-identifier hs-var hs-var">resizeHeight</span></a></span></span><span> </span><span id="local-6989586621679365451"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365451"><span class="hs-identifier hs-var">h</span></a></span></span><span> </span><span id="local-6989586621679365450"><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365450"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365451"><span class="hs-identifier hs-var">h</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Ordering
+forall a. Ord a =&gt; a -&gt; a -&gt; Ordering
+</span><span class="hs-operator hs-var">`compare`</span></span><span> </span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><a href="Graphics.Vty.Image.Internal.html#imageHeight"><span class="hs-identifier hs-var">imageHeight</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365450"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-380"></span><span>    </span><span class="annot"><span class="annottext">Ordering
+</span><span class="hs-identifier hs-var">LT</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Image -&gt; Image
+</span><a href="Graphics.Vty.Image.html#cropBottom"><span class="hs-identifier hs-var">cropBottom</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365451"><span class="hs-identifier hs-var">h</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365450"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-381"></span><span>    </span><span class="annot"><span class="annottext">Ordering
+</span><span class="hs-identifier hs-var">EQ</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365450"><span class="hs-identifier hs-var">i</span></a></span><span>
+</span><span id="line-382"></span><span>    </span><span class="annot"><span class="annottext">Ordering
+</span><span class="hs-identifier hs-var">GT</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365450"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Image -&gt; Image -&gt; Image
+</span><a href="Graphics.Vty.Image.html#%3C-%3E"><span class="hs-operator hs-var">&lt;-&gt;</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Image
+</span><a href="Graphics.Vty.Image.Internal.html#BGFill"><span class="hs-identifier hs-var">BGFill</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><a href="Graphics.Vty.Image.Internal.html#imageWidth"><span class="hs-identifier hs-var">imageWidth</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365450"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679365451"><span class="hs-identifier hs-var">h</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><a href="Graphics.Vty.Image.Internal.html#imageHeight"><span class="hs-identifier hs-var">imageHeight</span></a></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679365450"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-383"></span></pre></body></html>

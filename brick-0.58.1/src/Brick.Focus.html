@@ -1,0 +1,240 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- | This module provides a type and functions for handling focus rings</span><span>
+</span><span id="line-2"></span><span class="hs-comment">-- of values.</span><span>
+</span><span id="line-3"></span><span class="hs-comment">--</span><span>
+</span><span id="line-4"></span><span class="hs-comment">-- This interface is experimental.</span><span>
+</span><span id="line-5"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Brick.Focus</span><span>
+</span><span id="line-6"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Brick.Focus.html#FocusRing"><span class="hs-identifier">FocusRing</span></a></span><span>
+</span><span id="line-7"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Focus.html#focusRing"><span class="hs-identifier">focusRing</span></a></span><span>
+</span><span id="line-8"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Focus.html#focusNext"><span class="hs-identifier">focusNext</span></a></span><span>
+</span><span id="line-9"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Focus.html#focusPrev"><span class="hs-identifier">focusPrev</span></a></span><span>
+</span><span id="line-10"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Focus.html#focusGetCurrent"><span class="hs-identifier">focusGetCurrent</span></a></span><span>
+</span><span id="line-11"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Focus.html#focusSetCurrent"><span class="hs-identifier">focusSetCurrent</span></a></span><span>
+</span><span id="line-12"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Focus.html#focusRingLength"><span class="hs-identifier">focusRingLength</span></a></span><span>
+</span><span id="line-13"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Focus.html#focusRingToList"><span class="hs-identifier">focusRingToList</span></a></span><span>
+</span><span id="line-14"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Focus.html#focusRingCursor"><span class="hs-identifier">focusRingCursor</span></a></span><span>
+</span><span id="line-15"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Focus.html#withFocusRing"><span class="hs-identifier">withFocusRing</span></a></span><span>
+</span><span id="line-16"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Focus.html#focusRingModify"><span class="hs-identifier">focusRingModify</span></a></span><span>
+</span><span id="line-17"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-18"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-19"></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Lens.Micro</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-operator">(^.)</span></span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">listToMaybe</span></span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.CircularList</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">C</span></span><span>
+</span><span id="line-23"></span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Brick.Types.html"><span class="hs-identifier">Brick.Types</span></a></span><span>
+</span><span id="line-25"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Brick.Widgets.Core.html"><span class="hs-identifier">Brick.Widgets.Core</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Brick.Widgets.Core.html#Named"><span class="hs-identifier">Named</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-26"></span><span>
+</span><span id="line-27"></span><span class="hs-comment">-- | A focus ring containing a sequence of resource names to focus and a</span><span>
+</span><span id="line-28"></span><span class="hs-comment">-- currently-focused name.</span><span>
+</span><span id="line-29"></span><span class="hs-keyword">newtype</span><span> </span><span id="FocusRing"><span class="annot"><a href="Brick.Focus.html#FocusRing"><span class="hs-identifier hs-var">FocusRing</span></a></span></span><span> </span><span id="local-6989586621679373506"><span class="annot"><a href="#local-6989586621679373506"><span class="hs-identifier hs-type">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="FocusRing"><span class="annot"><a href="Brick.Focus.html#FocusRing"><span class="hs-identifier hs-var">FocusRing</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">C.CList</span></span><span> </span><span class="annot"><a href="#local-6989586621679373506"><span class="hs-identifier hs-type">n</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-30"></span><span>
+</span><span id="line-31"></span><span class="hs-comment">-- | Construct a focus ring from the list of resource names.</span><span>
+</span><span id="line-32"></span><span id="local-6989586621679373452"><span class="annot"><a href="Brick.Focus.html#focusRing"><span class="hs-identifier hs-type">focusRing</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679373452"><span class="hs-identifier hs-type">n</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Focus.html#FocusRing"><span class="hs-identifier hs-type">FocusRing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373452"><span class="hs-identifier hs-type">n</span></a></span></span><span>
+</span><span id="line-33"></span><span id="focusRing"><span class="annot"><span class="annottext">focusRing :: [n] -&gt; FocusRing n
+</span><a href="Brick.Focus.html#focusRing"><span class="hs-identifier hs-var hs-var">focusRing</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CList n -&gt; FocusRing n
+forall n. CList n -&gt; FocusRing n
+</span><a href="Brick.Focus.html#FocusRing"><span class="hs-identifier hs-var">FocusRing</span></a></span><span> </span><span class="annot"><span class="annottext">(CList n -&gt; FocusRing n) -&gt; ([n] -&gt; CList n) -&gt; [n] -&gt; FocusRing n
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">[n] -&gt; CList n
+forall a. [a] -&gt; CList a
+</span><span class="hs-identifier hs-var">C.fromList</span></span><span>
+</span><span id="line-34"></span><span>
+</span><span id="line-35"></span><span class="hs-comment">-- | Advance focus to the next value in the ring.</span><span>
+</span><span id="line-36"></span><span id="local-6989586621679373449"><span class="annot"><a href="Brick.Focus.html#focusNext"><span class="hs-identifier hs-type">focusNext</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Focus.html#FocusRing"><span class="hs-identifier hs-type">FocusRing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373449"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Focus.html#FocusRing"><span class="hs-identifier hs-type">FocusRing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373449"><span class="hs-identifier hs-type">n</span></a></span></span><span>
+</span><span id="line-37"></span><span id="focusNext"><span class="annot"><span class="annottext">focusNext :: FocusRing n -&gt; FocusRing n
+</span><a href="Brick.Focus.html#focusNext"><span class="hs-identifier hs-var hs-var">focusNext</span></a></span></span><span> </span><span id="local-6989586621679373448"><span class="annot"><span class="annottext">r :: FocusRing n
+</span><a href="#local-6989586621679373448"><span class="hs-identifier hs-var">r</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Brick.Focus.html#FocusRing"><span class="hs-identifier hs-type">FocusRing</span></a></span><span> </span><span id="local-6989586621679373447"><span class="annot"><span class="annottext">CList n
+</span><a href="#local-6989586621679373447"><span class="hs-identifier hs-var">l</span></a></span></span><span class="hs-special">)</span><span>
+</span><span id="line-38"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">CList n -&gt; Bool
+forall a. CList a -&gt; Bool
+</span><span class="hs-identifier hs-var">C.isEmpty</span></span><span> </span><span class="annot"><span class="annottext">CList n
+</span><a href="#local-6989586621679373447"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">FocusRing n
+</span><a href="#local-6989586621679373448"><span class="hs-identifier hs-var">r</span></a></span><span>
+</span><span id="line-39"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CList n -&gt; FocusRing n
+forall n. CList n -&gt; FocusRing n
+</span><a href="Brick.Focus.html#FocusRing"><span class="hs-identifier hs-var">FocusRing</span></a></span><span> </span><span class="annot"><span class="annottext">(CList n -&gt; FocusRing n) -&gt; CList n -&gt; FocusRing n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">CList n -&gt; CList n
+forall a. CList a -&gt; CList a
+</span><span class="hs-identifier hs-var">C.rotR</span></span><span> </span><span class="annot"><span class="annottext">CList n
+</span><a href="#local-6989586621679373447"><span class="hs-identifier hs-var">l</span></a></span><span>
+</span><span id="line-40"></span><span>
+</span><span id="line-41"></span><span class="hs-comment">-- | Advance focus to the previous value in the ring.</span><span>
+</span><span id="line-42"></span><span id="local-6989586621679373444"><span class="annot"><a href="Brick.Focus.html#focusPrev"><span class="hs-identifier hs-type">focusPrev</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Focus.html#FocusRing"><span class="hs-identifier hs-type">FocusRing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373444"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Focus.html#FocusRing"><span class="hs-identifier hs-type">FocusRing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373444"><span class="hs-identifier hs-type">n</span></a></span></span><span>
+</span><span id="line-43"></span><span id="focusPrev"><span class="annot"><span class="annottext">focusPrev :: FocusRing n -&gt; FocusRing n
+</span><a href="Brick.Focus.html#focusPrev"><span class="hs-identifier hs-var hs-var">focusPrev</span></a></span></span><span> </span><span id="local-6989586621679373443"><span class="annot"><span class="annottext">r :: FocusRing n
+</span><a href="#local-6989586621679373443"><span class="hs-identifier hs-var">r</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Brick.Focus.html#FocusRing"><span class="hs-identifier hs-type">FocusRing</span></a></span><span> </span><span id="local-6989586621679373442"><span class="annot"><span class="annottext">CList n
+</span><a href="#local-6989586621679373442"><span class="hs-identifier hs-var">l</span></a></span></span><span class="hs-special">)</span><span>
+</span><span id="line-44"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">CList n -&gt; Bool
+forall a. CList a -&gt; Bool
+</span><span class="hs-identifier hs-var">C.isEmpty</span></span><span> </span><span class="annot"><span class="annottext">CList n
+</span><a href="#local-6989586621679373442"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">FocusRing n
+</span><a href="#local-6989586621679373443"><span class="hs-identifier hs-var">r</span></a></span><span>
+</span><span id="line-45"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CList n -&gt; FocusRing n
+forall n. CList n -&gt; FocusRing n
+</span><a href="Brick.Focus.html#FocusRing"><span class="hs-identifier hs-var">FocusRing</span></a></span><span> </span><span class="annot"><span class="annottext">(CList n -&gt; FocusRing n) -&gt; CList n -&gt; FocusRing n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">CList n -&gt; CList n
+forall a. CList a -&gt; CList a
+</span><span class="hs-identifier hs-var">C.rotL</span></span><span> </span><span class="annot"><span class="annottext">CList n
+</span><a href="#local-6989586621679373442"><span class="hs-identifier hs-var">l</span></a></span><span>
+</span><span id="line-46"></span><span>
+</span><span id="line-47"></span><span class="hs-comment">-- | This function is a convenience function to look up a widget state</span><span>
+</span><span id="line-48"></span><span class="hs-comment">-- value's resource name in a focus ring and set its focus setting</span><span>
+</span><span id="line-49"></span><span class="hs-comment">-- according to the focus ring's state. This function determines whether</span><span>
+</span><span id="line-50"></span><span class="hs-comment">-- a given widget state value is the focus of the ring and passes the</span><span>
+</span><span id="line-51"></span><span class="hs-comment">-- resulting boolean to a rendering function, along with the state value</span><span>
+</span><span id="line-52"></span><span class="hs-comment">-- (a), to produce whatever comes next (b).</span><span>
+</span><span id="line-53"></span><span class="hs-comment">--</span><span>
+</span><span id="line-54"></span><span class="hs-comment">-- Focus-aware widgets have rendering functions that should be</span><span>
+</span><span id="line-55"></span><span class="hs-comment">-- usable with this combinator; see 'Brick.Widgets.List.List' and</span><span>
+</span><span id="line-56"></span><span class="hs-comment">-- 'Brick.Widgets.Edit.Edit'.</span><span>
+</span><span id="line-57"></span><span id="local-6989586621679373438"><span id="local-6989586621679373439"><span id="local-6989586621679373440"><span class="annot"><a href="Brick.Focus.html#withFocusRing"><span class="hs-identifier hs-type">withFocusRing</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="#local-6989586621679373440"><span class="hs-identifier hs-type">n</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Widgets.Core.html#Named"><span class="hs-identifier hs-type">Named</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373439"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373440"><span class="hs-identifier hs-type">n</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-58"></span><span>              </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Brick.Focus.html#FocusRing"><span class="hs-identifier hs-type">FocusRing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373440"><span class="hs-identifier hs-type">n</span></a></span><span>
+</span><span id="line-59"></span><span>              </span><span class="hs-comment">-- ^ The focus ring to use as the source of focus state.</span><span>
+</span><span id="line-60"></span><span>              </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679373439"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679373438"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-61"></span><span>              </span><span class="hs-comment">-- ^ A function that takes a value and its focus state.</span><span>
+</span><span id="line-62"></span><span>              </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679373439"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-63"></span><span>              </span><span class="hs-comment">-- ^ The wiget state value that we need to check for focus.</span><span>
+</span><span id="line-64"></span><span>              </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679373438"><span class="hs-identifier hs-type">b</span></a></span><span>
+</span><span id="line-65"></span><span>              </span><span class="hs-comment">-- ^ The rest of the computation.</span></span></span></span><span>
+</span><span id="line-66"></span><span id="withFocusRing"><span class="annot"><span class="annottext">withFocusRing :: FocusRing n -&gt; (Bool -&gt; a -&gt; b) -&gt; a -&gt; b
+</span><a href="Brick.Focus.html#withFocusRing"><span class="hs-identifier hs-var hs-var">withFocusRing</span></a></span></span><span> </span><span id="local-6989586621679373437"><span class="annot"><span class="annottext">FocusRing n
+</span><a href="#local-6989586621679373437"><span class="hs-identifier hs-var">ring</span></a></span></span><span> </span><span id="local-6989586621679373436"><span class="annot"><span class="annottext">Bool -&gt; a -&gt; b
+</span><a href="#local-6989586621679373436"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span id="local-6989586621679373435"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679373435"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; a -&gt; b
+</span><a href="#local-6989586621679373436"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">FocusRing n -&gt; Maybe n
+forall n. FocusRing n -&gt; Maybe n
+</span><a href="Brick.Focus.html#focusGetCurrent"><span class="hs-identifier hs-var">focusGetCurrent</span></a></span><span> </span><span class="annot"><span class="annottext">FocusRing n
+</span><a href="#local-6989586621679373437"><span class="hs-identifier hs-var">ring</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe n -&gt; Maybe n -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">n -&gt; Maybe n
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; n
+forall a n. Named a n =&gt; a -&gt; n
+</span><a href="Brick.Widgets.Core.html#getName"><span class="hs-identifier hs-var">getName</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679373435"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679373435"><span class="hs-identifier hs-var">a</span></a></span><span>
+</span><span id="line-67"></span><span>
+</span><span id="line-68"></span><span class="hs-comment">-- | Get the currently-focused resource name from the ring. If the ring</span><span>
+</span><span id="line-69"></span><span class="hs-comment">-- is emtpy, return 'Nothing'.</span><span>
+</span><span id="line-70"></span><span id="local-6989586621679373491"><span class="annot"><a href="Brick.Focus.html#focusGetCurrent"><span class="hs-identifier hs-type">focusGetCurrent</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Focus.html#FocusRing"><span class="hs-identifier hs-type">FocusRing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373491"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679373491"><span class="hs-identifier hs-type">n</span></a></span></span><span>
+</span><span id="line-71"></span><span id="focusGetCurrent"><span class="annot"><span class="annottext">focusGetCurrent :: FocusRing n -&gt; Maybe n
+</span><a href="Brick.Focus.html#focusGetCurrent"><span class="hs-identifier hs-var hs-var">focusGetCurrent</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Brick.Focus.html#FocusRing"><span class="hs-identifier hs-type">FocusRing</span></a></span><span> </span><span id="local-6989586621679373433"><span class="annot"><span class="annottext">CList n
+</span><a href="#local-6989586621679373433"><span class="hs-identifier hs-var">l</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CList n -&gt; Maybe n
+forall a. CList a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">C.focus</span></span><span> </span><span class="annot"><span class="annottext">CList n
+</span><a href="#local-6989586621679373433"><span class="hs-identifier hs-var">l</span></a></span><span>
+</span><span id="line-72"></span><span>
+</span><span id="line-73"></span><span class="hs-comment">-- | Set the currently-focused resource name in the ring, provided the</span><span>
+</span><span id="line-74"></span><span class="hs-comment">-- name is in the ring. Otherwise return the ring unmodified.</span><span>
+</span><span id="line-75"></span><span id="local-6989586621679373431"><span class="annot"><a href="Brick.Focus.html#focusSetCurrent"><span class="hs-identifier hs-type">focusSetCurrent</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="#local-6989586621679373431"><span class="hs-identifier hs-type">n</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679373431"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Focus.html#FocusRing"><span class="hs-identifier hs-type">FocusRing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373431"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Focus.html#FocusRing"><span class="hs-identifier hs-type">FocusRing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373431"><span class="hs-identifier hs-type">n</span></a></span></span><span>
+</span><span id="line-76"></span><span id="focusSetCurrent"><span class="annot"><span class="annottext">focusSetCurrent :: n -&gt; FocusRing n -&gt; FocusRing n
+</span><a href="Brick.Focus.html#focusSetCurrent"><span class="hs-identifier hs-var hs-var">focusSetCurrent</span></a></span></span><span> </span><span id="local-6989586621679373430"><span class="annot"><span class="annottext">n
+</span><a href="#local-6989586621679373430"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679373429"><span class="annot"><span class="annottext">r :: FocusRing n
+</span><a href="#local-6989586621679373429"><span class="hs-identifier hs-var">r</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Brick.Focus.html#FocusRing"><span class="hs-identifier hs-type">FocusRing</span></a></span><span> </span><span id="local-6989586621679373428"><span class="annot"><span class="annottext">CList n
+</span><a href="#local-6989586621679373428"><span class="hs-identifier hs-var">l</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-77"></span><span>    </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">n -&gt; CList n -&gt; Maybe (CList n)
+forall a. Eq a =&gt; a -&gt; CList a -&gt; Maybe (CList a)
+</span><span class="hs-identifier hs-var">C.rotateTo</span></span><span> </span><span class="annot"><span class="annottext">n
+</span><a href="#local-6989586621679373430"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">CList n
+</span><a href="#local-6989586621679373428"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-78"></span><span>        </span><span class="annot"><span class="annottext">Maybe (CList n)
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">FocusRing n
+</span><a href="#local-6989586621679373429"><span class="hs-identifier hs-var">r</span></a></span><span>
+</span><span id="line-79"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679373426"><span class="annot"><span class="annottext">CList n
+</span><a href="#local-6989586621679373426"><span class="hs-identifier hs-var">l'</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">CList n -&gt; FocusRing n
+forall n. CList n -&gt; FocusRing n
+</span><a href="Brick.Focus.html#FocusRing"><span class="hs-identifier hs-var">FocusRing</span></a></span><span> </span><span class="annot"><span class="annottext">CList n
+</span><a href="#local-6989586621679373426"><span class="hs-identifier hs-var">l'</span></a></span><span>
+</span><span id="line-80"></span><span>
+</span><span id="line-81"></span><span class="hs-comment">-- | Get the size of the FocusRing.</span><span>
+</span><span id="line-82"></span><span id="local-6989586621679373425"><span class="annot"><a href="Brick.Focus.html#focusRingLength"><span class="hs-identifier hs-type">focusRingLength</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Focus.html#FocusRing"><span class="hs-identifier hs-type">FocusRing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373425"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span></span><span>
+</span><span id="line-83"></span><span id="focusRingLength"><span class="annot"><span class="annottext">focusRingLength :: FocusRing n -&gt; Int
+</span><a href="Brick.Focus.html#focusRingLength"><span class="hs-identifier hs-var hs-var">focusRingLength</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Brick.Focus.html#FocusRing"><span class="hs-identifier hs-type">FocusRing</span></a></span><span> </span><span id="local-6989586621679373424"><span class="annot"><span class="annottext">CList n
+</span><a href="#local-6989586621679373424"><span class="hs-identifier hs-var">l</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CList n -&gt; Int
+forall a. CList a -&gt; Int
+</span><span class="hs-identifier hs-var">C.size</span></span><span> </span><span class="annot"><span class="annottext">CList n
+</span><a href="#local-6989586621679373424"><span class="hs-identifier hs-var">l</span></a></span><span>
+</span><span id="line-84"></span><span>
+</span><span id="line-85"></span><span class="hs-comment">-- | Return all of the entries in the focus ring, starting with the</span><span>
+</span><span id="line-86"></span><span class="hs-comment">-- currently-focused entry and wrapping around the ring.</span><span>
+</span><span id="line-87"></span><span class="hs-comment">--</span><span>
+</span><span id="line-88"></span><span class="hs-comment">-- For example, if a ring contains A, B, C, and D, and the current entry</span><span>
+</span><span id="line-89"></span><span class="hs-comment">-- is B, the result will be [B, C, D, A].</span><span>
+</span><span id="line-90"></span><span id="local-6989586621679373422"><span class="annot"><a href="Brick.Focus.html#focusRingToList"><span class="hs-identifier hs-type">focusRingToList</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Focus.html#FocusRing"><span class="hs-identifier hs-type">FocusRing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373422"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679373422"><span class="hs-identifier hs-type">n</span></a></span><span class="hs-special">]</span></span><span>
+</span><span id="line-91"></span><span id="focusRingToList"><span class="annot"><span class="annottext">focusRingToList :: FocusRing n -&gt; [n]
+</span><a href="Brick.Focus.html#focusRingToList"><span class="hs-identifier hs-var hs-var">focusRingToList</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Brick.Focus.html#FocusRing"><span class="hs-identifier hs-type">FocusRing</span></a></span><span> </span><span id="local-6989586621679373421"><span class="annot"><span class="annottext">CList n
+</span><a href="#local-6989586621679373421"><span class="hs-identifier hs-var">l</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CList n -&gt; [n]
+forall a. CList a -&gt; [a]
+</span><span class="hs-identifier hs-var">C.rightElements</span></span><span> </span><span class="annot"><span class="annottext">CList n
+</span><a href="#local-6989586621679373421"><span class="hs-identifier hs-var">l</span></a></span><span>
+</span><span id="line-92"></span><span>
+</span><span id="line-93"></span><span class="hs-comment">-- | Modify the internal circular list structure of a focus ring</span><span>
+</span><span id="line-94"></span><span class="hs-comment">-- directly. This function permits modification of the circular list</span><span>
+</span><span id="line-95"></span><span class="hs-comment">-- using the rich Data.CircularList API.</span><span>
+</span><span id="line-96"></span><span id="local-6989586621679373419"><span class="annot"><a href="Brick.Focus.html#focusRingModify"><span class="hs-identifier hs-type">focusRingModify</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">C.CList</span></span><span> </span><span class="annot"><a href="#local-6989586621679373419"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">C.CList</span></span><span> </span><span class="annot"><a href="#local-6989586621679373419"><span class="hs-identifier hs-type">n</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Focus.html#FocusRing"><span class="hs-identifier hs-type">FocusRing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373419"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Focus.html#FocusRing"><span class="hs-identifier hs-type">FocusRing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373419"><span class="hs-identifier hs-type">n</span></a></span></span><span>
+</span><span id="line-97"></span><span id="focusRingModify"><span class="annot"><span class="annottext">focusRingModify :: (CList n -&gt; CList n) -&gt; FocusRing n -&gt; FocusRing n
+</span><a href="Brick.Focus.html#focusRingModify"><span class="hs-identifier hs-var hs-var">focusRingModify</span></a></span></span><span> </span><span id="local-6989586621679373418"><span class="annot"><span class="annottext">CList n -&gt; CList n
+</span><a href="#local-6989586621679373418"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Brick.Focus.html#FocusRing"><span class="hs-identifier hs-type">FocusRing</span></a></span><span> </span><span id="local-6989586621679373417"><span class="annot"><span class="annottext">CList n
+</span><a href="#local-6989586621679373417"><span class="hs-identifier hs-var">l</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CList n -&gt; FocusRing n
+forall n. CList n -&gt; FocusRing n
+</span><a href="Brick.Focus.html#FocusRing"><span class="hs-identifier hs-var">FocusRing</span></a></span><span> </span><span class="annot"><span class="annottext">(CList n -&gt; FocusRing n) -&gt; CList n -&gt; FocusRing n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">CList n -&gt; CList n
+</span><a href="#local-6989586621679373418"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">CList n
+</span><a href="#local-6989586621679373417"><span class="hs-identifier hs-var">l</span></a></span><span>
+</span><span id="line-98"></span><span>
+</span><span id="line-99"></span><span class="hs-comment">-- | Cursor selection convenience function for use as an</span><span>
+</span><span id="line-100"></span><span class="hs-comment">-- 'Brick.Main.appChooseCursor' value.</span><span>
+</span><span id="line-101"></span><span id="local-6989586621679373415"><span id="local-6989586621679373416"><span class="annot"><a href="Brick.Focus.html#focusRingCursor"><span class="hs-identifier hs-type">focusRingCursor</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="#local-6989586621679373416"><span class="hs-identifier hs-type">n</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-102"></span><span>                </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679373415"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Focus.html#FocusRing"><span class="hs-identifier hs-type">FocusRing</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373416"><span class="hs-identifier hs-type">n</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-103"></span><span>                </span><span class="hs-comment">-- ^ The function used to get the focus ring out of your</span><span>
+</span><span id="line-104"></span><span>                </span><span class="hs-comment">-- application state.</span><span>
+</span><span id="line-105"></span><span>                </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679373415"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-106"></span><span>                </span><span class="hs-comment">-- ^ Your application state.</span><span>
+</span><span id="line-107"></span><span>                </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Brick.Types.Internal.html#CursorLocation"><span class="hs-identifier hs-type">CursorLocation</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373416"><span class="hs-identifier hs-type">n</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-108"></span><span>                </span><span class="hs-comment">-- ^ The list of available cursor positions.</span><span>
+</span><span id="line-109"></span><span>                </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Brick.Types.Internal.html#CursorLocation"><span class="hs-identifier hs-type">CursorLocation</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373416"><span class="hs-identifier hs-type">n</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-110"></span><span>                </span><span class="hs-comment">-- ^ The cursor position, if any, that matches the</span><span>
+</span><span id="line-111"></span><span>                </span><span class="hs-comment">-- resource name currently focused by the 'FocusRing'.</span></span></span><span>
+</span><span id="line-112"></span><span id="focusRingCursor"><span class="annot"><span class="annottext">focusRingCursor :: (a -&gt; FocusRing n)
+-&gt; a -&gt; [CursorLocation n] -&gt; Maybe (CursorLocation n)
+</span><a href="Brick.Focus.html#focusRingCursor"><span class="hs-identifier hs-var hs-var">focusRingCursor</span></a></span></span><span> </span><span id="local-6989586621679373414"><span class="annot"><span class="annottext">a -&gt; FocusRing n
+</span><a href="#local-6989586621679373414"><span class="hs-identifier hs-var">getRing</span></a></span></span><span> </span><span id="local-6989586621679373413"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679373413"><span class="hs-identifier hs-var">st</span></a></span></span><span> </span><span id="local-6989586621679373412"><span class="annot"><span class="annottext">[CursorLocation n]
+</span><a href="#local-6989586621679373412"><span class="hs-identifier hs-var">ls</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-113"></span><span>    </span><span class="annot"><span class="annottext">[CursorLocation n] -&gt; Maybe (CursorLocation n)
+forall a. [a] -&gt; Maybe a
+</span><span class="hs-identifier hs-var">listToMaybe</span></span><span> </span><span class="annot"><span class="annottext">([CursorLocation n] -&gt; Maybe (CursorLocation n))
+-&gt; [CursorLocation n] -&gt; Maybe (CursorLocation n)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(CursorLocation n -&gt; Bool)
+-&gt; [CursorLocation n] -&gt; [CursorLocation n]
+forall a. (a -&gt; Bool) -&gt; [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">filter</span></span><span> </span><span class="annot"><span class="annottext">CursorLocation n -&gt; Bool
+</span><a href="#local-6989586621679373411"><span class="hs-identifier hs-var">isCurrent</span></a></span><span> </span><span class="annot"><span class="annottext">[CursorLocation n]
+</span><a href="#local-6989586621679373412"><span class="hs-identifier hs-var">ls</span></a></span><span>
+</span><span id="line-114"></span><span>    </span><span class="hs-keyword">where</span><span>
+</span><span id="line-115"></span><span>        </span><span id="local-6989586621679373411"><span class="annot"><span class="annottext">isCurrent :: CursorLocation n -&gt; Bool
+</span><a href="#local-6989586621679373411"><span class="hs-identifier hs-var hs-var">isCurrent</span></a></span></span><span> </span><span id="local-6989586621679373410"><span class="annot"><span class="annottext">CursorLocation n
+</span><a href="#local-6989586621679373410"><span class="hs-identifier hs-var">cl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CursorLocation n
+</span><a href="#local-6989586621679373410"><span class="hs-identifier hs-var">cl</span></a></span><span class="annot"><span class="annottext">CursorLocation n
+-&gt; Getting (Maybe n) (CursorLocation n) (Maybe n) -&gt; Maybe n
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting (Maybe n) (CursorLocation n) (Maybe n)
+forall n1 n2.
+Lens (CursorLocation n1) (CursorLocation n2) (Maybe n1) (Maybe n2)
+</span><a href="Brick.Types.Internal.html#cursorLocationNameL"><span class="hs-identifier hs-var">cursorLocationNameL</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe n -&gt; Maybe n -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span>
+</span><span id="line-116"></span><span>                       </span><span class="hs-special">(</span><span class="annot"><span class="annottext">FocusRing n -&gt; Maybe n
+forall n. FocusRing n -&gt; Maybe n
+</span><a href="Brick.Focus.html#focusGetCurrent"><span class="hs-identifier hs-var">focusGetCurrent</span></a></span><span> </span><span class="annot"><span class="annottext">(FocusRing n -&gt; Maybe n) -&gt; FocusRing n -&gt; Maybe n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; FocusRing n
+</span><a href="#local-6989586621679373414"><span class="hs-identifier hs-var">getRing</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679373413"><span class="hs-identifier hs-var">st</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-117"></span></pre></body></html>

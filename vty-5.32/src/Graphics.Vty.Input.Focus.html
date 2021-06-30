@@ -1,0 +1,100 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Graphics.Vty.Input.Focus</span><span>
+</span><span id="line-2"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Focus.html#requestFocusEvents"><span class="hs-identifier">requestFocusEvents</span></a></span><span>
+</span><span id="line-3"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Focus.html#disableFocusEvents"><span class="hs-identifier">disableFocusEvents</span></a></span><span>
+</span><span id="line-4"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Focus.html#isFocusEvent"><span class="hs-identifier">isFocusEvent</span></a></span><span>
+</span><span id="line-5"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Focus.html#classifyFocusEvent"><span class="hs-identifier">classifyFocusEvent</span></a></span><span>
+</span><span id="line-6"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-7"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-8"></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Events.html"><span class="hs-identifier">Graphics.Vty.Input.Events</span></a></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Classify.Types.html"><span class="hs-identifier">Graphics.Vty.Input.Classify.Types</span></a></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Classify.Parse.html"><span class="hs-identifier">Graphics.Vty.Input.Classify.Parse</span></a></span><span>
+</span><span id="line-12"></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.State</span></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.List</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">isPrefixOf</span></span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span>
+</span><span id="line-16"></span><span class="hs-comment">-- | These sequences set xterm-based terminals to send focus event</span><span>
+</span><span id="line-17"></span><span class="hs-comment">-- sequences.</span><span>
+</span><span id="line-18"></span><span class="annot"><a href="Graphics.Vty.Input.Focus.html#requestFocusEvents"><span class="hs-identifier hs-type">requestFocusEvents</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
+</span><span id="line-19"></span><span id="requestFocusEvents"><span class="annot"><span class="annottext">requestFocusEvents :: String
+</span><a href="Graphics.Vty.Input.Focus.html#requestFocusEvents"><span class="hs-identifier hs-var hs-var">requestFocusEvents</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\ESC[?1004h&quot;</span></span><span>
+</span><span id="line-20"></span><span>
+</span><span id="line-21"></span><span class="hs-comment">-- | These sequences disable focus events.</span><span>
+</span><span id="line-22"></span><span class="annot"><a href="Graphics.Vty.Input.Focus.html#disableFocusEvents"><span class="hs-identifier hs-type">disableFocusEvents</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
+</span><span id="line-23"></span><span id="disableFocusEvents"><span class="annot"><span class="annottext">disableFocusEvents :: String
+</span><a href="Graphics.Vty.Input.Focus.html#disableFocusEvents"><span class="hs-identifier hs-var hs-var">disableFocusEvents</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\ESC[?1004l&quot;</span></span><span>
+</span><span id="line-24"></span><span>
+</span><span id="line-25"></span><span class="hs-comment">-- | Does the specified string begin with a focus event?</span><span>
+</span><span id="line-26"></span><span class="annot"><a href="Graphics.Vty.Input.Focus.html#isFocusEvent"><span class="hs-identifier hs-type">isFocusEvent</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-27"></span><span id="isFocusEvent"><span class="annot"><span class="annottext">isFocusEvent :: String -&gt; Bool
+</span><a href="Graphics.Vty.Input.Focus.html#isFocusEvent"><span class="hs-identifier hs-var hs-var">isFocusEvent</span></a></span></span><span> </span><span id="local-6989586621679366466"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679366466"><span class="hs-identifier hs-var">s</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String -&gt; String -&gt; Bool
+forall a. Eq a =&gt; [a] -&gt; [a] -&gt; Bool
+</span><span class="hs-identifier hs-var">isPrefixOf</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="Graphics.Vty.Input.Focus.html#focusIn"><span class="hs-identifier hs-var">focusIn</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679366466"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">||</span></span><span>
+</span><span id="line-28"></span><span>                 </span><span class="annot"><span class="annottext">String -&gt; String -&gt; Bool
+forall a. Eq a =&gt; [a] -&gt; [a] -&gt; Bool
+</span><span class="hs-identifier hs-var">isPrefixOf</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="Graphics.Vty.Input.Focus.html#focusOut"><span class="hs-identifier hs-var">focusOut</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679366466"><span class="hs-identifier hs-var">s</span></a></span><span>
+</span><span id="line-29"></span><span>
+</span><span id="line-30"></span><span class="annot"><a href="Graphics.Vty.Input.Focus.html#focusIn"><span class="hs-identifier hs-type">focusIn</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
+</span><span id="line-31"></span><span id="focusIn"><span class="annot"><span class="annottext">focusIn :: String
+</span><a href="Graphics.Vty.Input.Focus.html#focusIn"><span class="hs-identifier hs-var hs-var">focusIn</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\ESC[I&quot;</span></span><span>
+</span><span id="line-32"></span><span>
+</span><span id="line-33"></span><span class="annot"><a href="Graphics.Vty.Input.Focus.html#focusOut"><span class="hs-identifier hs-type">focusOut</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
+</span><span id="line-34"></span><span id="focusOut"><span class="annot"><span class="annottext">focusOut :: String
+</span><a href="Graphics.Vty.Input.Focus.html#focusOut"><span class="hs-identifier hs-var hs-var">focusOut</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\ESC[O&quot;</span></span><span>
+</span><span id="line-35"></span><span>
+</span><span id="line-36"></span><span class="hs-comment">-- | Attempt to classify an input string as a focus event.</span><span>
+</span><span id="line-37"></span><span class="annot"><a href="Graphics.Vty.Input.Focus.html#classifyFocusEvent"><span class="hs-identifier hs-type">classifyFocusEvent</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Classify.Types.html#KClass"><span class="hs-identifier hs-type">KClass</span></a></span><span>
+</span><span id="line-38"></span><span id="classifyFocusEvent"><span class="annot"><span class="annottext">classifyFocusEvent :: String -&gt; KClass
+</span><a href="Graphics.Vty.Input.Focus.html#classifyFocusEvent"><span class="hs-identifier hs-var hs-var">classifyFocusEvent</span></a></span></span><span> </span><span id="local-6989586621679366462"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679366462"><span class="hs-identifier hs-var">s</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String -&gt; Parser Event -&gt; KClass
+</span><a href="Graphics.Vty.Input.Classify.Parse.html#runParser"><span class="hs-identifier hs-var">runParser</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679366462"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="annot"><span class="annottext">(Parser Event -&gt; KClass) -&gt; Parser Event -&gt; KClass
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-39"></span><span>    </span><span class="annot"><span class="annottext">Bool -&gt; MaybeT (State String) () -&gt; MaybeT (State String) ()
+forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
+</span><span class="hs-identifier hs-var">when</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool -&gt; Bool
+</span><span class="hs-identifier hs-var">not</span></span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; Bool) -&gt; Bool -&gt; Bool
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; Bool
+</span><a href="Graphics.Vty.Input.Focus.html#isFocusEvent"><span class="hs-identifier hs-var">isFocusEvent</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679366462"><span class="hs-identifier hs-var">s</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">MaybeT (State String) ()
+forall a. Parser a
+</span><a href="Graphics.Vty.Input.Classify.Parse.html#failParse"><span class="hs-identifier hs-var">failParse</span></a></span><span>
+</span><span id="line-40"></span><span>
+</span><span id="line-41"></span><span>    </span><span class="annot"><span class="annottext">Char -&gt; MaybeT (State String) ()
+</span><a href="Graphics.Vty.Input.Classify.Parse.html#expectChar"><span class="hs-identifier hs-var">expectChar</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\ESC'</span></span><span>
+</span><span id="line-42"></span><span>    </span><span class="annot"><span class="annottext">Char -&gt; MaybeT (State String) ()
+</span><a href="Graphics.Vty.Input.Classify.Parse.html#expectChar"><span class="hs-identifier hs-var">expectChar</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'['</span></span><span>
+</span><span id="line-43"></span><span>    </span><span id="local-6989586621679366456"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679366456"><span class="hs-identifier hs-var">ty</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Parser Char
+</span><a href="Graphics.Vty.Input.Classify.Parse.html#readChar"><span class="hs-identifier hs-var">readChar</span></a></span><span>
+</span><span id="line-44"></span><span>    </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679366456"><span class="hs-identifier hs-var">ty</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-45"></span><span>        </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'I'</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Event -&gt; Parser Event
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Event
+</span><a href="Graphics.Vty.Input.Events.html#EvGainedFocus"><span class="hs-identifier hs-var">EvGainedFocus</span></a></span><span>
+</span><span id="line-46"></span><span>        </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'O'</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Event -&gt; Parser Event
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Event
+</span><a href="Graphics.Vty.Input.Events.html#EvLostFocus"><span class="hs-identifier hs-var">EvLostFocus</span></a></span><span>
+</span><span id="line-47"></span><span>        </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-identifier">_</span></span><span>   </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Parser Event
+forall a. Parser a
+</span><a href="Graphics.Vty.Input.Classify.Parse.html#failParse"><span class="hs-identifier hs-var">failParse</span></a></span><span>
+</span><span id="line-48"></span></pre></body></html>

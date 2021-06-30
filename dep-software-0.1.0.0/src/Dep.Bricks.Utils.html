@@ -1,0 +1,379 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE OverloadedStrings #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-comment">{-|
+Module      : Dep.Bricks.Utils
+Description : A module that provides utility functions to render 'Image's.
+Maintainer  : hapytexeu+gh@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+A module that is used to render lines, arrows, rasters, etc.
+-}</span><span>
+</span><span id="line-12"></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Dep.Bricks.Utils</span><span> </span><span class="hs-special">(</span><span>
+</span><span id="line-14"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Convert to an 'Image'</span></span><span>
+</span><span id="line-15"></span><span>    </span><span class="annot"><a href="Dep.Bricks.Utils.html#fromRaster"><span class="hs-identifier">fromRaster</span></a></span><span>
+</span><span id="line-16"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Lines</span></span><span>
+</span><span id="line-17"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Bricks.Utils.html#hline"><span class="hs-identifier">hline</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Bricks.Utils.html#hline%27"><span class="hs-identifier">hline'</span></a></span><span>
+</span><span id="line-18"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Bricks.Utils.html#vline"><span class="hs-identifier">vline</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Bricks.Utils.html#vline%27"><span class="hs-identifier">vline'</span></a></span><span>
+</span><span id="line-19"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Arrows</span></span><span>
+</span><span id="line-20"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Bricks.Utils.html#harrow"><span class="hs-identifier">harrow</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Bricks.Utils.html#harrow%27"><span class="hs-identifier">harrow'</span></a></span><span>
+</span><span id="line-21"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Bricks.Utils.html#varrow"><span class="hs-identifier">varrow</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Bricks.Utils.html#varrow%27"><span class="hs-identifier">varrow'</span></a></span><span>
+</span><span id="line-22"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Type aliasses for rows and rasters</span></span><span>
+</span><span id="line-23"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Bricks.Utils.html#Row"><span class="hs-identifier">Row</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Bricks.Utils.html#Raster"><span class="hs-identifier">Raster</span></a></span><span>
+</span><span id="line-24"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Raster (for Karnaugh cards)</span></span><span>
+</span><span id="line-25"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Bricks.Utils.html#inRaster"><span class="hs-identifier">inRaster</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Bricks.Utils.html#inRaster%27"><span class="hs-identifier">inRaster'</span></a></span><span>
+</span><span id="line-26"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-27"></span><span>
+</span><span id="line-28"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Text</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Text</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">cons</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">pack</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">singleton</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">unpack</span></span><span class="hs-special">)</span><span>
+</span><span id="line-29"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Text</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">T</span></span><span>
+</span><span id="line-30"></span><span>
+</span><span id="line-31"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Dep.Utils.html"><span class="hs-identifier">Dep.Utils</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Utils.html#udiv"><span class="hs-identifier">udiv</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-32"></span><span>
+</span><span id="line-33"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Graphics.Vty.Attributes</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Attr</span></span><span class="hs-special">)</span><span>
+</span><span id="line-34"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Graphics.Vty.Image</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Image</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-operator">(&lt;-&gt;)</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-operator">(&lt;|&gt;)</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">char</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">emptyImage</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">imageWidth</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">imageHeight</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">string</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">text'</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">vertCat</span></span><span class="hs-special">)</span><span>
+</span><span id="line-35"></span><span>
+</span><span id="line-36"></span><span class="hs-comment">-- | A Row is a simple 'String', typically a row in an 'Raster' (and later an 'Image').</span><span>
+</span><span id="line-37"></span><span class="hs-keyword">type</span><span> </span><span id="Row"><span class="annot"><a href="Dep.Bricks.Utils.html#Row"><span class="hs-identifier hs-var">Row</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
+</span><span id="line-38"></span><span>
+</span><span id="line-39"></span><span class="hs-comment">-- | A list of lists of 'Char'acters is a 'Raster', typically this is used to convert this to an 'Image'.</span><span>
+</span><span id="line-40"></span><span class="hs-keyword">type</span><span> </span><span id="Raster"><span class="annot"><a href="Dep.Bricks.Utils.html#Raster"><span class="hs-identifier hs-var">Raster</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Dep.Bricks.Utils.html#Row"><span class="hs-identifier hs-type">Row</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-41"></span><span>
+</span><span id="line-42"></span><span class="hs-comment">-- | Convert a given list of strings to an 'Image' where all the</span><span>
+</span><span id="line-43"></span><span class="hs-comment">-- images have the same attribute.</span><span>
+</span><span id="line-44"></span><span class="annot"><a href="Dep.Bricks.Utils.html#fromRaster"><span class="hs-identifier hs-type">fromRaster</span></a></span><span>
+</span><span id="line-45"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Attr</span></span><span>  </span><span class="hs-comment">-- ^ The 'Attr'ibute that determines how to render the raster.</span><span>
+</span><span id="line-46"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Bricks.Utils.html#Raster"><span class="hs-identifier hs-type">Raster</span></a></span><span>  </span><span class="hs-comment">-- ^ The given list of strings that we want to render.</span><span>
+</span><span id="line-47"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Image</span></span><span>  </span><span class="hs-comment">-- ^ The corresponding image by vertically aligning the rows of the raster.</span><span>
+</span><span id="line-48"></span><span id="fromRaster"><span class="annot"><span class="annottext">fromRaster :: Attr -&gt; Raster -&gt; Image
+</span><a href="Dep.Bricks.Utils.html#fromRaster"><span class="hs-identifier hs-var hs-var">fromRaster</span></a></span></span><span> </span><span id="local-6989586621679128237"><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679128237"><span class="hs-identifier hs-var">atr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(String -&gt; Image -&gt; Image) -&gt; Image -&gt; Raster -&gt; Image
+forall (t :: * -&gt; *) a b.
+Foldable t =&gt;
+(a -&gt; b -&gt; b) -&gt; b -&gt; t a -&gt; b
+</span><span class="hs-identifier hs-var">foldr</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Image -&gt; Image -&gt; Image
+</span><span class="hs-operator hs-var">(&lt;-&gt;)</span></span><span> </span><span class="annot"><span class="annottext">(Image -&gt; Image -&gt; Image)
+-&gt; (String -&gt; Image) -&gt; String -&gt; Image -&gt; Image
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Attr -&gt; String -&gt; Image
+</span><span class="hs-identifier hs-var">string</span></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679128237"><span class="hs-identifier hs-var">atr</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Image
+</span><span class="hs-identifier hs-var">emptyImage</span></span><span>
+</span><span id="line-49"></span><span>
+</span><span id="line-50"></span><span class="hs-comment">-- | Render a /horizontal/ arrow with the given number of characters between the arrow heads. The 'Text'</span><span>
+</span><span id="line-51"></span><span class="hs-comment">-- in the middle is &quot;/cycled/&quot;.</span><span>
+</span><span id="line-52"></span><span class="annot"><a href="Dep.Bricks.Utils.html#harrow"><span class="hs-identifier hs-type">harrow</span></a></span><span>
+</span><span id="line-53"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>  </span><span class="hs-comment">-- ^ The left arrow head.</span><span>
+</span><span id="line-54"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>  </span><span class="hs-comment">-- ^ The 'Text' in the middle that is constantly repeated.</span><span>
+</span><span id="line-55"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>  </span><span class="hs-comment">-- ^ The right arrow head.</span><span>
+</span><span id="line-56"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Attr</span></span><span>  </span><span class="hs-comment">-- ^ The 'Attr'ibute to specify the style of the arrow.</span><span>
+</span><span id="line-57"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>  </span><span class="hs-comment">-- ^ The number characters between the arrow heads (so we are /not/ counting the arrow heads).</span><span>
+</span><span id="line-58"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Image</span></span><span>  </span><span class="hs-comment">-- ^ An image that shows a horizontal arrow with a given number of characters in the middle.</span><span>
+</span><span id="line-59"></span><span id="harrow"><span class="annot"><span class="annottext">harrow :: Char -&gt; Text -&gt; Char -&gt; Attr -&gt; Int -&gt; Image
+</span><a href="Dep.Bricks.Utils.html#harrow"><span class="hs-identifier hs-var hs-var">harrow</span></a></span></span><span> </span><span id="local-6989586621679128234"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679128234"><span class="hs-identifier hs-var">c0</span></a></span></span><span> </span><span id="local-6989586621679128233"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679128233"><span class="hs-identifier hs-var">ci</span></a></span></span><span> </span><span id="local-6989586621679128232"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679128232"><span class="hs-identifier hs-var">cn</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Attr -&gt; Int -&gt; Image
+</span><a href="#local-6989586621679128231"><span class="hs-identifier hs-var">go</span></a></span><span>
+</span><span id="line-60"></span><span>  </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679128231"><span class="annot"><span class="annottext">go :: Attr -&gt; Int -&gt; Image
+</span><a href="#local-6989586621679128231"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span id="local-6989586621679128230"><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679128230"><span class="hs-identifier hs-var">atr</span></a></span></span><span> </span><span id="local-6989586621679128229"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128229"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Attr -&gt; Text -&gt; Image
+</span><span class="hs-identifier hs-var">text'</span></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679128230"><span class="hs-identifier hs-var">atr</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Char -&gt; Text -&gt; Text
+</span><span class="hs-identifier hs-var">cons</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679128234"><span class="hs-identifier hs-var">c0</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Text -&gt; Text
+</span><span class="hs-identifier hs-var">T.take</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128229"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Text -&gt; Text
+</span><span class="hs-identifier hs-var">T.replicate</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall i. Integral i =&gt; i -&gt; i -&gt; i
+</span><a href="Dep.Utils.html#udiv"><span class="hs-identifier hs-var">udiv</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128229"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Text -&gt; Int
+</span><span class="hs-identifier hs-var">T.length</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679128233"><span class="hs-identifier hs-var">ci</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679128233"><span class="hs-identifier hs-var">ci</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Text -&gt; Text
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Char -&gt; Text
+</span><span class="hs-identifier hs-var">singleton</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679128232"><span class="hs-identifier hs-var">cn</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-61"></span><span>
+</span><span id="line-62"></span><span class="hs-comment">-- | A function equivalent to 'harrow', but where we use a 'String' to specify the 'Char'acters in the middle.</span><span>
+</span><span id="line-63"></span><span class="annot"><a href="Dep.Bricks.Utils.html#harrow%27"><span class="hs-identifier hs-type">harrow'</span></a></span><span>
+</span><span id="line-64"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>  </span><span class="hs-comment">-- ^ The left arrow head.</span><span>
+</span><span id="line-65"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-comment">-- ^ The 'String' in the middle that is constantly repeated.</span><span>
+</span><span id="line-66"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>  </span><span class="hs-comment">-- ^ The right arrow head.</span><span>
+</span><span id="line-67"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Attr</span></span><span>  </span><span class="hs-comment">-- ^ The 'Attr'ibute to specify the style of the arrow.</span><span>
+</span><span id="line-68"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>  </span><span class="hs-comment">-- ^ The number characters between the arrow heads (so we are /not/ counting the arrow heads).</span><span>
+</span><span id="line-69"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Image</span></span><span>  </span><span class="hs-comment">-- ^ An image that shows a horizontal arrow with a given number of characters in the middle.</span><span>
+</span><span id="line-70"></span><span id="harrow%27"><span class="annot"><span class="annottext">harrow' :: Char -&gt; String -&gt; Char -&gt; Attr -&gt; Int -&gt; Image
+</span><a href="Dep.Bricks.Utils.html#harrow%27"><span class="hs-identifier hs-var hs-var">harrow'</span></a></span></span><span> </span><span id="local-6989586621679128225"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679128225"><span class="hs-identifier hs-var">c0</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Text -&gt; Char -&gt; Attr -&gt; Int -&gt; Image
+</span><a href="Dep.Bricks.Utils.html#harrow"><span class="hs-identifier hs-var">harrow</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679128225"><span class="hs-identifier hs-var">c0</span></a></span><span> </span><span class="annot"><span class="annottext">(Text -&gt; Char -&gt; Attr -&gt; Int -&gt; Image)
+-&gt; (String -&gt; Text) -&gt; String -&gt; Char -&gt; Attr -&gt; Int -&gt; Image
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; Text
+</span><span class="hs-identifier hs-var">pack</span></span><span>
+</span><span id="line-71"></span><span>
+</span><span id="line-72"></span><span class="hs-comment">-- | Render a /vertical/ arrow with the given number of characters between the arrow heads. The 'Text'</span><span>
+</span><span id="line-73"></span><span class="hs-comment">-- in the middle is &quot;/cycled/&quot;.</span><span>
+</span><span id="line-74"></span><span class="annot"><a href="Dep.Bricks.Utils.html#varrow"><span class="hs-identifier hs-type">varrow</span></a></span><span>
+</span><span id="line-75"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>  </span><span class="hs-comment">-- ^ The top arrow head.</span><span>
+</span><span id="line-76"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>  </span><span class="hs-comment">-- ^ The 'Text' in the middle that is constantly repeated.</span><span>
+</span><span id="line-77"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>  </span><span class="hs-comment">-- ^ The bottom arrow head.</span><span>
+</span><span id="line-78"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Attr</span></span><span>  </span><span class="hs-comment">-- ^ The 'Attr'ibute to specify the style of the arrow.</span><span>
+</span><span id="line-79"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>  </span><span class="hs-comment">-- ^ The number characters between the arrow heads (so we are /not/ counting the arrow heads).</span><span>
+</span><span id="line-80"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Image</span></span><span>  </span><span class="hs-comment">-- ^ An image that shows a vertical arrow with a given number of characters in the middle.</span><span>
+</span><span id="line-81"></span><span id="varrow"><span class="annot"><span class="annottext">varrow :: Char -&gt; Text -&gt; Char -&gt; Attr -&gt; Int -&gt; Image
+</span><a href="Dep.Bricks.Utils.html#varrow"><span class="hs-identifier hs-var hs-var">varrow</span></a></span></span><span> </span><span id="local-6989586621679128224"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679128224"><span class="hs-identifier hs-var">c0</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; String -&gt; Char -&gt; Attr -&gt; Int -&gt; Image
+</span><a href="Dep.Bricks.Utils.html#varrow%27"><span class="hs-identifier hs-var">varrow'</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679128224"><span class="hs-identifier hs-var">c0</span></a></span><span> </span><span class="annot"><span class="annottext">(String -&gt; Char -&gt; Attr -&gt; Int -&gt; Image)
+-&gt; (Text -&gt; String) -&gt; Text -&gt; Char -&gt; Attr -&gt; Int -&gt; Image
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; String
+</span><span class="hs-identifier hs-var">unpack</span></span><span>
+</span><span id="line-82"></span><span>
+</span><span id="line-83"></span><span class="hs-comment">-- | A function equivalent to 'varrow', but where we use a 'String' to specify the 'Char'acters in the middle.</span><span>
+</span><span id="line-84"></span><span class="annot"><a href="Dep.Bricks.Utils.html#varrow%27"><span class="hs-identifier hs-type">varrow'</span></a></span><span>
+</span><span id="line-85"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>  </span><span class="hs-comment">-- ^ The top arrow head.</span><span>
+</span><span id="line-86"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>  </span><span class="hs-comment">-- ^ The 'String' in the middle that is constantly repeated.</span><span>
+</span><span id="line-87"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>  </span><span class="hs-comment">-- ^ The bottom arrow head.</span><span>
+</span><span id="line-88"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Attr</span></span><span>  </span><span class="hs-comment">-- ^ The 'Attr'ibute to specify the style of the arrow.</span><span>
+</span><span id="line-89"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>  </span><span class="hs-comment">-- ^ The number characters between the arrow heads (so we are /not/ counting the arrow heads).</span><span>
+</span><span id="line-90"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Image</span></span><span>  </span><span class="hs-comment">-- ^ An image that shows a vertical arrow with a given number of characters in the middle.</span><span>
+</span><span id="line-91"></span><span id="varrow%27"><span class="annot"><span class="annottext">varrow' :: Char -&gt; String -&gt; Char -&gt; Attr -&gt; Int -&gt; Image
+</span><a href="Dep.Bricks.Utils.html#varrow%27"><span class="hs-identifier hs-var hs-var">varrow'</span></a></span></span><span> </span><span id="local-6989586621679128223"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679128223"><span class="hs-identifier hs-var">c0</span></a></span></span><span> </span><span id="local-6989586621679128222"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679128222"><span class="hs-identifier hs-var">ci</span></a></span></span><span> </span><span id="local-6989586621679128221"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679128221"><span class="hs-identifier hs-var">cn</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Attr -&gt; Int -&gt; Image
+</span><a href="#local-6989586621679128220"><span class="hs-identifier hs-var">go</span></a></span><span>
+</span><span id="line-92"></span><span>  </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679128220"><span class="annot"><span class="annottext">go :: Attr -&gt; Int -&gt; Image
+</span><a href="#local-6989586621679128220"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span id="local-6989586621679128219"><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679128219"><span class="hs-identifier hs-var">atr</span></a></span></span><span> </span><span id="local-6989586621679128218"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128218"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Image] -&gt; Image
+</span><span class="hs-identifier hs-var">vertCat</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Char -&gt; Image) -&gt; String -&gt; [Image]
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Attr -&gt; Char -&gt; Image
+</span><span class="hs-identifier hs-var">char</span></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679128219"><span class="hs-identifier hs-var">atr</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679128223"><span class="hs-identifier hs-var">c0</span></a></span><span> </span><span class="annot"><span class="annottext">Char -&gt; String -&gt; String
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; String -&gt; String
+forall a. Int -&gt; [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">take</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128218"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; String
+forall a. [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">cycle</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679128222"><span class="hs-identifier hs-var">ci</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">String -&gt; String -&gt; String
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679128221"><span class="hs-identifier hs-var">cn</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-93"></span><span>
+</span><span id="line-94"></span><span class="hs-comment">-- | Render a /horizontal/ line by cycling through the given 'Text' and apply the given 'Attr'ibute to</span><span>
+</span><span id="line-95"></span><span class="hs-comment">-- the result.</span><span>
+</span><span id="line-96"></span><span class="annot"><a href="Dep.Bricks.Utils.html#hline"><span class="hs-identifier hs-type">hline</span></a></span><span>
+</span><span id="line-97"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>  </span><span class="hs-comment">-- ^ The 'Text' object that determines how to render the line. The items will be /cycled/.</span><span>
+</span><span id="line-98"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Attr</span></span><span>  </span><span class="hs-comment">-- ^ The 'Attr'ibute that determines how to render the line.</span><span>
+</span><span id="line-99"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>  </span><span class="hs-comment">-- ^ The given length of the line.</span><span>
+</span><span id="line-100"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Image</span></span><span>  </span><span class="hs-comment">-- ^ An 'Image' that contains a /horizontal/ line with the given length.</span><span>
+</span><span id="line-101"></span><span id="hline"><span class="annot"><span class="annottext">hline :: Text -&gt; Attr -&gt; Int -&gt; Image
+</span><a href="Dep.Bricks.Utils.html#hline"><span class="hs-identifier hs-var hs-var">hline</span></a></span></span><span> </span><span id="local-6989586621679128215"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679128215"><span class="hs-identifier hs-var">ci</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Attr -&gt; Int -&gt; Image
+</span><a href="#local-6989586621679128214"><span class="hs-identifier hs-var">go</span></a></span><span>
+</span><span id="line-102"></span><span>  </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679128214"><span class="annot"><span class="annottext">go :: Attr -&gt; Int -&gt; Image
+</span><a href="#local-6989586621679128214"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span id="local-6989586621679128213"><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679128213"><span class="hs-identifier hs-var">atr</span></a></span></span><span> </span><span id="local-6989586621679128212"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128212"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Attr -&gt; Text -&gt; Image
+</span><span class="hs-identifier hs-var">text'</span></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679128213"><span class="hs-identifier hs-var">atr</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Text -&gt; Text
+</span><span class="hs-identifier hs-var">T.take</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128212"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Text -&gt; Text
+</span><span class="hs-identifier hs-var">T.replicate</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall i. Integral i =&gt; i -&gt; i -&gt; i
+</span><a href="Dep.Utils.html#udiv"><span class="hs-identifier hs-var">udiv</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128212"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Text -&gt; Int
+</span><span class="hs-identifier hs-var">T.length</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679128215"><span class="hs-identifier hs-var">ci</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679128215"><span class="hs-identifier hs-var">ci</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-103"></span><span>
+</span><span id="line-104"></span><span class="hs-comment">-- | A function equivalent to 'hline', but with a 'String' to specify the 'Char'acters instead of a 'Text' object.</span><span>
+</span><span id="line-105"></span><span class="annot"><a href="Dep.Bricks.Utils.html#hline%27"><span class="hs-identifier hs-type">hline'</span></a></span><span>
+</span><span id="line-106"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>  </span><span class="hs-comment">-- ^ The 'String' object that determines how to render the line. The items will be /cycled/.</span><span>
+</span><span id="line-107"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Attr</span></span><span>  </span><span class="hs-comment">-- ^ The 'Attr'ibute that determines how to render the line.</span><span>
+</span><span id="line-108"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>  </span><span class="hs-comment">-- ^ The given length of the line.</span><span>
+</span><span id="line-109"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Image</span></span><span>  </span><span class="hs-comment">-- ^ An 'Image' that contains a /horizontal/ line with the given length.</span><span>
+</span><span id="line-110"></span><span id="hline%27"><span class="annot"><span class="annottext">hline' :: String -&gt; Attr -&gt; Int -&gt; Image
+</span><a href="Dep.Bricks.Utils.html#hline%27"><span class="hs-identifier hs-var hs-var">hline'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Attr -&gt; Int -&gt; Image
+</span><a href="Dep.Bricks.Utils.html#hline"><span class="hs-identifier hs-var">hline</span></a></span><span> </span><span class="annot"><span class="annottext">(Text -&gt; Attr -&gt; Int -&gt; Image)
+-&gt; (String -&gt; Text) -&gt; String -&gt; Attr -&gt; Int -&gt; Image
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; Text
+</span><span class="hs-identifier hs-var">pack</span></span><span>
+</span><span id="line-111"></span><span>
+</span><span id="line-112"></span><span class="hs-comment">-- | Render a /vertical/ line by cycling through the given 'Text' and apply the given 'Attr'ibute to</span><span>
+</span><span id="line-113"></span><span class="hs-comment">-- the result.</span><span>
+</span><span id="line-114"></span><span class="annot"><a href="Dep.Bricks.Utils.html#vline"><span class="hs-identifier hs-type">vline</span></a></span><span>
+</span><span id="line-115"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>  </span><span class="hs-comment">-- ^ The 'String' object that determines how to render the line. The items will be /cycled/.</span><span>
+</span><span id="line-116"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Attr</span></span><span>  </span><span class="hs-comment">-- ^ The 'Attr'ibute that determines how to render the line.</span><span>
+</span><span id="line-117"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>  </span><span class="hs-comment">-- ^ The given length of the line.</span><span>
+</span><span id="line-118"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Image</span></span><span>  </span><span class="hs-comment">-- ^ An 'Image' that contains a /vertical/ line with the given length.</span><span>
+</span><span id="line-119"></span><span id="vline"><span class="annot"><span class="annottext">vline :: Text -&gt; Attr -&gt; Int -&gt; Image
+</span><a href="Dep.Bricks.Utils.html#vline"><span class="hs-identifier hs-var hs-var">vline</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String -&gt; Attr -&gt; Int -&gt; Image
+</span><a href="Dep.Bricks.Utils.html#vline%27"><span class="hs-identifier hs-var">vline'</span></a></span><span> </span><span class="annot"><span class="annottext">(String -&gt; Attr -&gt; Int -&gt; Image)
+-&gt; (Text -&gt; String) -&gt; Text -&gt; Attr -&gt; Int -&gt; Image
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; String
+</span><span class="hs-identifier hs-var">unpack</span></span><span>
+</span><span id="line-120"></span><span>
+</span><span id="line-121"></span><span class="hs-comment">-- | A function equivalent to 'vline', but with a 'String' to specify the 'Char'acters instead of a 'Text' object.</span><span>
+</span><span id="line-122"></span><span class="annot"><a href="Dep.Bricks.Utils.html#vline%27"><span class="hs-identifier hs-type">vline'</span></a></span><span>
+</span><span id="line-123"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>  </span><span class="hs-comment">-- ^ The 'String' object that determines how to render the line. The items will be /cycled/.</span><span>
+</span><span id="line-124"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Attr</span></span><span>  </span><span class="hs-comment">-- ^ The 'Attr'ibute that determines how to render the line.</span><span>
+</span><span id="line-125"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>  </span><span class="hs-comment">-- ^ The given length of the line.</span><span>
+</span><span id="line-126"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Image</span></span><span>  </span><span class="hs-comment">-- ^ An 'Image' that contains a /vertical/ line with the given length.</span><span>
+</span><span id="line-127"></span><span id="vline%27"><span class="annot"><span class="annottext">vline' :: String -&gt; Attr -&gt; Int -&gt; Image
+</span><a href="Dep.Bricks.Utils.html#vline%27"><span class="hs-identifier hs-var hs-var">vline'</span></a></span></span><span> </span><span id="local-6989586621679128211"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679128211"><span class="hs-identifier hs-var">ci</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Attr -&gt; Int -&gt; Image
+</span><a href="#local-6989586621679128210"><span class="hs-identifier hs-var">go</span></a></span><span>
+</span><span id="line-128"></span><span>  </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679128210"><span class="annot"><span class="annottext">go :: Attr -&gt; Int -&gt; Image
+</span><a href="#local-6989586621679128210"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span id="local-6989586621679128209"><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679128209"><span class="hs-identifier hs-var">atr</span></a></span></span><span> </span><span id="local-6989586621679128208"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128208"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Image] -&gt; Image
+</span><span class="hs-identifier hs-var">vertCat</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Char -&gt; Image) -&gt; String -&gt; [Image]
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Attr -&gt; Char -&gt; Image
+</span><span class="hs-identifier hs-var">char</span></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679128209"><span class="hs-identifier hs-var">atr</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; String -&gt; String
+forall a. Int -&gt; [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">take</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128208"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; String
+forall a. [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">cycle</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679128211"><span class="hs-identifier hs-var">ci</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-129"></span><span>
+</span><span id="line-130"></span><span class="hs-comment">-- | Wrap the given 'Image' in a raster structure with thick borders</span><span>
+</span><span id="line-131"></span><span class="hs-comment">-- and with small lines for the raster image in the middle.</span><span>
+</span><span id="line-132"></span><span class="annot"><a href="Dep.Bricks.Utils.html#inRaster"><span class="hs-identifier hs-type">inRaster</span></a></span><span>
+</span><span id="line-133"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Attr</span></span><span>  </span><span class="hs-comment">-- ^ The 'Attr'ibute that specifies how to render the raster border.</span><span>
+</span><span id="line-134"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Image</span></span><span>  </span><span class="hs-comment">-- ^ The 'Image' that we want to wrap in a /raster/.</span><span>
+</span><span id="line-135"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Image</span></span><span>  </span><span class="hs-comment">-- ^ An 'Image' that contains the given image wrapped in a /raster/.</span><span>
+</span><span id="line-136"></span><span id="inRaster"><span class="annot"><span class="annottext">inRaster :: Attr -&gt; Image -&gt; Image
+</span><a href="Dep.Bricks.Utils.html#inRaster"><span class="hs-identifier hs-var hs-var">inRaster</span></a></span></span><span> </span><span id="local-6989586621679128207"><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679128207"><span class="hs-identifier hs-var">atr</span></a></span></span><span> </span><span id="local-6989586621679128206"><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679128206"><span class="hs-identifier hs-var">img</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679128205"><span class="hs-identifier hs-var">top</span></a></span><span> </span><span class="annot"><span class="annottext">Image -&gt; Image -&gt; Image
+</span><span class="hs-operator hs-var">&lt;-&gt;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679128204"><span class="hs-identifier hs-var">lft</span></a></span><span> </span><span class="annot"><span class="annottext">Image -&gt; Image -&gt; Image
+</span><span class="hs-operator hs-var">&lt;|&gt;</span></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679128206"><span class="hs-identifier hs-var">img</span></a></span><span> </span><span class="annot"><span class="annottext">Image -&gt; Image -&gt; Image
+</span><span class="hs-operator hs-var">&lt;|&gt;</span></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679128203"><span class="hs-identifier hs-var">rght</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Image -&gt; Image -&gt; Image
+</span><span class="hs-operator hs-var">&lt;-&gt;</span></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679128202"><span class="hs-identifier hs-var">bot</span></a></span><span>
+</span><span id="line-137"></span><span>    </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679128201"><span class="annot"><span class="annottext">w :: Int
+</span><a href="#local-6989586621679128201"><span class="hs-identifier hs-var hs-var">w</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><span class="hs-identifier hs-var">imageWidth</span></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679128206"><span class="hs-identifier hs-var">img</span></a></span><span>
+</span><span id="line-138"></span><span>          </span><span id="local-6989586621679128200"><span class="annot"><span class="annottext">h :: Int
+</span><a href="#local-6989586621679128200"><span class="hs-identifier hs-var hs-var">h</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><span class="hs-identifier hs-var">imageHeight</span></span><span> </span><span class="annot"><span class="annottext">Image
+</span><a href="#local-6989586621679128206"><span class="hs-identifier hs-var">img</span></a></span><span>
+</span><span id="line-139"></span><span>          </span><span id="local-6989586621679128204"><span class="annot"><span class="annottext">lft :: Image
+</span><a href="#local-6989586621679128204"><span class="hs-identifier hs-var hs-var">lft</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Attr -&gt; Int -&gt; Image
+</span><a href="Dep.Bricks.Utils.html#vline"><span class="hs-identifier hs-var">vline</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;\x2503\x2520&quot;</span></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679128207"><span class="hs-identifier hs-var">atr</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128200"><span class="hs-identifier hs-var">h</span></a></span><span>
+</span><span id="line-140"></span><span>          </span><span id="local-6989586621679128203"><span class="annot"><span class="annottext">rght :: Image
+</span><a href="#local-6989586621679128203"><span class="hs-identifier hs-var hs-var">rght</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Attr -&gt; Int -&gt; Image
+</span><a href="Dep.Bricks.Utils.html#vline"><span class="hs-identifier hs-var">vline</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;\x2503\x2528&quot;</span></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679128207"><span class="hs-identifier hs-var">atr</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128200"><span class="hs-identifier hs-var">h</span></a></span><span>
+</span><span id="line-141"></span><span>          </span><span id="local-6989586621679128205"><span class="annot"><span class="annottext">top :: Image
+</span><a href="#local-6989586621679128205"><span class="hs-identifier hs-var hs-var">top</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Text -&gt; Char -&gt; Attr -&gt; Int -&gt; Image
+</span><a href="Dep.Bricks.Utils.html#harrow"><span class="hs-identifier hs-var">harrow</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x250f'</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;\x2501\x252f\x2501\x252f\x2501\x252f\x2501\x2513&quot;</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x2513'</span></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679128207"><span class="hs-identifier hs-var">atr</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128201"><span class="hs-identifier hs-var">w</span></a></span><span>
+</span><span id="line-142"></span><span>          </span><span id="local-6989586621679128202"><span class="annot"><span class="annottext">bot :: Image
+</span><a href="#local-6989586621679128202"><span class="hs-identifier hs-var hs-var">bot</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Text -&gt; Char -&gt; Attr -&gt; Int -&gt; Image
+</span><a href="Dep.Bricks.Utils.html#harrow"><span class="hs-identifier hs-var">harrow</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x2517'</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;\x2501\x2537&quot;</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x251b'</span></span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679128207"><span class="hs-identifier hs-var">atr</span></a></span><span>  </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128201"><span class="hs-identifier hs-var">w</span></a></span><span>
+</span><span id="line-143"></span><span>
+</span><span id="line-144"></span><span class="hs-comment">-- | Wrap the given list of 'String's in a raster structure with thick borders</span><span>
+</span><span id="line-145"></span><span class="hs-comment">-- and with small lines for the raster image in the middle.</span><span>
+</span><span id="line-146"></span><span class="annot"><a href="Dep.Bricks.Utils.html#inRaster%27"><span class="hs-identifier hs-type">inRaster'</span></a></span><span>
+</span><span id="line-147"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Dep.Bricks.Utils.html#Raster"><span class="hs-identifier hs-type">Raster</span></a></span><span>  </span><span class="hs-comment">-- ^ The given list of 'String's that we want to wrap in a /raster/.</span><span>
+</span><span id="line-148"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Bricks.Utils.html#Raster"><span class="hs-identifier hs-type">Raster</span></a></span><span>  </span><span class="hs-comment">-- ^ A list of 'String's that contains the given image wrapped in a /raster/.</span><span>
+</span><span id="line-149"></span><span id="inRaster%27"><span class="annot"><span class="annottext">inRaster' :: Raster -&gt; Raster
+</span><a href="Dep.Bricks.Utils.html#inRaster%27"><span class="hs-identifier hs-var hs-var">inRaster'</span></a></span></span><span> </span><span id="local-6989586621679128199"><span class="annot"><span class="annottext">Raster
+</span><a href="#local-6989586621679128199"><span class="hs-identifier hs-var">img</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x250f'</span></span><span> </span><span class="annot"><span class="annottext">Char -&gt; String -&gt; String
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; String -&gt; String
+forall a. Int -&gt; [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">take</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128198"><span class="hs-identifier hs-var">w</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; String
+forall a. [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">cycle</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\x2501\x252f\x2501\x252f\x2501\x252f\x2501\x2513 \x250f&quot;</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">String -&gt; String -&gt; String
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\x2513&quot;</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">String -&gt; Raster -&gt; Raster
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; String -&gt; Raster -&gt; Raster
+forall a. [a] -&gt; [a] -&gt; [[a]] -&gt; [[a]]
+</span><a href="#local-6989586621679128197"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; String
+forall a. [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">cycle</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\x2503\x2520\x2503\x2520\x2503\x2520\x2503\x2517 \x250f&quot;</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; String
+forall a. [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">cycle</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\x2503\x2528\x2503\x2528\x2503\x2528\x2503\x251b \x2513&quot;</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Raster
+</span><a href="#local-6989586621679128199"><span class="hs-identifier hs-var">img</span></a></span><span> </span><span class="annot"><span class="annottext">Raster -&gt; Raster -&gt; Raster
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x2517'</span></span><span> </span><span class="annot"><span class="annottext">Char -&gt; String -&gt; String
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; String -&gt; String
+forall a. Int -&gt; [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">take</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128198"><span class="hs-identifier hs-var">w</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; String
+forall a. [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">cycle</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\x2501\x2537\x2501\x2537\x2501\x2537\x2501\x251b \x2517&quot;</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">String -&gt; String -&gt; String
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\x251b&quot;</span></span><span class="hs-special">]</span><span>
+</span><span id="line-150"></span><span>    </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679128198"><span class="annot"><span class="annottext">w :: Int
+</span><a href="#local-6989586621679128198"><span class="hs-identifier hs-var hs-var">w</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Int] -&gt; Int
+forall (t :: * -&gt; *) a. (Foldable t, Ord a) =&gt; t a -&gt; a
+</span><span class="hs-identifier hs-var">maximum</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(String -&gt; Int) -&gt; Raster -&gt; [Int]
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; Int
+forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Int
+</span><span class="hs-identifier hs-var">length</span></span><span> </span><span class="annot"><span class="annottext">Raster
+</span><a href="#local-6989586621679128199"><span class="hs-identifier hs-var">img</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-151"></span><span>          </span><span id="local-6989586621679128197"><span class="annot"><span class="annottext">go :: [a] -&gt; [a] -&gt; [[a]] -&gt; [[a]]
+</span><a href="#local-6989586621679128197"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(a -&gt; a -&gt; [a] -&gt; [a]) -&gt; [a] -&gt; [a] -&gt; [[a]] -&gt; [[a]]
+forall a b c d. (a -&gt; b -&gt; c -&gt; d) -&gt; [a] -&gt; [b] -&gt; [c] -&gt; [d]
+</span><span class="hs-identifier hs-var">zipWith3</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679128193"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679128193"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span id="local-6989586621679128192"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679128192"><span class="hs-identifier hs-var">y</span></a></span></span><span> </span><span id="local-6989586621679128191"><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679128191"><span class="hs-identifier hs-var">z</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679128193"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; [a] -&gt; [a]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679128191"><span class="hs-identifier hs-var">z</span></a></span><span> </span><span class="annot"><span class="annottext">[a] -&gt; [a] -&gt; [a]
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679128192"><span class="hs-identifier hs-var">y</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-152"></span></pre></body></html>

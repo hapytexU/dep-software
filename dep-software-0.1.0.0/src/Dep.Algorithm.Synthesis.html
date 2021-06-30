@@ -1,0 +1,614 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE BangPatterns, Safe #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-comment">{-|
+Module      : Dep.Algorithm.Synthesis
+Description : A module to convert a 'Three' of 'ThreeValue's into a sum-of-products of a product-of-sums.
+Maintainer  : hapytexeu+gh@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+This module defines functions to generate a /sum-of-products/ or a /product-of-sums/ with the given
+function specified by a 'Three'.
+-}</span><span>
+</span><span id="line-13"></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Dep.Algorithm.Synthesis</span><span> </span><span class="hs-special">(</span><span>
+</span><span id="line-15"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Synthesize a 'Three'</span></span><span>
+</span><span id="line-16"></span><span>    </span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#synthesis"><span class="hs-identifier">synthesis</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#synthesis%27"><span class="hs-identifier">synthesis'</span></a></span><span>
+</span><span id="line-17"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#synthesisSOP"><span class="hs-identifier">synthesisSOP</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#synthesisSOP%27"><span class="hs-identifier">synthesisSOP'</span></a></span><span>
+</span><span id="line-18"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#synthesisPOS"><span class="hs-identifier">synthesisPOS</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#synthesisPOS%27"><span class="hs-identifier">synthesisPOS'</span></a></span><span>
+</span><span id="line-19"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Weigthed variants of the product and sum</span></span><span>
+</span><span id="line-20"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#WeightedProduct"><span class="hs-identifier">WeightedProduct</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#WeightedSum"><span class="hs-identifier">WeightedSum</span></a></span><span>
+</span><span id="line-21"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Create an upper and lowerbound Three</span></span><span>
+</span><span id="line-22"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#upperbound"><span class="hs-identifier">upperbound</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#lowerbound"><span class="hs-identifier">lowerbound</span></a></span><span>
+</span><span id="line-23"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Extract products and sums</span></span><span>
+</span><span id="line-24"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#extractProduct"><span class="hs-identifier">extractProduct</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#extractSum"><span class="hs-identifier">extractSum</span></a></span><span>
+</span><span id="line-25"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Processing a 'Three'</span></span><span>
+</span><span id="line-26"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#wipeout"><span class="hs-identifier">wipeout</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#wipeout%27"><span class="hs-identifier">wipeout'</span></a></span><span>
+</span><span id="line-27"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-28"></span><span>
+</span><span id="line-29"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Applicative</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-operator">(&lt;|&gt;)</span></span><span class="hs-special">)</span><span>
+</span><span id="line-30"></span><span>
+</span><span id="line-31"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Dep.Class.Opposite.html"><span class="hs-identifier">Dep.Class.Opposite</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Class.Opposite.html#opposite"><span class="hs-identifier">opposite</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-32"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Dep.Class.NonDeterministicWalkable.html"><span class="hs-identifier">Dep.Class.NonDeterministicWalkable</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Class.NonDeterministicWalkable.html#NonDeterministicWalkable"><span class="hs-identifier">NonDeterministicWalkable</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Class.NonDeterministicWalkable.html#allNstep"><span class="hs-identifier">allNstep</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-33"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Dep.Class.Simplify.html"><span class="hs-identifier">Dep.Class.Simplify</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Class.Simplify.html#simplify"><span class="hs-identifier">simplify</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-34"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Dep.Class.Walkable.html"><span class="hs-identifier">Dep.Class.Walkable</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Class.Walkable.html#Walkable"><span class="hs-identifier">Walkable</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Class.Walkable.html#allStep"><span class="hs-identifier">allStep</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Class.Walkable.html#allWalkValues"><span class="hs-identifier">allWalkValues</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-35"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Dep.Data.LogicItem.html"><span class="hs-identifier">Dep.Data.LogicItem</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.LogicItem.html#Item%27"><span class="hs-identifier">Item'</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-36"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Dep.Data.Product.html"><span class="hs-identifier">Dep.Data.Product</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Product.html#Product"><span class="hs-identifier">Product</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Product.html#Product"><span class="hs-identifier">Product</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Product.html#Product%27"><span class="hs-identifier">Product'</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Product.html#SumOfProducts"><span class="hs-identifier">SumOfProducts</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Product.html#SumOfProducts"><span class="hs-identifier">SumOfProducts</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Product.html#SumOfProducts%27"><span class="hs-identifier">SumOfProducts'</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-37"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Dep.Data.Sum.html"><span class="hs-identifier">Dep.Data.Sum</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Sum.html#ProductOfSums"><span class="hs-identifier">ProductOfSums</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Sum.html#ProductOfSums"><span class="hs-identifier">ProductOfSums</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#ProductOfSums%27"><span class="hs-identifier">ProductOfSums'</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#Sum%27"><span class="hs-identifier">Sum'</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#Sum"><span class="hs-identifier">Sum</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Sum.html#Sum"><span class="hs-identifier">Sum</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-38"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Dep.Data.Three.html"><span class="hs-identifier">Dep.Data.Three</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Three.html#Three"><span class="hs-identifier">Three</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Three.html#Leaf"><span class="hs-identifier">Leaf</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#Link"><span class="hs-identifier">Link</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#Split"><span class="hs-identifier">Split</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#depth"><span class="hs-identifier">depth</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#wipe"><span class="hs-identifier">wipe</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-39"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html"><span class="hs-identifier">Dep.Data.ThreeValue</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier">ThreeValue</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.ThreeValue.html#DontCare"><span class="hs-identifier">DontCare</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#Zero"><span class="hs-identifier">Zero</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#One"><span class="hs-identifier">One</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#fromBool"><span class="hs-identifier">fromBool</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#toLower"><span class="hs-identifier">toLower</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#toUpper"><span class="hs-identifier">toUpper</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-40"></span><span>
+</span><span id="line-41"></span><span class="hs-keyword">type</span><span> </span><span id="WeightedItem"><span class="annot"><a href="Dep.Algorithm.Synthesis.html#WeightedItem"><span class="hs-identifier hs-var">WeightedItem</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.LogicItem.html#Item%27"><span class="hs-identifier hs-type">Item'</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-42"></span><span>
+</span><span id="line-43"></span><span class="hs-comment">-- | A 2-tuple where the first item is the &quot;weight&quot; of the product, and the second one the corresponding 'Product''.</span><span>
+</span><span id="line-44"></span><span class="hs-keyword">type</span><span> </span><span id="WeightedProduct"><span class="annot"><a href="Dep.Algorithm.Synthesis.html#WeightedProduct"><span class="hs-identifier hs-var">WeightedProduct</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Product.html#Product%27"><span class="hs-identifier hs-type">Product'</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-45"></span><span>
+</span><span id="line-46"></span><span class="hs-comment">-- | A 2-tuple where the first item is the &quot;weight&quot; of the sum, and the second one the corresponding 'Sum''.</span><span>
+</span><span id="line-47"></span><span class="hs-keyword">type</span><span> </span><span id="WeightedSum"><span class="annot"><a href="Dep.Algorithm.Synthesis.html#WeightedSum"><span class="hs-identifier hs-var">WeightedSum</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#Sum%27"><span class="hs-identifier hs-type">Sum'</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-48"></span><span>
+</span><span id="line-49"></span><span class="hs-comment">-- | Create a /simplified/ 'Three' where the 'DontCare' and 'One' map to 'True';</span><span>
+</span><span id="line-50"></span><span class="hs-comment">-- and 'Zero' maps to 'False'.</span><span>
+</span><span id="line-51"></span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#upperbound"><span class="hs-identifier hs-type">upperbound</span></a></span><span>
+</span><span id="line-52"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#Three"><span class="hs-identifier hs-type">Three</span></a></span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span><span> </span><span class="hs-comment">-- ^ The given 'Three' of 'ThreeValue's where we calculate the /upperbound/ from.</span><span>
+</span><span id="line-53"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#Three"><span class="hs-identifier hs-type">Three</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span> </span><span class="hs-comment">-- ^ The corresponding /upperbound/.</span><span>
+</span><span id="line-54"></span><span id="upperbound"><span class="annot"><span class="annottext">upperbound :: Three ThreeValue -&gt; Three Bool
+</span><a href="Dep.Algorithm.Synthesis.html#upperbound"><span class="hs-identifier hs-var hs-var">upperbound</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Three Bool -&gt; Three Bool
+forall a. Simplify a =&gt; a -&gt; a
+</span><a href="Dep.Class.Simplify.html#simplify"><span class="hs-identifier hs-var">simplify</span></a></span><span> </span><span class="annot"><span class="annottext">(Three Bool -&gt; Three Bool)
+-&gt; (Three ThreeValue -&gt; Three Bool)
+-&gt; Three ThreeValue
+-&gt; Three Bool
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(ThreeValue -&gt; Bool) -&gt; Three ThreeValue -&gt; Three Bool
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="annot"><span class="annottext">ThreeValue -&gt; Bool
+</span><a href="Dep.Data.ThreeValue.html#toUpper"><span class="hs-identifier hs-var">toUpper</span></a></span><span>
+</span><span id="line-55"></span><span>
+</span><span id="line-56"></span><span class="hs-comment">-- | Create a /simplified/ 'Three' where the 'DontCare' and 'Zero' map to 'False';</span><span>
+</span><span id="line-57"></span><span class="hs-comment">-- and 'One' maps to 'True'.</span><span>
+</span><span id="line-58"></span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#lowerbound"><span class="hs-identifier hs-type">lowerbound</span></a></span><span>
+</span><span id="line-59"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#Three"><span class="hs-identifier hs-type">Three</span></a></span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span><span> </span><span class="hs-comment">-- ^ The given 'Three' of 'ThreeValue's where we calculate the /lowerbound/ from.</span><span>
+</span><span id="line-60"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#Three"><span class="hs-identifier hs-type">Three</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span> </span><span class="hs-comment">-- ^ The corresponding /lowerbound/.</span><span>
+</span><span id="line-61"></span><span id="lowerbound"><span class="annot"><span class="annottext">lowerbound :: Three ThreeValue -&gt; Three Bool
+</span><a href="Dep.Algorithm.Synthesis.html#lowerbound"><span class="hs-identifier hs-var hs-var">lowerbound</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Three Bool -&gt; Three Bool
+forall a. Simplify a =&gt; a -&gt; a
+</span><a href="Dep.Class.Simplify.html#simplify"><span class="hs-identifier hs-var">simplify</span></a></span><span> </span><span class="annot"><span class="annottext">(Three Bool -&gt; Three Bool)
+-&gt; (Three ThreeValue -&gt; Three Bool)
+-&gt; Three ThreeValue
+-&gt; Three Bool
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(ThreeValue -&gt; Bool) -&gt; Three ThreeValue -&gt; Three Bool
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="annot"><span class="annottext">ThreeValue -&gt; Bool
+</span><a href="Dep.Data.ThreeValue.html#toLower"><span class="hs-identifier hs-var">toLower</span></a></span><span>
+</span><span id="line-62"></span><span>
+</span><span id="line-63"></span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#_pushVal"><span class="hs-identifier hs-type">_pushVal</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Product.html#Product%27"><span class="hs-identifier hs-type">Product'</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Product.html#Product%27"><span class="hs-identifier hs-type">Product'</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-64"></span><span id="_pushVal"><span class="annot"><span class="annottext">_pushVal :: (Int -&gt; Int) -&gt; ThreeValue -&gt; (Int, Product') -&gt; (Int, Product')
+</span><a href="Dep.Algorithm.Synthesis.html#_pushVal"><span class="hs-identifier hs-var hs-var">_pushVal</span></a></span></span><span> </span><span id="local-6989586621679128096"><span class="annot"><span class="annottext">Int -&gt; Int
+</span><a href="#local-6989586621679128096"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span id="local-6989586621679128095"><span class="annot"><span class="annottext">ThreeValue
+</span><a href="#local-6989586621679128095"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int, Product') -&gt; (Int, Product')
+</span><a href="#local-6989586621679128094"><span class="hs-identifier hs-var">go</span></a></span><span>
+</span><span id="line-65"></span><span>    </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679128094"><span class="annot"><span class="annottext">go :: (Int, Product') -&gt; (Int, Product')
+</span><a href="#local-6989586621679128094"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="hs-glyph">~</span><span class="hs-special">(</span><span class="hs-glyph">!</span><span id="local-6989586621679128093"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128093"><span class="hs-identifier hs-var">n</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679128092"><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679128092"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int
+</span><a href="#local-6989586621679128096"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128093"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="#local-6989586621679128095"><span class="hs-identifier hs-var">x</span></a></span><span class="annot"><span class="annottext">ThreeValue -&gt; Product' -&gt; Product'
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679128092"><span class="hs-identifier hs-var">xs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-66"></span><span>
+</span><span id="line-67"></span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#_pushVal%27"><span class="hs-identifier hs-type">_pushVal'</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Product.html#Product%27"><span class="hs-identifier hs-type">Product'</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Product.html#Product%27"><span class="hs-identifier hs-type">Product'</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-68"></span><span id="_pushVal%27"><span class="annot"><span class="annottext">_pushVal' :: ThreeValue -&gt; (Int, Product') -&gt; (Int, Product')
+</span><a href="Dep.Algorithm.Synthesis.html#_pushVal%27"><span class="hs-identifier hs-var hs-var">_pushVal'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Int) -&gt; ThreeValue -&gt; (Int, Product') -&gt; (Int, Product')
+</span><a href="Dep.Algorithm.Synthesis.html#_pushVal"><span class="hs-identifier hs-var">_pushVal</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int
+forall a. Enum a =&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">succ</span></span><span>
+</span><span id="line-69"></span><span>
+</span><span id="line-70"></span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#_pushVal%27%27"><span class="hs-identifier hs-type">_pushVal''</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Product.html#Product%27"><span class="hs-identifier hs-type">Product'</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Product.html#Product%27"><span class="hs-identifier hs-type">Product'</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-71"></span><span id="_pushVal%27%27"><span class="annot"><span class="annottext">_pushVal'' :: (Int, Product') -&gt; (Int, Product')
+</span><a href="Dep.Algorithm.Synthesis.html#_pushVal%27%27"><span class="hs-identifier hs-var hs-var">_pushVal''</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Int) -&gt; ThreeValue -&gt; (Int, Product') -&gt; (Int, Product')
+</span><a href="Dep.Algorithm.Synthesis.html#_pushVal"><span class="hs-identifier hs-var">_pushVal</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int
+forall a. a -&gt; a
+</span><span class="hs-identifier hs-var">id</span></span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#DontCare"><span class="hs-identifier hs-var">DontCare</span></a></span><span>
+</span><span id="line-72"></span><span>
+</span><span id="line-73"></span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#extractItem"><span class="hs-identifier hs-type">extractItem</span></a></span><span>
+</span><span id="line-74"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span><span>  </span><span class="hs-comment">-- ^ The given 'ThreeValue' we are looking for. Typically this will be 'One' for a sum-of-products, and 'Zero' for a product of sums.</span><span>
+</span><span id="line-75"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>  </span><span class="hs-comment">-- Y The maximum depth of the 'Three'.</span><span>
+</span><span id="line-76"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#Three"><span class="hs-identifier hs-type">Three</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span> </span><span class="hs-comment">-- ^ A 'Three' of 'Bool's that specifies if 'One' can be assigned to it (so either 'One' or 'DontCare').</span><span>
+</span><span id="line-77"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#Three"><span class="hs-identifier hs-type">Three</span></a></span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span><span> </span><span class="hs-comment">-- ^ A 'Three' of 'ThreeValue's in which we search for the given element.</span><span>
+</span><span id="line-78"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#WeightedItem"><span class="hs-identifier hs-type">WeightedItem</span></a></span><span>  </span><span class="hs-comment">-- ^ A path to a 'Leaf; with the given 'ThreeValue' together with the number of 'Zero's and 'One's in that path. If no path is found 'Nothing' is returned.</span><span>
+</span><span id="line-79"></span><span id="extractItem"><span class="annot"><span class="annottext">extractItem :: ThreeValue
+-&gt; Int -&gt; Three Bool -&gt; Three ThreeValue -&gt; Maybe (Int, Product')
+</span><a href="Dep.Algorithm.Synthesis.html#extractItem"><span class="hs-identifier hs-var hs-var">extractItem</span></a></span></span><span> </span><span id="local-6989586621679128086"><span class="annot"><span class="annottext">ThreeValue
+</span><a href="#local-6989586621679128086"><span class="hs-identifier hs-var">x'</span></a></span></span><span> </span><span id="local-6989586621679128085"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128085"><span class="hs-identifier hs-var">k</span></a></span></span><span> </span><span class="annot"><span class="annottext">Three Bool
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Three ThreeValue -&gt; Maybe (Int, Product')
+</span><a href="#local-6989586621679128084"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128085"><span class="hs-identifier hs-var">k</span></a></span><span>
+</span><span id="line-80"></span><span>  </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679128084"><span class="annot"><span class="annottext">go :: Int -&gt; Three ThreeValue -&gt; Maybe (Int, Product')
+</span><a href="#local-6989586621679128084"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679128083"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128083"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Three.html#Leaf"><span class="hs-identifier hs-type">Leaf</span></a></span><span> </span><span id="local-6989586621679128082"><span class="annot"><span class="annottext">ThreeValue
+</span><a href="#local-6989586621679128082"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">)</span><span>
+</span><span id="line-81"></span><span>          </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="#local-6989586621679128082"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">ThreeValue -&gt; ThreeValue -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="#local-6989586621679128086"><span class="hs-identifier hs-var">x'</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int, Product') -&gt; Maybe (Int, Product')
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int -&gt; ThreeValue -&gt; Product'
+forall a. Int -&gt; a -&gt; [a]
+</span><span class="hs-identifier hs-var">replicate</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128083"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#DontCare"><span class="hs-identifier hs-var">DontCare</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-82"></span><span>          </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe (Int, Product')
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-83"></span><span>        </span><span class="annot"><a href="#local-6989586621679128084"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span id="local-6989586621679128080"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128080"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Three.html#Link"><span class="hs-identifier hs-type">Link</span></a></span><span> </span><span id="local-6989586621679128079"><span class="annot"><span class="annottext">Three ThreeValue
+</span><a href="#local-6989586621679128079"><span class="hs-identifier hs-var">l</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int, Product') -&gt; (Int, Product')
+</span><a href="Dep.Algorithm.Synthesis.html#_pushVal%27%27"><span class="hs-identifier hs-var">_pushVal''</span></a></span><span> </span><span class="annot"><span class="annottext">((Int, Product') -&gt; (Int, Product'))
+-&gt; Maybe (Int, Product') -&gt; Maybe (Int, Product')
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Three ThreeValue -&gt; Maybe (Int, Product')
+</span><a href="#local-6989586621679128084"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128080"><span class="hs-identifier hs-var">n</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Three ThreeValue
+</span><a href="#local-6989586621679128079"><span class="hs-identifier hs-var">l</span></a></span><span>
+</span><span id="line-84"></span><span>        </span><span class="annot"><a href="#local-6989586621679128084"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span id="local-6989586621679128077"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128077"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">~</span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Three.html#Split"><span class="hs-identifier hs-type">Split</span></a></span><span> </span><span id="local-6989586621679128076"><span class="annot"><span class="annottext">Three ThreeValue
+</span><a href="#local-6989586621679128076"><span class="hs-identifier hs-var">la</span></a></span></span><span> </span><span id="local-6989586621679128075"><span class="annot"><span class="annottext">Three ThreeValue
+</span><a href="#local-6989586621679128075"><span class="hs-identifier hs-var">lb</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">((Int, Product') -&gt; (Int, Product'))
+-&gt; Maybe (Int, Product') -&gt; Maybe (Int, Product')
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ThreeValue -&gt; (Int, Product') -&gt; (Int, Product')
+</span><a href="Dep.Algorithm.Synthesis.html#_pushVal%27"><span class="hs-identifier hs-var">_pushVal'</span></a></span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#Zero"><span class="hs-identifier hs-var">Zero</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Three ThreeValue -&gt; Maybe (Int, Product')
+</span><a href="#local-6989586621679128084"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128077"><span class="hs-identifier hs-var">n</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Three ThreeValue
+</span><a href="#local-6989586621679128076"><span class="hs-identifier hs-var">la</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Maybe (Int, Product')
+-&gt; Maybe (Int, Product') -&gt; Maybe (Int, Product')
+forall (f :: * -&gt; *) a. Alternative f =&gt; f a -&gt; f a -&gt; f a
+</span><span class="hs-operator hs-var">&lt;|&gt;</span></span><span> </span><span class="annot"><span class="annottext">((Int, Product') -&gt; (Int, Product'))
+-&gt; Maybe (Int, Product') -&gt; Maybe (Int, Product')
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ThreeValue -&gt; (Int, Product') -&gt; (Int, Product')
+</span><a href="Dep.Algorithm.Synthesis.html#_pushVal%27"><span class="hs-identifier hs-var">_pushVal'</span></a></span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#One"><span class="hs-identifier hs-var">One</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Three ThreeValue -&gt; Maybe (Int, Product')
+</span><a href="#local-6989586621679128084"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128077"><span class="hs-identifier hs-var">n</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Three ThreeValue
+</span><a href="#local-6989586621679128075"><span class="hs-identifier hs-var">lb</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-85"></span><span>
+</span><span id="line-86"></span><span>
+</span><span id="line-87"></span><span class="hs-comment">-- | Obtain a 'Product'' together with the number of inputs for the AND gate if the 'Three'</span><span>
+</span><span id="line-88"></span><span class="hs-comment">-- contains at least one 'One'.</span><span>
+</span><span id="line-89"></span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#extractProduct"><span class="hs-identifier hs-type">extractProduct</span></a></span><span>
+</span><span id="line-90"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>  </span><span class="hs-comment">-- ^ The maximum depth of the 'Three'.</span><span>
+</span><span id="line-91"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#Three"><span class="hs-identifier hs-type">Three</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span> </span><span class="hs-comment">-- ^ A 'Three' of 'Bool's that specifies if 'One' can be assigned to it (so either 'One' or 'DontCare').</span><span>
+</span><span id="line-92"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#Three"><span class="hs-identifier hs-type">Three</span></a></span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span><span> </span><span class="hs-comment">-- ^ The 'Three' of 'ThreeValue's where we try to search for an item.</span><span>
+</span><span id="line-93"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#WeightedProduct"><span class="hs-identifier hs-type">WeightedProduct</span></a></span><span> </span><span class="hs-comment">-- ^ A 2-tuple that contains the path to the leaf and the number of 'Zero's and 'One's in the path that measure the &quot;weight&quot; of the AND gate of the product.</span><span>
+</span><span id="line-94"></span><span id="extractProduct"><span class="annot"><span class="annottext">extractProduct :: Int -&gt; Three Bool -&gt; Three ThreeValue -&gt; Maybe (Int, Product')
+</span><a href="Dep.Algorithm.Synthesis.html#extractProduct"><span class="hs-identifier hs-var hs-var">extractProduct</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ThreeValue
+-&gt; Int -&gt; Three Bool -&gt; Three ThreeValue -&gt; Maybe (Int, Product')
+</span><a href="Dep.Algorithm.Synthesis.html#extractItem"><span class="hs-identifier hs-var">extractItem</span></a></span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#One"><span class="hs-identifier hs-var">One</span></a></span><span>
+</span><span id="line-95"></span><span>
+</span><span id="line-96"></span><span class="hs-comment">-- | Obtain a 'Sum'' together with the number of inputs for the OR gates if the 'Three'</span><span>
+</span><span id="line-97"></span><span class="hs-comment">-- contains at least one 'Zero'.</span><span>
+</span><span id="line-98"></span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#extractSum"><span class="hs-identifier hs-type">extractSum</span></a></span><span>
+</span><span id="line-99"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>  </span><span class="hs-comment">-- ^ The maximum depth of the 'Three'.</span><span>
+</span><span id="line-100"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#Three"><span class="hs-identifier hs-type">Three</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span> </span><span class="hs-comment">-- ^ A 'Three' of 'Bool's that specifies if 'Zero' can be assigned to it (so either 'Zero' or 'DontCare').</span><span>
+</span><span id="line-101"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#Three"><span class="hs-identifier hs-type">Three</span></a></span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span><span> </span><span class="hs-comment">-- ^ The 'Three' of 'ThreeValue's where we try to search for an item.</span><span>
+</span><span id="line-102"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#WeightedSum"><span class="hs-identifier hs-type">WeightedSum</span></a></span><span> </span><span class="hs-comment">-- ^ A 2-tuple that contains the path to the leaf and the number of 'Zero's and 'One's in the path that measure the &quot;weight&quot; of the OR gate of the product.</span><span>
+</span><span id="line-103"></span><span id="extractSum"><span class="annot"><span class="annottext">extractSum :: Int -&gt; Three Bool -&gt; Three ThreeValue -&gt; Maybe (Int, Product')
+</span><a href="Dep.Algorithm.Synthesis.html#extractSum"><span class="hs-identifier hs-var hs-var">extractSum</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ThreeValue
+-&gt; Int -&gt; Three Bool -&gt; Three ThreeValue -&gt; Maybe (Int, Product')
+</span><a href="Dep.Algorithm.Synthesis.html#extractItem"><span class="hs-identifier hs-var">extractItem</span></a></span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#Zero"><span class="hs-identifier hs-var">Zero</span></a></span><span>
+</span><span id="line-104"></span><span>
+</span><span id="line-105"></span><span class="hs-comment">-- | Convert the items that are accessed by the 'Product''</span><span>
+</span><span id="line-106"></span><span class="hs-comment">-- to a 'DontCare', and simplify the 'Three'. After wiping</span><span>
+</span><span id="line-107"></span><span class="hs-comment">-- out values, the 'Three' is simplified.</span><span>
+</span><span id="line-108"></span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#wipeout"><span class="hs-identifier hs-type">wipeout</span></a></span><span>
+</span><span id="line-109"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Dep.Data.Product.html#Product%27"><span class="hs-identifier hs-type">Product'</span></a></span><span> </span><span class="hs-comment">-- ^ The product that specifies the path of the element(s) to set to 'DontCare'.</span><span>
+</span><span id="line-110"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#Three"><span class="hs-identifier hs-type">Three</span></a></span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span><span>  </span><span class="hs-comment">-- ^ The original 'Three' of 'ThreeValue's where we want to convert parts to 'DontCare'.</span><span>
+</span><span id="line-111"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#Three"><span class="hs-identifier hs-type">Three</span></a></span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span><span>  </span><span class="hs-comment">-- ^ The resulting 'Three' of 'ThreeValue's where items that match the path are wiped out.</span><span>
+</span><span id="line-112"></span><span id="wipeout"><span class="annot"><span class="annottext">wipeout :: Product' -&gt; Three ThreeValue -&gt; Three ThreeValue
+</span><a href="Dep.Algorithm.Synthesis.html#wipeout"><span class="hs-identifier hs-var hs-var">wipeout</span></a></span></span><span> </span><span id="local-6989586621679128074"><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679128074"><span class="hs-identifier hs-var">path</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Three ThreeValue -&gt; Three ThreeValue
+forall a. Simplify a =&gt; a -&gt; a
+</span><a href="Dep.Class.Simplify.html#simplify"><span class="hs-identifier hs-var">simplify</span></a></span><span> </span><span class="annot"><span class="annottext">(Three ThreeValue -&gt; Three ThreeValue)
+-&gt; (Three ThreeValue -&gt; Three ThreeValue)
+-&gt; Three ThreeValue
+-&gt; Three ThreeValue
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Product' -&gt; Three ThreeValue -&gt; Three ThreeValue
+</span><a href="Dep.Algorithm.Synthesis.html#wipeout%27"><span class="hs-identifier hs-var">wipeout'</span></a></span><span> </span><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679128074"><span class="hs-identifier hs-var">path</span></a></span><span>
+</span><span id="line-113"></span><span>
+</span><span id="line-114"></span><span class="hs-comment">-- | Convert the items that are accessed by the 'Product''</span><span>
+</span><span id="line-115"></span><span class="hs-comment">-- to a 'DontCare', and simplify the 'Three'.</span><span>
+</span><span id="line-116"></span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#wipeout%27"><span class="hs-identifier hs-type">wipeout'</span></a></span><span>
+</span><span id="line-117"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Dep.Data.Product.html#Product%27"><span class="hs-identifier hs-type">Product'</span></a></span><span> </span><span class="hs-comment">-- ^ The product that specifies the path of the element(s) to set to 'DontCare'.</span><span>
+</span><span id="line-118"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#Three"><span class="hs-identifier hs-type">Three</span></a></span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span><span>  </span><span class="hs-comment">-- ^ The original 'Three' of 'ThreeValue's where we want to convert parts to 'DontCare'.</span><span>
+</span><span id="line-119"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#Three"><span class="hs-identifier hs-type">Three</span></a></span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span><span>  </span><span class="hs-comment">-- ^ The resulting 'Three' of 'ThreeValue's where items that match the path are wiped out.</span><span>
+</span><span id="line-120"></span><span id="wipeout%27"><span class="annot"><span class="annottext">wipeout' :: Product' -&gt; Three ThreeValue -&gt; Three ThreeValue
+</span><a href="Dep.Algorithm.Synthesis.html#wipeout%27"><span class="hs-identifier hs-var hs-var">wipeout'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ThreeValue -&gt; Product' -&gt; Three ThreeValue -&gt; Three ThreeValue
+forall a. a -&gt; Product' -&gt; Three a -&gt; Three a
+</span><a href="Dep.Data.Three.html#wipe"><span class="hs-identifier hs-var">wipe</span></a></span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#DontCare"><span class="hs-identifier hs-var">DontCare</span></a></span><span>
+</span><span id="line-121"></span><span>
+</span><span id="line-122"></span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#mergeSide"><span class="hs-identifier hs-type">mergeSide</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#WeightedItem"><span class="hs-identifier hs-type">WeightedItem</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Product.html#Product%27"><span class="hs-identifier hs-type">Product'</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#WeightedItem"><span class="hs-identifier hs-type">WeightedItem</span></a></span><span>
+</span><span id="line-123"></span><span id="mergeSide"><span class="annot"><span class="annottext">mergeSide :: (Int -&gt; Maybe (Int, Product'))
+-&gt; Int -&gt; Maybe (Int, Product') -&gt; Maybe (Int, Product')
+</span><a href="Dep.Algorithm.Synthesis.html#mergeSide"><span class="hs-identifier hs-var hs-var">mergeSide</span></a></span></span><span> </span><span id="local-6989586621679128072"><span class="annot"><span class="annottext">Int -&gt; Maybe (Int, Product')
+</span><a href="#local-6989586621679128072"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span id="local-6989586621679128071"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128071"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe (Int, Product') -&gt; Maybe (Int, Product')
+</span><a href="#local-6989586621679128070"><span class="hs-identifier hs-var">go</span></a></span><span>
+</span><span id="line-124"></span><span>    </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679128070"><span class="annot"><span class="annottext">go :: Maybe (Int, Product') -&gt; Maybe (Int, Product')
+</span><a href="#local-6989586621679128070"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="annot"><span class="annottext">Maybe (Int, Product')
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Maybe (Int, Product')
+</span><a href="#local-6989586621679128072"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128071"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-125"></span><span>          </span><span class="annot"><a href="#local-6989586621679128070"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span id="local-6989586621679128069"><span class="annot"><span class="annottext">j :: Maybe (Int, Product')
+</span><a href="#local-6989586621679128069"><span class="hs-identifier hs-var">j</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="hs-glyph">~</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-glyph">~</span><span class="hs-special">(</span><span id="local-6989586621679128068"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128068"><span class="hs-identifier hs-var">k</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Product'
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Maybe (Int, Product')
+</span><a href="#local-6989586621679128072"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128068"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe (Int, Product')
+-&gt; Maybe (Int, Product') -&gt; Maybe (Int, Product')
+forall (f :: * -&gt; *) a. Alternative f =&gt; f a -&gt; f a -&gt; f a
+</span><span class="hs-operator hs-var">&lt;|&gt;</span></span><span> </span><span class="annot"><span class="annottext">Maybe (Int, Product')
+</span><a href="#local-6989586621679128069"><span class="hs-identifier hs-var">j</span></a></span><span>
+</span><span id="line-126"></span><span>
+</span><span id="line-127"></span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#_minimizeItem%27"><span class="hs-identifier hs-type">_minimizeItem'</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Dep.Data.Three.html#Three"><span class="hs-identifier hs-type">Three</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#WeightedItem"><span class="hs-identifier hs-type">WeightedItem</span></a></span><span>
+</span><span id="line-128"></span><span id="_minimizeItem%27"><span class="annot"><span class="annottext">_minimizeItem' :: ([Bool] -&gt; Bool)
+-&gt; Int -&gt; [Bool] -&gt; [Three Bool] -&gt; Maybe (Int, Product')
+</span><a href="Dep.Algorithm.Synthesis.html#_minimizeItem%27"><span class="hs-identifier hs-var hs-var">_minimizeItem'</span></a></span></span><span> </span><span class="annot"><span class="annottext">[Bool] -&gt; Bool
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679128066"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128066"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="annot"><span class="annottext">[Bool]
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">[Three Bool]
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128066"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe (Int, Product')
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-129"></span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#_minimizeItem%27"><span class="hs-identifier hs-var">_minimizeItem'</span></a></span><span> </span><span class="annot"><span class="annottext">[Bool] -&gt; Bool
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="annot"><span class="annottext">[Three Bool]
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int, Product') -&gt; Maybe (Int, Product')
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">,</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-130"></span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#_minimizeItem%27"><span class="hs-identifier hs-var">_minimizeItem'</span></a></span><span> </span><span id="local-6989586621679128064"><span class="annot"><span class="annottext">[Bool] -&gt; Bool
+</span><a href="#local-6989586621679128064"><span class="hs-identifier hs-var">mg</span></a></span></span><span> </span><span id="local-6989586621679128063"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128063"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">~</span><span class="hs-special">(</span><span id="local-6989586621679128062"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679128062"><span class="hs-identifier hs-var">x</span></a></span></span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span id="local-6989586621679128061"><span class="annot"><span class="annottext">[Bool]
+</span><a href="#local-6989586621679128061"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679128060"><span class="annot"><span class="annottext">[Three Bool]
+</span><a href="#local-6989586621679128060"><span class="hs-identifier hs-var">thr</span></a></span></span><span>
+</span><span id="line-131"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">[Bool] -&gt; Bool
+</span><a href="#local-6989586621679128064"><span class="hs-identifier hs-var">mg</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[Three Bool] -&gt; [Bool] -&gt; [Bool]
+forall (f :: * -&gt; *) step (g :: * -&gt; *) (h :: * -&gt; *) a.
+(Walkable f step, Foldable f, Foldable g, Functor g, Foldable h) =&gt;
+g (f a) -&gt; h step -&gt; [a]
+</span><a href="Dep.Class.Walkable.html#allWalkValues"><span class="hs-identifier hs-var">allWalkValues</span></a></span><span> </span><span class="annot"><span class="annottext">[Three Bool]
+</span><a href="#local-6989586621679128059"><span class="hs-identifier hs-var">stepdc</span></a></span><span> </span><span class="annot"><span class="annottext">[Bool]
+</span><a href="#local-6989586621679128061"><span class="hs-identifier hs-var">xs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Maybe (Int, Product'))
+-&gt; Int -&gt; Maybe (Int, Product') -&gt; Maybe (Int, Product')
+</span><a href="Dep.Algorithm.Synthesis.html#mergeSide"><span class="hs-identifier hs-var">mergeSide</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679128058"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128058"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">(Int, Product') -&gt; (Int, Product')
+</span><a href="#local-6989586621679128057"><span class="hs-identifier hs-var">pshVal</span></a></span><span> </span><span class="annot"><span class="annottext">((Int, Product') -&gt; (Int, Product'))
+-&gt; Maybe (Int, Product') -&gt; Maybe (Int, Product')
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">([Bool] -&gt; Bool)
+-&gt; Int -&gt; [Bool] -&gt; [Three Bool] -&gt; Maybe (Int, Product')
+</span><a href="Dep.Algorithm.Synthesis.html#_minimizeItem%27"><span class="hs-identifier hs-var">_minimizeItem'</span></a></span><span> </span><span class="annot"><span class="annottext">[Bool] -&gt; Bool
+</span><a href="#local-6989586621679128064"><span class="hs-identifier hs-var">mg</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128058"><span class="hs-identifier hs-var">i</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[Bool]
+</span><a href="#local-6989586621679128061"><span class="hs-identifier hs-var">xs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[Three Bool] -&gt; Bool -&gt; [Three Bool]
+forall (f :: * -&gt; *) step (g :: * -&gt; *) a.
+(Walkable f step, Functor g) =&gt;
+g (f a) -&gt; step -&gt; g (f a)
+</span><a href="Dep.Class.Walkable.html#allStep"><span class="hs-identifier hs-var">allStep</span></a></span><span> </span><span class="annot"><span class="annottext">[Three Bool]
+</span><a href="#local-6989586621679128060"><span class="hs-identifier hs-var">thr</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679128062"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128063"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Int, Product') -&gt; (Int, Product')
+</span><a href="Dep.Algorithm.Synthesis.html#_pushVal%27%27"><span class="hs-identifier hs-var">_pushVal''</span></a></span><span> </span><span class="annot"><span class="annottext">((Int, Product') -&gt; (Int, Product'))
+-&gt; Maybe (Int, Product') -&gt; Maybe (Int, Product')
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">([Bool] -&gt; Bool)
+-&gt; Int -&gt; [Bool] -&gt; [Three Bool] -&gt; Maybe (Int, Product')
+</span><a href="Dep.Algorithm.Synthesis.html#_minimizeItem%27"><span class="hs-identifier hs-var">_minimizeItem'</span></a></span><span> </span><span class="annot"><span class="annottext">[Bool] -&gt; Bool
+</span><a href="#local-6989586621679128064"><span class="hs-identifier hs-var">mg</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128063"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">[Bool]
+</span><a href="#local-6989586621679128061"><span class="hs-identifier hs-var">xs</span></a></span><span> </span><span class="annot"><span class="annottext">[Three Bool]
+</span><a href="#local-6989586621679128059"><span class="hs-identifier hs-var">stepdc</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-132"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int, Product') -&gt; (Int, Product')
+</span><a href="#local-6989586621679128057"><span class="hs-identifier hs-var">pshVal</span></a></span><span> </span><span class="annot"><span class="annottext">((Int, Product') -&gt; (Int, Product'))
+-&gt; Maybe (Int, Product') -&gt; Maybe (Int, Product')
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">([Bool] -&gt; Bool)
+-&gt; Int -&gt; [Bool] -&gt; [Three Bool] -&gt; Maybe (Int, Product')
+</span><a href="Dep.Algorithm.Synthesis.html#_minimizeItem%27"><span class="hs-identifier hs-var">_minimizeItem'</span></a></span><span> </span><span class="annot"><span class="annottext">[Bool] -&gt; Bool
+</span><a href="#local-6989586621679128064"><span class="hs-identifier hs-var">mg</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128063"><span class="hs-identifier hs-var">n</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[Bool]
+</span><a href="#local-6989586621679128061"><span class="hs-identifier hs-var">xs</span></a></span><span> </span><span class="annot"><span class="annottext">[Three Bool]
+</span><a href="#local-6989586621679128056"><span class="hs-identifier hs-var">stepx</span></a></span><span>
+</span><span id="line-133"></span><span>  </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679128059"><span class="annot"><span class="annottext">stepdc :: [Three Bool]
+</span><a href="#local-6989586621679128059"><span class="hs-identifier hs-var hs-var">stepdc</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Three Bool] -&gt; ThreeValue -&gt; [Three Bool]
+forall (f :: * -&gt; *) step (g :: * -&gt; *) a.
+(NonDeterministicWalkable f step, Foldable g) =&gt;
+g (f a) -&gt; step -&gt; [f a]
+</span><a href="Dep.Class.NonDeterministicWalkable.html#allNstep"><span class="hs-identifier hs-var">allNstep</span></a></span><span> </span><span class="annot"><span class="annottext">[Three Bool]
+</span><a href="#local-6989586621679128060"><span class="hs-identifier hs-var">thr</span></a></span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#DontCare"><span class="hs-identifier hs-var">DontCare</span></a></span><span>
+</span><span id="line-134"></span><span>        </span><span id="local-6989586621679128056"><span class="annot"><span class="annottext">stepx :: [Three Bool]
+</span><a href="#local-6989586621679128056"><span class="hs-identifier hs-var hs-var">stepx</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Three Bool] -&gt; Bool -&gt; [Three Bool]
+forall (f :: * -&gt; *) step (g :: * -&gt; *) a.
+(Walkable f step, Functor g) =&gt;
+g (f a) -&gt; step -&gt; g (f a)
+</span><a href="Dep.Class.Walkable.html#allStep"><span class="hs-identifier hs-var">allStep</span></a></span><span> </span><span class="annot"><span class="annottext">[Three Bool]
+</span><a href="#local-6989586621679128060"><span class="hs-identifier hs-var">thr</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679128062"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-135"></span><span>        </span><span id="local-6989586621679128057"><span class="annot"><span class="annottext">pshVal :: (Int, Product') -&gt; (Int, Product')
+</span><a href="#local-6989586621679128057"><span class="hs-identifier hs-var hs-var">pshVal</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ThreeValue -&gt; (Int, Product') -&gt; (Int, Product')
+</span><a href="Dep.Algorithm.Synthesis.html#_pushVal%27"><span class="hs-identifier hs-var">_pushVal'</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool -&gt; ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#fromBool"><span class="hs-identifier hs-var">fromBool</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679128062"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-136"></span><span>
+</span><span id="line-137"></span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#minimizeProduct%27"><span class="hs-identifier hs-type">minimizeProduct'</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Dep.Data.Three.html#Three"><span class="hs-identifier hs-type">Three</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#WeightedProduct"><span class="hs-identifier hs-type">WeightedProduct</span></a></span><span>
+</span><span id="line-138"></span><span id="minimizeProduct%27"><span class="annot"><span class="annottext">minimizeProduct' :: Int -&gt; [Bool] -&gt; [Three Bool] -&gt; Maybe (Int, Product')
+</span><a href="Dep.Algorithm.Synthesis.html#minimizeProduct%27"><span class="hs-identifier hs-var hs-var">minimizeProduct'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">([Bool] -&gt; Bool)
+-&gt; Int -&gt; [Bool] -&gt; [Three Bool] -&gt; Maybe (Int, Product')
+</span><a href="Dep.Algorithm.Synthesis.html#_minimizeItem%27"><span class="hs-identifier hs-var">_minimizeItem'</span></a></span><span> </span><span class="annot"><span class="annottext">[Bool] -&gt; Bool
+forall (t :: * -&gt; *). Foldable t =&gt; t Bool -&gt; Bool
+</span><span class="hs-identifier hs-var">and</span></span><span>
+</span><span id="line-139"></span><span>
+</span><span id="line-140"></span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#minimizeSum%27"><span class="hs-identifier hs-type">minimizeSum'</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Dep.Data.Three.html#Three"><span class="hs-identifier hs-type">Three</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#WeightedSum"><span class="hs-identifier hs-type">WeightedSum</span></a></span><span>
+</span><span id="line-141"></span><span id="minimizeSum%27"><span class="annot"><span class="annottext">minimizeSum' :: Int -&gt; [Bool] -&gt; [Three Bool] -&gt; Maybe (Int, Product')
+</span><a href="Dep.Algorithm.Synthesis.html#minimizeSum%27"><span class="hs-identifier hs-var hs-var">minimizeSum'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">([Bool] -&gt; Bool)
+-&gt; Int -&gt; [Bool] -&gt; [Three Bool] -&gt; Maybe (Int, Product')
+</span><a href="Dep.Algorithm.Synthesis.html#_minimizeItem%27"><span class="hs-identifier hs-var">_minimizeItem'</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool -&gt; Bool
+</span><span class="hs-identifier hs-var">not</span></span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; Bool) -&gt; ([Bool] -&gt; Bool) -&gt; [Bool] -&gt; Bool
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">[Bool] -&gt; Bool
+forall (t :: * -&gt; *). Foldable t =&gt; t Bool -&gt; Bool
+</span><span class="hs-identifier hs-var">or</span></span><span class="hs-special">)</span><span>
+</span><span id="line-142"></span><span>
+</span><span id="line-143"></span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#minimizeProduct"><span class="hs-identifier hs-type">minimizeProduct</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Product.html#Product%27"><span class="hs-identifier hs-type">Product'</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#Three"><span class="hs-identifier hs-type">Three</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Product.html#Product%27"><span class="hs-identifier hs-type">Product'</span></a></span><span>
+</span><span id="line-144"></span><span id="minimizeProduct"><span class="annot"><span class="annottext">minimizeProduct :: Int -&gt; Product' -&gt; Three Bool -&gt; Product'
+</span><a href="Dep.Algorithm.Synthesis.html#minimizeProduct"><span class="hs-identifier hs-var hs-var">minimizeProduct</span></a></span></span><span> </span><span id="local-6989586621679128049"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128049"><span class="hs-identifier hs-var">wght</span></a></span></span><span> </span><span id="local-6989586621679128048"><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679128048"><span class="hs-identifier hs-var">prd</span></a></span></span><span> </span><span id="local-6989586621679128047"><span class="annot"><span class="annottext">Three Bool
+</span><a href="#local-6989586621679128047"><span class="hs-identifier hs-var">thr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Product'
+-&gt; ((Int, Product') -&gt; Product')
+-&gt; Maybe (Int, Product')
+-&gt; Product'
+forall b a. b -&gt; (a -&gt; b) -&gt; Maybe a -&gt; b
+</span><span class="hs-identifier hs-var">maybe</span></span><span> </span><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679128048"><span class="hs-identifier hs-var">prd</span></a></span><span> </span><span class="annot"><span class="annottext">(Int, Product') -&gt; Product'
+forall a b. (a, b) -&gt; b
+</span><span class="hs-identifier hs-var">snd</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; [Bool] -&gt; [Three Bool] -&gt; Maybe (Int, Product')
+</span><a href="Dep.Algorithm.Synthesis.html#minimizeProduct%27"><span class="hs-identifier hs-var">minimizeProduct'</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128049"><span class="hs-identifier hs-var">wght</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(ThreeValue -&gt; Bool) -&gt; Product' -&gt; [Bool]
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="annot"><span class="annottext">ThreeValue -&gt; Bool
+</span><a href="Dep.Data.ThreeValue.html#toUpper"><span class="hs-identifier hs-var">toUpper</span></a></span><span> </span><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679128048"><span class="hs-identifier hs-var">prd</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Three Bool
+</span><a href="#local-6989586621679128047"><span class="hs-identifier hs-var">thr</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-145"></span><span>
+</span><span id="line-146"></span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#minimizeSum"><span class="hs-identifier hs-type">minimizeSum</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#Sum%27"><span class="hs-identifier hs-type">Sum'</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#Three"><span class="hs-identifier hs-type">Three</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#Sum%27"><span class="hs-identifier hs-type">Sum'</span></a></span><span>
+</span><span id="line-147"></span><span id="minimizeSum"><span class="annot"><span class="annottext">minimizeSum :: Int -&gt; Product' -&gt; Three Bool -&gt; Product'
+</span><a href="Dep.Algorithm.Synthesis.html#minimizeSum"><span class="hs-identifier hs-var hs-var">minimizeSum</span></a></span></span><span> </span><span id="local-6989586621679128044"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128044"><span class="hs-identifier hs-var">wght</span></a></span></span><span> </span><span id="local-6989586621679128043"><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679128043"><span class="hs-identifier hs-var">prd</span></a></span></span><span> </span><span id="local-6989586621679128042"><span class="annot"><span class="annottext">Three Bool
+</span><a href="#local-6989586621679128042"><span class="hs-identifier hs-var">thr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Product'
+-&gt; ((Int, Product') -&gt; Product')
+-&gt; Maybe (Int, Product')
+-&gt; Product'
+forall b a. b -&gt; (a -&gt; b) -&gt; Maybe a -&gt; b
+</span><span class="hs-identifier hs-var">maybe</span></span><span> </span><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679128043"><span class="hs-identifier hs-var">prd</span></a></span><span> </span><span class="annot"><span class="annottext">(Int, Product') -&gt; Product'
+forall a b. (a, b) -&gt; b
+</span><span class="hs-identifier hs-var">snd</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; [Bool] -&gt; [Three Bool] -&gt; Maybe (Int, Product')
+</span><a href="Dep.Algorithm.Synthesis.html#minimizeSum%27"><span class="hs-identifier hs-var">minimizeSum'</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128044"><span class="hs-identifier hs-var">wght</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(ThreeValue -&gt; Bool) -&gt; Product' -&gt; [Bool]
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="annot"><span class="annottext">ThreeValue -&gt; Bool
+</span><a href="Dep.Data.ThreeValue.html#toUpper"><span class="hs-identifier hs-var">toUpper</span></a></span><span> </span><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679128043"><span class="hs-identifier hs-var">prd</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Three Bool
+</span><a href="#local-6989586621679128042"><span class="hs-identifier hs-var">thr</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-148"></span><span>
+</span><span id="line-149"></span><span class="hs-comment">-- | Create a 'SumOfProducts' object based on the given 'Three' of 'ThreeValue's. This function acts</span><span>
+</span><span id="line-150"></span><span class="hs-comment">-- as an alias for the 'synthesisSOP' function.</span><span>
+</span><span id="line-151"></span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#synthesis"><span class="hs-identifier hs-type">synthesis</span></a></span><span>
+</span><span id="line-152"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#Three"><span class="hs-identifier hs-type">Three</span></a></span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span><span>  </span><span class="hs-comment">-- ^ The 'Three' of 'ThreeValue's for which we want to make a logical formula.</span><span>
+</span><span id="line-153"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Product.html#SumOfProducts"><span class="hs-identifier hs-type">SumOfProducts</span></a></span><span>  </span><span class="hs-comment">-- ^ The sum of products that work with the function defined in the 'Three'.</span><span>
+</span><span id="line-154"></span><span id="synthesis"><span class="annot"><span class="annottext">synthesis :: Three ThreeValue -&gt; SumOfProducts
+</span><a href="Dep.Algorithm.Synthesis.html#synthesis"><span class="hs-identifier hs-var hs-var">synthesis</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Product] -&gt; SumOfProducts
+</span><a href="Dep.Data.Product.html#SumOfProducts"><span class="hs-identifier hs-var">SumOfProducts</span></a></span><span> </span><span class="annot"><span class="annottext">([Product] -&gt; SumOfProducts)
+-&gt; (Three ThreeValue -&gt; [Product])
+-&gt; Three ThreeValue
+-&gt; SumOfProducts
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(Product' -&gt; Product) -&gt; [Product'] -&gt; [Product]
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="annot"><span class="annottext">Product' -&gt; Product
+</span><a href="Dep.Data.Product.html#Product"><span class="hs-identifier hs-var">Product</span></a></span><span> </span><span class="annot"><span class="annottext">([Product'] -&gt; [Product])
+-&gt; (Three ThreeValue -&gt; [Product'])
+-&gt; Three ThreeValue
+-&gt; [Product]
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Three ThreeValue -&gt; [Product']
+</span><a href="Dep.Algorithm.Synthesis.html#synthesis%27"><span class="hs-identifier hs-var">synthesis'</span></a></span><span>
+</span><span id="line-155"></span><span>
+</span><span id="line-156"></span><span class="hs-comment">-- | Create a 'SumOfProducts' object based on the given 'Three' of 'ThreeValue's.</span><span>
+</span><span id="line-157"></span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#synthesisSOP"><span class="hs-identifier hs-type">synthesisSOP</span></a></span><span>
+</span><span id="line-158"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#Three"><span class="hs-identifier hs-type">Three</span></a></span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span><span>  </span><span class="hs-comment">-- ^ The 'Three' of 'ThreeValue's for which we want to make a logical formula.</span><span>
+</span><span id="line-159"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Product.html#SumOfProducts"><span class="hs-identifier hs-type">SumOfProducts</span></a></span><span>  </span><span class="hs-comment">-- ^ The sum of products that work with the function defined in the 'Three'.</span><span>
+</span><span id="line-160"></span><span id="synthesisSOP"><span class="annot"><span class="annottext">synthesisSOP :: Three ThreeValue -&gt; SumOfProducts
+</span><a href="Dep.Algorithm.Synthesis.html#synthesisSOP"><span class="hs-identifier hs-var hs-var">synthesisSOP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Product] -&gt; SumOfProducts
+</span><a href="Dep.Data.Product.html#SumOfProducts"><span class="hs-identifier hs-var">SumOfProducts</span></a></span><span> </span><span class="annot"><span class="annottext">([Product] -&gt; SumOfProducts)
+-&gt; (Three ThreeValue -&gt; [Product])
+-&gt; Three ThreeValue
+-&gt; SumOfProducts
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(Product' -&gt; Product) -&gt; [Product'] -&gt; [Product]
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="annot"><span class="annottext">Product' -&gt; Product
+</span><a href="Dep.Data.Product.html#Product"><span class="hs-identifier hs-var">Product</span></a></span><span> </span><span class="annot"><span class="annottext">([Product'] -&gt; [Product])
+-&gt; (Three ThreeValue -&gt; [Product'])
+-&gt; Three ThreeValue
+-&gt; [Product]
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Three ThreeValue -&gt; [Product']
+</span><a href="Dep.Algorithm.Synthesis.html#synthesisSOP%27"><span class="hs-identifier hs-var">synthesisSOP'</span></a></span><span>
+</span><span id="line-161"></span><span>
+</span><span id="line-162"></span><span class="hs-comment">-- | Create a 'ProductOfSums' object based on the given 'Three' of 'ThreeValue's.</span><span>
+</span><span id="line-163"></span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#synthesisPOS"><span class="hs-identifier hs-type">synthesisPOS</span></a></span><span>
+</span><span id="line-164"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#Three"><span class="hs-identifier hs-type">Three</span></a></span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span><span>  </span><span class="hs-comment">-- ^ The 'Three' of 'ThreeValue's for which we want to make a logical formula.</span><span>
+</span><span id="line-165"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#ProductOfSums"><span class="hs-identifier hs-type">ProductOfSums</span></a></span><span>  </span><span class="hs-comment">-- ^ The product of sums that work with the function defined in the 'Three'.</span><span>
+</span><span id="line-166"></span><span id="synthesisPOS"><span class="annot"><span class="annottext">synthesisPOS :: Three ThreeValue -&gt; ProductOfSums
+</span><a href="Dep.Algorithm.Synthesis.html#synthesisPOS"><span class="hs-identifier hs-var hs-var">synthesisPOS</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Sum] -&gt; ProductOfSums
+</span><a href="Dep.Data.Sum.html#ProductOfSums"><span class="hs-identifier hs-var">ProductOfSums</span></a></span><span> </span><span class="annot"><span class="annottext">([Sum] -&gt; ProductOfSums)
+-&gt; (Three ThreeValue -&gt; [Sum]) -&gt; Three ThreeValue -&gt; ProductOfSums
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(Product' -&gt; Sum) -&gt; [Product'] -&gt; [Sum]
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="annot"><span class="annottext">Product' -&gt; Sum
+</span><a href="Dep.Data.Sum.html#Sum"><span class="hs-identifier hs-var">Sum</span></a></span><span> </span><span class="annot"><span class="annottext">([Product'] -&gt; [Sum])
+-&gt; (Three ThreeValue -&gt; [Product']) -&gt; Three ThreeValue -&gt; [Sum]
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Three ThreeValue -&gt; [Product']
+</span><a href="Dep.Algorithm.Synthesis.html#synthesisPOS%27"><span class="hs-identifier hs-var">synthesisPOS'</span></a></span><span>
+</span><span id="line-167"></span><span>
+</span><span id="line-168"></span><span class="hs-comment">-- | Create a sum-of-products for the given function of 'ThreeValue'. This function is an alias of</span><span>
+</span><span id="line-169"></span><span class="hs-comment">-- the 'synthesisSOP' function.</span><span>
+</span><span id="line-170"></span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#synthesis%27"><span class="hs-identifier hs-type">synthesis'</span></a></span><span>
+</span><span id="line-171"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#Three"><span class="hs-identifier hs-type">Three</span></a></span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span><span>  </span><span class="hs-comment">-- ^ The 'Three' of 'ThreeValue's for which we want to make a logical formula.</span><span>
+</span><span id="line-172"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Product.html#SumOfProducts%27"><span class="hs-identifier hs-type">SumOfProducts'</span></a></span><span>  </span><span class="hs-comment">-- ^ The sum of products that work with the function defined in the 'Three'.</span><span>
+</span><span id="line-173"></span><span id="synthesis%27"><span class="annot"><span class="annottext">synthesis' :: Three ThreeValue -&gt; [Product']
+</span><a href="Dep.Algorithm.Synthesis.html#synthesis%27"><span class="hs-identifier hs-var hs-var">synthesis'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Three ThreeValue -&gt; [Product']
+</span><a href="Dep.Algorithm.Synthesis.html#synthesisSOP%27"><span class="hs-identifier hs-var">synthesisSOP'</span></a></span><span>
+</span><span id="line-174"></span><span>
+</span><span id="line-175"></span><span class="hs-comment">-- | Create a sum-of-products for the given function of 'ThreeValue'.</span><span>
+</span><span id="line-176"></span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#synthesisSOP%27"><span class="hs-identifier hs-type">synthesisSOP'</span></a></span><span>
+</span><span id="line-177"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#Three"><span class="hs-identifier hs-type">Three</span></a></span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span><span>  </span><span class="hs-comment">-- ^ The 'Three' of 'ThreeValue's for which we want to make a logical formula.</span><span>
+</span><span id="line-178"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Product.html#SumOfProducts%27"><span class="hs-identifier hs-type">SumOfProducts'</span></a></span><span>  </span><span class="hs-comment">-- ^ The sum of products that work with the function defined in the 'Three'.</span><span>
+</span><span id="line-179"></span><span id="synthesisSOP%27"><span class="annot"><span class="annottext">synthesisSOP' :: Three ThreeValue -&gt; [Product']
+</span><a href="Dep.Algorithm.Synthesis.html#synthesisSOP%27"><span class="hs-identifier hs-var hs-var">synthesisSOP'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Three ThreeValue -&gt; Three Bool)
+-&gt; (Int -&gt; Three Bool -&gt; Three ThreeValue -&gt; Maybe (Int, Product'))
+-&gt; (Int -&gt; Product' -&gt; Three Bool -&gt; Product')
+-&gt; (Product' -&gt; Product')
+-&gt; Three ThreeValue
+-&gt; [Product']
+</span><a href="Dep.Algorithm.Synthesis.html#_genericSynthesis%27"><span class="hs-identifier hs-var">_genericSynthesis'</span></a></span><span> </span><span class="annot"><span class="annottext">Three ThreeValue -&gt; Three Bool
+</span><a href="Dep.Algorithm.Synthesis.html#upperbound"><span class="hs-identifier hs-var">upperbound</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Three Bool -&gt; Three ThreeValue -&gt; Maybe (Int, Product')
+</span><a href="Dep.Algorithm.Synthesis.html#extractProduct"><span class="hs-identifier hs-var">extractProduct</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Product' -&gt; Three Bool -&gt; Product'
+</span><a href="Dep.Algorithm.Synthesis.html#minimizeProduct"><span class="hs-identifier hs-var">minimizeProduct</span></a></span><span> </span><span class="annot"><span class="annottext">Product' -&gt; Product'
+forall a. a -&gt; a
+</span><span class="hs-identifier hs-var">id</span></span><span>
+</span><span id="line-180"></span><span>
+</span><span id="line-181"></span><span class="hs-comment">-- | Create a sum-of-products for the given function of 'ThreeValue'.</span><span>
+</span><span id="line-182"></span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#synthesisPOS%27"><span class="hs-identifier hs-type">synthesisPOS'</span></a></span><span>
+</span><span id="line-183"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#Three"><span class="hs-identifier hs-type">Three</span></a></span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span><span>  </span><span class="hs-comment">-- ^ The 'Three' of 'ThreeValue's for which we want to make a logical formula.</span><span>
+</span><span id="line-184"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#ProductOfSums%27"><span class="hs-identifier hs-type">ProductOfSums'</span></a></span><span>  </span><span class="hs-comment">-- ^ The sum of products that work with the function defined in the 'Three'.</span><span>
+</span><span id="line-185"></span><span id="synthesisPOS%27"><span class="annot"><span class="annottext">synthesisPOS' :: Three ThreeValue -&gt; [Product']
+</span><a href="Dep.Algorithm.Synthesis.html#synthesisPOS%27"><span class="hs-identifier hs-var hs-var">synthesisPOS'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Three ThreeValue -&gt; Three Bool)
+-&gt; (Int -&gt; Three Bool -&gt; Three ThreeValue -&gt; Maybe (Int, Product'))
+-&gt; (Int -&gt; Product' -&gt; Three Bool -&gt; Product')
+-&gt; (Product' -&gt; Product')
+-&gt; Three ThreeValue
+-&gt; [Product']
+</span><a href="Dep.Algorithm.Synthesis.html#_genericSynthesis%27"><span class="hs-identifier hs-var">_genericSynthesis'</span></a></span><span> </span><span class="annot"><span class="annottext">Three ThreeValue -&gt; Three Bool
+</span><a href="Dep.Algorithm.Synthesis.html#lowerbound"><span class="hs-identifier hs-var">lowerbound</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Three Bool -&gt; Three ThreeValue -&gt; Maybe (Int, Product')
+</span><a href="Dep.Algorithm.Synthesis.html#extractSum"><span class="hs-identifier hs-var">extractSum</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Product' -&gt; Three Bool -&gt; Product'
+</span><a href="Dep.Algorithm.Synthesis.html#minimizeSum"><span class="hs-identifier hs-var">minimizeSum</span></a></span><span> </span><span class="annot"><span class="annottext">Product' -&gt; Product'
+forall a. Opposite a =&gt; a -&gt; a
+</span><a href="Dep.Class.Opposite.html#opposite"><span class="hs-identifier hs-var">opposite</span></a></span><span>
+</span><span id="line-186"></span><span>
+</span><span id="line-187"></span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#_genericSynthesis%27"><span class="hs-identifier hs-type">_genericSynthesis'</span></a></span><span>
+</span><span id="line-188"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Three.html#Three"><span class="hs-identifier hs-type">Three</span></a></span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#Three"><span class="hs-identifier hs-type">Three</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span>
+</span><span id="line-189"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#Three"><span class="hs-identifier hs-type">Three</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#Three"><span class="hs-identifier hs-type">Three</span></a></span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#WeightedItem"><span class="hs-identifier hs-type">WeightedItem</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-190"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.LogicItem.html#Item%27"><span class="hs-identifier hs-type">Item'</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#Three"><span class="hs-identifier hs-type">Three</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.LogicItem.html#Item%27"><span class="hs-identifier hs-type">Item'</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-191"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.LogicItem.html#Item%27"><span class="hs-identifier hs-type">Item'</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.LogicItem.html#Item%27"><span class="hs-identifier hs-type">Item'</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-192"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#Three"><span class="hs-identifier hs-type">Three</span></a></span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span><span>
+</span><span id="line-193"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#ProductOfSums%27"><span class="hs-identifier hs-type">ProductOfSums'</span></a></span><span>
+</span><span id="line-194"></span><span id="_genericSynthesis%27"><span class="annot"><span class="annottext">_genericSynthesis' :: (Three ThreeValue -&gt; Three Bool)
+-&gt; (Int -&gt; Three Bool -&gt; Three ThreeValue -&gt; Maybe (Int, Product'))
+-&gt; (Int -&gt; Product' -&gt; Three Bool -&gt; Product')
+-&gt; (Product' -&gt; Product')
+-&gt; Three ThreeValue
+-&gt; [Product']
+</span><a href="Dep.Algorithm.Synthesis.html#_genericSynthesis%27"><span class="hs-identifier hs-var hs-var">_genericSynthesis'</span></a></span></span><span> </span><span id="local-6989586621679128040"><span class="annot"><span class="annottext">Three ThreeValue -&gt; Three Bool
+</span><a href="#local-6989586621679128040"><span class="hs-identifier hs-var">toBound</span></a></span></span><span> </span><span id="local-6989586621679128039"><span class="annot"><span class="annottext">Int -&gt; Three Bool -&gt; Three ThreeValue -&gt; Maybe (Int, Product')
+</span><a href="#local-6989586621679128039"><span class="hs-identifier hs-var">_extractItem</span></a></span></span><span> </span><span id="local-6989586621679128038"><span class="annot"><span class="annottext">Int -&gt; Product' -&gt; Three Bool -&gt; Product'
+</span><a href="#local-6989586621679128038"><span class="hs-identifier hs-var">minimize</span></a></span></span><span> </span><span id="local-6989586621679128037"><span class="annot"><span class="annottext">Product' -&gt; Product'
+</span><a href="#local-6989586621679128037"><span class="hs-identifier hs-var">post</span></a></span></span><span> </span><span id="local-6989586621679128036"><span class="annot"><span class="annottext">Three ThreeValue
+</span><a href="#local-6989586621679128036"><span class="hs-identifier hs-var">th</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Three ThreeValue -&gt; [Product']
+</span><a href="#local-6989586621679128035"><span class="hs-identifier hs-var">_synthesis</span></a></span><span> </span><span class="annot"><span class="annottext">Three ThreeValue
+</span><a href="#local-6989586621679128034"><span class="hs-identifier hs-var">_simp</span></a></span><span>
+</span><span id="line-195"></span><span>  </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679128033"><span class="annot"><span class="annottext">_bound :: Three Bool
+</span><a href="#local-6989586621679128033"><span class="hs-identifier hs-var hs-var">_bound</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Three ThreeValue -&gt; Three Bool
+</span><a href="#local-6989586621679128040"><span class="hs-identifier hs-var">toBound</span></a></span><span> </span><span class="annot"><span class="annottext">Three ThreeValue
+</span><a href="#local-6989586621679128034"><span class="hs-identifier hs-var">_simp</span></a></span><span>
+</span><span id="line-196"></span><span>        </span><span id="local-6989586621679128032"><span class="annot"><span class="annottext">_n :: Int
+</span><a href="#local-6989586621679128032"><span class="hs-identifier hs-var hs-var">_n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Three ThreeValue -&gt; Int
+forall a. Three a -&gt; Int
+</span><a href="Dep.Data.Three.html#depth"><span class="hs-identifier hs-var">depth</span></a></span><span> </span><span class="annot"><span class="annottext">Three ThreeValue
+</span><a href="#local-6989586621679128034"><span class="hs-identifier hs-var">_simp</span></a></span><span>
+</span><span id="line-197"></span><span>        </span><span id="local-6989586621679128034"><span class="annot"><span class="annottext">_simp :: Three ThreeValue
+</span><a href="#local-6989586621679128034"><span class="hs-identifier hs-var hs-var">_simp</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Three ThreeValue -&gt; Three ThreeValue
+forall a. Simplify a =&gt; a -&gt; a
+</span><a href="Dep.Class.Simplify.html#simplify"><span class="hs-identifier hs-var">simplify</span></a></span><span> </span><span class="annot"><span class="annottext">Three ThreeValue
+</span><a href="#local-6989586621679128036"><span class="hs-identifier hs-var">th</span></a></span><span>
+</span><span id="line-198"></span><span>        </span><span id="local-6989586621679128031"><span class="annot"><span class="annottext">_takeItem :: Three ThreeValue -&gt; Maybe (Int, Product')
+</span><a href="#local-6989586621679128031"><span class="hs-identifier hs-var hs-var">_takeItem</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Three Bool -&gt; Three ThreeValue -&gt; Maybe (Int, Product')
+</span><a href="#local-6989586621679128039"><span class="hs-identifier hs-var">_extractItem</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128032"><span class="hs-identifier hs-var">_n</span></a></span><span> </span><span class="annot"><span class="annottext">Three Bool
+</span><a href="#local-6989586621679128033"><span class="hs-identifier hs-var">_bound</span></a></span><span>
+</span><span id="line-199"></span><span>        </span><span id="local-6989586621679128035"><span class="annot"><span class="annottext">_synthesis :: Three ThreeValue -&gt; [Product']
+</span><a href="#local-6989586621679128035"><span class="hs-identifier hs-var hs-var">_synthesis</span></a></span></span><span> </span><span id="local-6989586621679128030"><span class="annot"><span class="annottext">Three ThreeValue
+</span><a href="#local-6989586621679128030"><span class="hs-identifier hs-var">thr</span></a></span></span><span>
+</span><span id="line-200"></span><span>          </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">~</span><span class="hs-special">(</span><span id="local-6989586621679128029"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128029"><span class="hs-identifier hs-var">k</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679128028"><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679128028"><span class="hs-identifier hs-var">j</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Three ThreeValue -&gt; Maybe (Int, Product')
+</span><a href="#local-6989586621679128031"><span class="hs-identifier hs-var">_takeItem</span></a></span><span> </span><span class="annot"><span class="annottext">Three ThreeValue
+</span><a href="#local-6989586621679128030"><span class="hs-identifier hs-var">thr</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679128027"><span class="annot"><span class="annottext">j' :: Product'
+</span><a href="#local-6989586621679128027"><span class="hs-identifier hs-var hs-var">j'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Product' -&gt; Three Bool -&gt; Product'
+</span><a href="#local-6989586621679128038"><span class="hs-identifier hs-var">minimize</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128029"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679128028"><span class="hs-identifier hs-var">j</span></a></span><span> </span><span class="annot"><span class="annottext">Three Bool
+</span><a href="#local-6989586621679128033"><span class="hs-identifier hs-var">_bound</span></a></span><span> </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">Product' -&gt; Product'
+</span><a href="#local-6989586621679128037"><span class="hs-identifier hs-var">post</span></a></span><span> </span><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679128027"><span class="hs-identifier hs-var">j'</span></a></span><span> </span><span class="annot"><span class="annottext">Product' -&gt; [Product'] -&gt; [Product']
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">Three ThreeValue -&gt; [Product']
+</span><a href="#local-6989586621679128035"><span class="hs-identifier hs-var">_synthesis</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Product' -&gt; Three ThreeValue -&gt; Three ThreeValue
+</span><a href="Dep.Algorithm.Synthesis.html#wipeout"><span class="hs-identifier hs-var">wipeout</span></a></span><span> </span><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679128027"><span class="hs-identifier hs-var">j'</span></a></span><span> </span><span class="annot"><span class="annottext">Three ThreeValue
+</span><a href="#local-6989586621679128030"><span class="hs-identifier hs-var">thr</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-201"></span><span>          </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><span id="line-202"></span></pre></body></html>

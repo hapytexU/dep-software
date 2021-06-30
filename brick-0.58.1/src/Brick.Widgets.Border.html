@@ -1,0 +1,680 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE OverloadedStrings #-}</span><span>
+</span><span id="line-2"></span><span class="hs-comment">-- | This module provides border widgets: vertical borders, horizontal</span><span>
+</span><span id="line-3"></span><span class="hs-comment">-- borders, and a box border wrapper widget. All functions in this</span><span>
+</span><span id="line-4"></span><span class="hs-comment">-- module use the rendering context's active 'BorderStyle'; to change</span><span>
+</span><span id="line-5"></span><span class="hs-comment">-- the 'BorderStyle', use 'withBorderStyle'.</span><span>
+</span><span id="line-6"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Brick.Widgets.Border</span><span>
+</span><span id="line-7"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-comment">-- * Border wrapper</span></span><span>
+</span><span id="line-8"></span><span>    </span><span class="annot"><a href="Brick.Widgets.Border.html#border"><span class="hs-identifier">border</span></a></span><span>
+</span><span id="line-9"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Widgets.Border.html#borderWithLabel"><span class="hs-identifier">borderWithLabel</span></a></span><span>
+</span><span id="line-10"></span><span>
+</span><span id="line-11"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Horizontal border</span></span><span>
+</span><span id="line-12"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Widgets.Border.html#hBorder"><span class="hs-identifier">hBorder</span></a></span><span>
+</span><span id="line-13"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Widgets.Border.html#hBorderWithLabel"><span class="hs-identifier">hBorderWithLabel</span></a></span><span>
+</span><span id="line-14"></span><span>
+</span><span id="line-15"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Vertical border</span></span><span>
+</span><span id="line-16"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Widgets.Border.html#vBorder"><span class="hs-identifier">vBorder</span></a></span><span>
+</span><span id="line-17"></span><span>
+</span><span id="line-18"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Drawing single border elements</span></span><span>
+</span><span id="line-19"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Widgets.Border.html#borderElem"><span class="hs-identifier">borderElem</span></a></span><span>
+</span><span id="line-20"></span><span>
+</span><span id="line-21"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Attribute names</span></span><span>
+</span><span id="line-22"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Widgets.Border.html#borderAttr"><span class="hs-identifier">borderAttr</span></a></span><span>
+</span><span id="line-23"></span><span>
+</span><span id="line-24"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Utility</span></span><span>
+</span><span id="line-25"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Widgets.Border.html#joinableBorder"><span class="hs-identifier">joinableBorder</span></a></span><span>
+</span><span id="line-26"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-27"></span><span class="hs-keyword">where</span><span class="hs-cpp">
+
+#if !MIN_VERSION_base(4,8,0)
+</span><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Control.Applicative</span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="hs-operator">&lt;$&gt;</span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-cpp">
+#endif
+</span><span>
+</span><span id="line-33"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Lens.Micro</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-operator">(^.)</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-operator">(&amp;)</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-operator">(.~)</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">to</span></span><span class="hs-special">)</span><span>
+</span><span id="line-34"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Graphics.Vty</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">imageHeight</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">imageWidth</span></span><span class="hs-special">)</span><span>
+</span><span id="line-35"></span><span>
+</span><span id="line-36"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Brick.AttrMap.html"><span class="hs-identifier">Brick.AttrMap</span></a></span><span>
+</span><span id="line-37"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Brick.Types.html"><span class="hs-identifier">Brick.Types</span></a></span><span>
+</span><span id="line-38"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Brick.Widgets.Core.html"><span class="hs-identifier">Brick.Widgets.Core</span></a></span><span>
+</span><span id="line-39"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Brick.Widgets.Border.Style.html"><span class="hs-identifier">Brick.Widgets.Border.Style</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Brick.Widgets.Border.Style.html#BorderStyle"><span class="hs-identifier">BorderStyle</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-40"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Brick.Widgets.Internal.html"><span class="hs-identifier">Brick.Widgets.Internal</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Brick.Widgets.Internal.html#renderDynBorder"><span class="hs-identifier">renderDynBorder</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-41"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Data.IMap.html"><span class="hs-identifier">Data.IMap</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IMap.html#Run"><span class="hs-identifier">Run</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-42"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="Brick.BorderMap.html"><span class="hs-identifier">Brick.BorderMap</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">BM</span></span><span>
+</span><span id="line-43"></span><span>
+</span><span id="line-44"></span><span class="hs-comment">-- | The top-level border attribute name.</span><span>
+</span><span id="line-45"></span><span class="annot"><a href="Brick.Widgets.Border.html#borderAttr"><span class="hs-identifier hs-type">borderAttr</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.AttrMap.html#AttrName"><span class="hs-identifier hs-type">AttrName</span></a></span><span>
+</span><span id="line-46"></span><span id="borderAttr"><span class="annot"><span class="annottext">borderAttr :: AttrName
+</span><a href="Brick.Widgets.Border.html#borderAttr"><span class="hs-identifier hs-var hs-var">borderAttr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">AttrName
+</span><span class="hs-string">&quot;border&quot;</span></span><span>
+</span><span id="line-47"></span><span>
+</span><span id="line-48"></span><span class="hs-comment">-- | Draw the specified border element using the active border style</span><span>
+</span><span id="line-49"></span><span class="hs-comment">-- using 'borderAttr'.</span><span>
+</span><span id="line-50"></span><span class="hs-comment">--</span><span>
+</span><span id="line-51"></span><span class="hs-comment">-- Does not participate in dynamic borders (due to the difficulty of</span><span>
+</span><span id="line-52"></span><span class="hs-comment">-- introspecting on the first argument); consider using 'joinableBorder'</span><span>
+</span><span id="line-53"></span><span class="hs-comment">-- instead.</span><span>
+</span><span id="line-54"></span><span id="local-6989586621679373144"><span class="annot"><a href="Brick.Widgets.Border.html#borderElem"><span class="hs-identifier hs-type">borderElem</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Brick.Widgets.Border.Style.html#BorderStyle"><span class="hs-identifier hs-type">BorderStyle</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-type">Widget</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373144"><span class="hs-identifier hs-type">n</span></a></span></span><span>
+</span><span id="line-55"></span><span id="borderElem"><span class="annot"><span class="annottext">borderElem :: (BorderStyle -&gt; Char) -&gt; Widget n
+</span><a href="Brick.Widgets.Border.html#borderElem"><span class="hs-identifier hs-var hs-var">borderElem</span></a></span></span><span> </span><span id="local-6989586621679373143"><span class="annot"><span class="annottext">BorderStyle -&gt; Char
+</span><a href="#local-6989586621679373143"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-56"></span><span>    </span><span class="annot"><span class="annottext">Size -&gt; Size -&gt; RenderM n (Result n) -&gt; Widget n
+forall n. Size -&gt; Size -&gt; RenderM n (Result n) -&gt; Widget n
+</span><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-var">Widget</span></a></span><span> </span><span class="annot"><span class="annottext">Size
+</span><a href="Brick.Types.html#Fixed"><span class="hs-identifier hs-var">Fixed</span></a></span><span> </span><span class="annot"><span class="annottext">Size
+</span><a href="Brick.Types.html#Fixed"><span class="hs-identifier hs-var">Fixed</span></a></span><span> </span><span class="annot"><span class="annottext">(RenderM n (Result n) -&gt; Widget n)
+-&gt; RenderM n (Result n) -&gt; Widget n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-57"></span><span>      </span><span id="local-6989586621679373140"><span class="annot"><span class="annottext">BorderStyle
+</span><a href="#local-6989586621679373140"><span class="hs-identifier hs-var">bs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Context -&gt; BorderStyle
+</span><a href="Brick.Types.Internal.html#ctxBorderStyle"><span class="hs-identifier hs-var hs-var">ctxBorderStyle</span></a></span><span> </span><span class="annot"><span class="annottext">(Context -&gt; BorderStyle)
+-&gt; ReaderT Context (State (RenderState n)) Context
+-&gt; ReaderT Context (State (RenderState n)) BorderStyle
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">ReaderT Context (State (RenderState n)) Context
+forall n. RenderM n Context
+</span><a href="Brick.Types.html#getContext"><span class="hs-identifier hs-var">getContext</span></a></span><span>
+</span><span id="line-58"></span><span>      </span><span class="annot"><span class="annottext">Widget n -&gt; RenderM n (Result n)
+forall n. Widget n -&gt; RenderM n (Result n)
+</span><a href="Brick.Types.html#render"><span class="hs-identifier hs-var hs-var">render</span></a></span><span> </span><span class="annot"><span class="annottext">(Widget n -&gt; RenderM n (Result n))
+-&gt; Widget n -&gt; RenderM n (Result n)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">AttrName -&gt; Widget n -&gt; Widget n
+forall n. AttrName -&gt; Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Core.html#withAttr"><span class="hs-identifier hs-var">withAttr</span></a></span><span> </span><span class="annot"><span class="annottext">AttrName
+</span><a href="Brick.Widgets.Border.html#borderAttr"><span class="hs-identifier hs-var">borderAttr</span></a></span><span> </span><span class="annot"><span class="annottext">(Widget n -&gt; Widget n) -&gt; Widget n -&gt; Widget n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; Widget n
+forall n. String -&gt; Widget n
+</span><a href="Brick.Widgets.Core.html#str"><span class="hs-identifier hs-var">str</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">BorderStyle -&gt; Char
+</span><a href="#local-6989586621679373143"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">BorderStyle
+</span><a href="#local-6989586621679373140"><span class="hs-identifier hs-var">bs</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-59"></span><span>
+</span><span id="line-60"></span><span class="hs-comment">-- | Put a border around the specified widget.</span><span>
+</span><span id="line-61"></span><span id="local-6989586621679373133"><span class="annot"><a href="Brick.Widgets.Border.html#border"><span class="hs-identifier hs-type">border</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-type">Widget</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373133"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-type">Widget</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373133"><span class="hs-identifier hs-type">n</span></a></span></span><span>
+</span><span id="line-62"></span><span id="border"><span class="annot"><span class="annottext">border :: Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Border.html#border"><span class="hs-identifier hs-var hs-var">border</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe (Widget n) -&gt; Widget n -&gt; Widget n
+forall n. Maybe (Widget n) -&gt; Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Border.html#border_"><span class="hs-identifier hs-var">border_</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe (Widget n)
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-63"></span><span>
+</span><span id="line-64"></span><span class="hs-comment">-- | Put a border around the specified widget with the specified label</span><span>
+</span><span id="line-65"></span><span class="hs-comment">-- widget placed in the middle of the top horizontal border.</span><span>
+</span><span id="line-66"></span><span class="hs-comment">--</span><span>
+</span><span id="line-67"></span><span class="hs-comment">-- Note that a border will wrap its child widget as tightly as possible,</span><span>
+</span><span id="line-68"></span><span class="hs-comment">-- which means that if the child widget is narrower than the label</span><span>
+</span><span id="line-69"></span><span class="hs-comment">-- widget, the label widget will be truncated. If you want to avoid</span><span>
+</span><span id="line-70"></span><span class="hs-comment">-- this behavior, add a 'fill' or other space-filling wrapper to the</span><span>
+</span><span id="line-71"></span><span class="hs-comment">-- bordered widget so that it takes up enough room to make the border</span><span>
+</span><span id="line-72"></span><span class="hs-comment">-- horizontally able to avoid truncating the label.</span><span>
+</span><span id="line-73"></span><span id="local-6989586621679373131"><span class="annot"><a href="Brick.Widgets.Border.html#borderWithLabel"><span class="hs-identifier hs-type">borderWithLabel</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-type">Widget</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373131"><span class="hs-identifier hs-type">n</span></a></span><span>
+</span><span id="line-74"></span><span>                </span><span class="hs-comment">-- ^ The label widget</span><span>
+</span><span id="line-75"></span><span>                </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-type">Widget</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373131"><span class="hs-identifier hs-type">n</span></a></span><span>
+</span><span id="line-76"></span><span>                </span><span class="hs-comment">-- ^ The widget to put a border around</span><span>
+</span><span id="line-77"></span><span>                </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-type">Widget</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373131"><span class="hs-identifier hs-type">n</span></a></span></span><span>
+</span><span id="line-78"></span><span id="borderWithLabel"><span class="annot"><span class="annottext">borderWithLabel :: Widget n -&gt; Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Border.html#borderWithLabel"><span class="hs-identifier hs-var hs-var">borderWithLabel</span></a></span></span><span> </span><span id="local-6989586621679373130"><span class="annot"><span class="annottext">Widget n
+</span><a href="#local-6989586621679373130"><span class="hs-keyword hs-var">label</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe (Widget n) -&gt; Widget n -&gt; Widget n
+forall n. Maybe (Widget n) -&gt; Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Border.html#border_"><span class="hs-identifier hs-var">border_</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Widget n -&gt; Maybe (Widget n)
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">Widget n
+</span><a href="#local-6989586621679373130"><span class="hs-keyword hs-var">label</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-79"></span><span>
+</span><span id="line-80"></span><span id="local-6989586621679373223"><span class="annot"><a href="Brick.Widgets.Border.html#border_"><span class="hs-identifier hs-type">border_</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-type">Widget</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373223"><span class="hs-identifier hs-type">n</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-type">Widget</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373223"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-type">Widget</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373223"><span class="hs-identifier hs-type">n</span></a></span></span><span>
+</span><span id="line-81"></span><span id="border_"><span class="annot"><span class="annottext">border_ :: Maybe (Widget n) -&gt; Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Border.html#border_"><span class="hs-identifier hs-var hs-var">border_</span></a></span></span><span> </span><span id="local-6989586621679373129"><span class="annot"><span class="annottext">Maybe (Widget n)
+</span><a href="#local-6989586621679373129"><span class="hs-keyword hs-var">label</span></a></span></span><span> </span><span id="local-6989586621679373128"><span class="annot"><span class="annottext">Widget n
+</span><a href="#local-6989586621679373128"><span class="hs-identifier hs-var">wrapped</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-82"></span><span>    </span><span class="annot"><span class="annottext">Size -&gt; Size -&gt; RenderM n (Result n) -&gt; Widget n
+forall n. Size -&gt; Size -&gt; RenderM n (Result n) -&gt; Widget n
+</span><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-var">Widget</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Widget n -&gt; Size
+forall n. Widget n -&gt; Size
+</span><a href="Brick.Types.html#hSize"><span class="hs-identifier hs-var hs-var">hSize</span></a></span><span> </span><span class="annot"><span class="annottext">Widget n
+</span><a href="#local-6989586621679373128"><span class="hs-identifier hs-var">wrapped</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Widget n -&gt; Size
+forall n. Widget n -&gt; Size
+</span><a href="Brick.Types.html#vSize"><span class="hs-identifier hs-var hs-var">vSize</span></a></span><span> </span><span class="annot"><span class="annottext">Widget n
+</span><a href="#local-6989586621679373128"><span class="hs-identifier hs-var">wrapped</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(RenderM n (Result n) -&gt; Widget n)
+-&gt; RenderM n (Result n) -&gt; Widget n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-83"></span><span>      </span><span id="local-6989586621679373125"><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679373125"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">RenderM n Context
+forall n. RenderM n Context
+</span><a href="Brick.Types.html#getContext"><span class="hs-identifier hs-var">getContext</span></a></span><span>
+</span><span id="line-84"></span><span>
+</span><span id="line-85"></span><span>      </span><span id="local-6989586621679373124"><span class="annot"><span class="annottext">Result n
+</span><a href="#local-6989586621679373124"><span class="hs-identifier hs-var">middleResult</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Widget n -&gt; RenderM n (Result n)
+forall n. Widget n -&gt; RenderM n (Result n)
+</span><a href="Brick.Types.html#render"><span class="hs-identifier hs-var hs-var">render</span></a></span><span> </span><span class="annot"><span class="annottext">(Widget n -&gt; RenderM n (Result n))
+-&gt; Widget n -&gt; RenderM n (Result n)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Widget n -&gt; Widget n
+forall n. Int -&gt; Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Core.html#hLimit"><span class="hs-identifier hs-var">hLimit</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679373125"><span class="hs-identifier hs-var">c</span></a></span><span class="annot"><span class="annottext">Context -&gt; Getting Int Context Int -&gt; Int
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting Int Context Int
+Lens' Context Int
+</span><a href="Brick.Types.html#availWidthL"><span class="hs-identifier hs-var">availWidthL</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">2</span></span><span class="hs-special">)</span><span>
+</span><span id="line-86"></span><span>                             </span><span class="annot"><span class="annottext">(Widget n -&gt; Widget n) -&gt; Widget n -&gt; Widget n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Widget n -&gt; Widget n
+forall n. Int -&gt; Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Core.html#vLimit"><span class="hs-identifier hs-var">vLimit</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679373125"><span class="hs-identifier hs-var">c</span></a></span><span class="annot"><span class="annottext">Context -&gt; Getting Int Context Int -&gt; Int
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting Int Context Int
+Lens' Context Int
+</span><a href="Brick.Types.html#availHeightL"><span class="hs-identifier hs-var">availHeightL</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">2</span></span><span class="hs-special">)</span><span>
+</span><span id="line-87"></span><span>                             </span><span class="annot"><span class="annottext">(Widget n -&gt; Widget n) -&gt; Widget n -&gt; Widget n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Widget n
+</span><a href="#local-6989586621679373128"><span class="hs-identifier hs-var">wrapped</span></a></span><span>
+</span><span id="line-88"></span><span>
+</span><span id="line-89"></span><span>      </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679373119"><span class="annot"><span class="annottext">tl :: Widget n
+</span><a href="#local-6989586621679373119"><span class="hs-identifier hs-var hs-var">tl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Edges Bool -&gt; Widget n
+forall n. Edges Bool -&gt; Widget n
+</span><a href="Brick.Widgets.Border.html#joinableBorder"><span class="hs-identifier hs-var">joinableBorder</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool -&gt; Bool -&gt; Edges Bool
+forall a. a -&gt; a -&gt; a -&gt; a -&gt; Edges a
+</span><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier hs-var">Edges</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span class="hs-special">)</span><span>
+</span><span id="line-90"></span><span>          </span><span id="local-6989586621679373117"><span class="annot"><span class="annottext">tr :: Widget n
+</span><a href="#local-6989586621679373117"><span class="hs-identifier hs-var hs-var">tr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Edges Bool -&gt; Widget n
+forall n. Edges Bool -&gt; Widget n
+</span><a href="Brick.Widgets.Border.html#joinableBorder"><span class="hs-identifier hs-var">joinableBorder</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool -&gt; Bool -&gt; Edges Bool
+forall a. a -&gt; a -&gt; a -&gt; a -&gt; Edges a
+</span><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier hs-var">Edges</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span class="hs-special">)</span><span>
+</span><span id="line-91"></span><span>          </span><span id="local-6989586621679373116"><span class="annot"><span class="annottext">bl :: Widget n
+</span><a href="#local-6989586621679373116"><span class="hs-identifier hs-var hs-var">bl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Edges Bool -&gt; Widget n
+forall n. Edges Bool -&gt; Widget n
+</span><a href="Brick.Widgets.Border.html#joinableBorder"><span class="hs-identifier hs-var">joinableBorder</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool -&gt; Bool -&gt; Edges Bool
+forall a. a -&gt; a -&gt; a -&gt; a -&gt; Edges a
+</span><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier hs-var">Edges</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span class="hs-special">)</span><span>
+</span><span id="line-92"></span><span>          </span><span id="local-6989586621679373115"><span class="annot"><span class="annottext">br :: Widget n
+</span><a href="#local-6989586621679373115"><span class="hs-identifier hs-var hs-var">br</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Edges Bool -&gt; Widget n
+forall n. Edges Bool -&gt; Widget n
+</span><a href="Brick.Widgets.Border.html#joinableBorder"><span class="hs-identifier hs-var">joinableBorder</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool -&gt; Bool -&gt; Edges Bool
+forall a. a -&gt; a -&gt; a -&gt; a -&gt; Edges a
+</span><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier hs-var">Edges</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span class="hs-special">)</span><span>
+</span><span id="line-93"></span><span>          </span><span id="local-6989586621679373114"><span class="annot"><span class="annottext">top :: Widget n
+</span><a href="#local-6989586621679373114"><span class="hs-identifier hs-var hs-var">top</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Widget n
+forall n. Widget n
+</span><a href="#local-6989586621679373119"><span class="hs-identifier hs-var">tl</span></a></span><span> </span><span class="annot"><span class="annottext">Widget n -&gt; Widget n -&gt; Widget n
+forall n. Widget n -&gt; Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Core.html#%3C%2B%3E"><span class="hs-operator hs-var">&lt;+&gt;</span></a></span><span> </span><span class="annot"><span class="annottext">Widget n -&gt; (Widget n -&gt; Widget n) -&gt; Maybe (Widget n) -&gt; Widget n
+forall b a. b -&gt; (a -&gt; b) -&gt; Maybe a -&gt; b
+</span><span class="hs-identifier hs-var">maybe</span></span><span> </span><span class="annot"><span class="annottext">Widget n
+forall n. Widget n
+</span><a href="Brick.Widgets.Border.html#hBorder"><span class="hs-identifier hs-var">hBorder</span></a></span><span> </span><span class="annot"><span class="annottext">Widget n -&gt; Widget n
+forall n. Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Border.html#hBorderWithLabel"><span class="hs-identifier hs-var">hBorderWithLabel</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe (Widget n)
+</span><a href="#local-6989586621679373129"><span class="hs-keyword hs-var">label</span></a></span><span> </span><span class="annot"><span class="annottext">Widget n -&gt; Widget n -&gt; Widget n
+forall n. Widget n -&gt; Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Core.html#%3C%2B%3E"><span class="hs-operator hs-var">&lt;+&gt;</span></a></span><span> </span><span class="annot"><span class="annottext">Widget n
+forall n. Widget n
+</span><a href="#local-6989586621679373117"><span class="hs-identifier hs-var">tr</span></a></span><span>
+</span><span id="line-94"></span><span>          </span><span id="local-6989586621679373111"><span class="annot"><span class="annottext">bottom :: Widget n
+</span><a href="#local-6989586621679373111"><span class="hs-identifier hs-var hs-var">bottom</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Widget n
+forall n. Widget n
+</span><a href="#local-6989586621679373116"><span class="hs-identifier hs-var">bl</span></a></span><span> </span><span class="annot"><span class="annottext">Widget n -&gt; Widget n -&gt; Widget n
+forall n. Widget n -&gt; Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Core.html#%3C%2B%3E"><span class="hs-operator hs-var">&lt;+&gt;</span></a></span><span> </span><span class="annot"><span class="annottext">Widget n
+forall n. Widget n
+</span><a href="Brick.Widgets.Border.html#hBorder"><span class="hs-identifier hs-var">hBorder</span></a></span><span> </span><span class="annot"><span class="annottext">Widget n -&gt; Widget n -&gt; Widget n
+forall n. Widget n -&gt; Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Core.html#%3C%2B%3E"><span class="hs-operator hs-var">&lt;+&gt;</span></a></span><span> </span><span class="annot"><span class="annottext">Widget n
+forall n. Widget n
+</span><a href="#local-6989586621679373115"><span class="hs-identifier hs-var">br</span></a></span><span>
+</span><span id="line-95"></span><span>          </span><span id="local-6989586621679373110"><span class="annot"><span class="annottext">middle :: Widget n
+</span><a href="#local-6989586621679373110"><span class="hs-identifier hs-var hs-var">middle</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Widget n
+forall n. Widget n
+</span><a href="Brick.Widgets.Border.html#vBorder"><span class="hs-identifier hs-var">vBorder</span></a></span><span> </span><span class="annot"><span class="annottext">Widget n -&gt; Widget n -&gt; Widget n
+forall n. Widget n -&gt; Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Core.html#%3C%2B%3E"><span class="hs-operator hs-var">&lt;+&gt;</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Size -&gt; Size -&gt; RenderM n (Result n) -&gt; Widget n
+forall n. Size -&gt; Size -&gt; RenderM n (Result n) -&gt; Widget n
+</span><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-var">Widget</span></a></span><span> </span><span class="annot"><span class="annottext">Size
+</span><a href="Brick.Types.html#Fixed"><span class="hs-identifier hs-var">Fixed</span></a></span><span> </span><span class="annot"><span class="annottext">Size
+</span><a href="Brick.Types.html#Fixed"><span class="hs-identifier hs-var">Fixed</span></a></span><span> </span><span class="annot"><span class="annottext">(RenderM n (Result n) -&gt; Widget n)
+-&gt; RenderM n (Result n) -&gt; Widget n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Result n -&gt; RenderM n (Result n)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Result n
+</span><a href="#local-6989586621679373124"><span class="hs-identifier hs-var">middleResult</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Widget n -&gt; Widget n -&gt; Widget n
+forall n. Widget n -&gt; Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Core.html#%3C%2B%3E"><span class="hs-operator hs-var">&lt;+&gt;</span></a></span><span> </span><span class="annot"><span class="annottext">Widget n
+forall n. Widget n
+</span><a href="Brick.Widgets.Border.html#vBorder"><span class="hs-identifier hs-var">vBorder</span></a></span><span>
+</span><span id="line-96"></span><span>          </span><span id="local-6989586621679373109"><span class="annot"><span class="annottext">total :: Widget n
+</span><a href="#local-6989586621679373109"><span class="hs-identifier hs-var hs-var">total</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Widget n
+</span><a href="#local-6989586621679373114"><span class="hs-identifier hs-var">top</span></a></span><span> </span><span class="annot"><span class="annottext">Widget n -&gt; Widget n -&gt; Widget n
+forall n. Widget n -&gt; Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Core.html#%3C%3D%3E"><span class="hs-operator hs-var">&lt;=&gt;</span></a></span><span> </span><span class="annot"><span class="annottext">Widget n
+</span><a href="#local-6989586621679373110"><span class="hs-identifier hs-var">middle</span></a></span><span> </span><span class="annot"><span class="annottext">Widget n -&gt; Widget n -&gt; Widget n
+forall n. Widget n -&gt; Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Core.html#%3C%3D%3E"><span class="hs-operator hs-var">&lt;=&gt;</span></a></span><span> </span><span class="annot"><span class="annottext">Widget n
+forall n. Widget n
+</span><a href="#local-6989586621679373111"><span class="hs-identifier hs-var">bottom</span></a></span><span>
+</span><span id="line-97"></span><span>
+</span><span id="line-98"></span><span>      </span><span class="annot"><span class="annottext">Widget n -&gt; RenderM n (Result n)
+forall n. Widget n -&gt; RenderM n (Result n)
+</span><a href="Brick.Types.html#render"><span class="hs-identifier hs-var hs-var">render</span></a></span><span> </span><span class="annot"><span class="annottext">(Widget n -&gt; RenderM n (Result n))
+-&gt; Widget n -&gt; RenderM n (Result n)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Widget n -&gt; Widget n
+forall n. Int -&gt; Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Core.html#hLimit"><span class="hs-identifier hs-var">hLimit</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Result n
+</span><a href="#local-6989586621679373124"><span class="hs-identifier hs-var">middleResult</span></a></span><span class="annot"><span class="annottext">Result n -&gt; Getting Int (Result n) Int -&gt; Int
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">(Image -&gt; Const Int Image) -&gt; Result n -&gt; Const Int (Result n)
+forall n. Lens' (Result n) Image
+</span><a href="Brick.Types.Internal.html#imageL"><span class="hs-identifier hs-var">imageL</span></a></span><span class="annot"><span class="annottext">((Image -&gt; Const Int Image) -&gt; Result n -&gt; Const Int (Result n))
+-&gt; ((Int -&gt; Const Int Int) -&gt; Image -&gt; Const Int Image)
+-&gt; Getting Int (Result n) Int
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span class="annot"><span class="annottext">(Image -&gt; Int) -&gt; SimpleGetter Image Int
+forall s a. (s -&gt; a) -&gt; SimpleGetter s a
+</span><span class="hs-identifier hs-var">to</span></span><span> </span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><span class="hs-identifier hs-var">imageWidth</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">2</span></span><span class="hs-special">)</span><span>
+</span><span id="line-99"></span><span>             </span><span class="annot"><span class="annottext">(Widget n -&gt; Widget n) -&gt; Widget n -&gt; Widget n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Widget n -&gt; Widget n
+forall n. Int -&gt; Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Core.html#vLimit"><span class="hs-identifier hs-var">vLimit</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Result n
+</span><a href="#local-6989586621679373124"><span class="hs-identifier hs-var">middleResult</span></a></span><span class="annot"><span class="annottext">Result n -&gt; Getting Int (Result n) Int -&gt; Int
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">(Image -&gt; Const Int Image) -&gt; Result n -&gt; Const Int (Result n)
+forall n. Lens' (Result n) Image
+</span><a href="Brick.Types.Internal.html#imageL"><span class="hs-identifier hs-var">imageL</span></a></span><span class="annot"><span class="annottext">((Image -&gt; Const Int Image) -&gt; Result n -&gt; Const Int (Result n))
+-&gt; ((Int -&gt; Const Int Int) -&gt; Image -&gt; Const Int Image)
+-&gt; Getting Int (Result n) Int
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span class="annot"><span class="annottext">(Image -&gt; Int) -&gt; SimpleGetter Image Int
+forall s a. (s -&gt; a) -&gt; SimpleGetter s a
+</span><span class="hs-identifier hs-var">to</span></span><span> </span><span class="annot"><span class="annottext">Image -&gt; Int
+</span><span class="hs-identifier hs-var">imageHeight</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">2</span></span><span class="hs-special">)</span><span>
+</span><span id="line-100"></span><span>             </span><span class="annot"><span class="annottext">(Widget n -&gt; Widget n) -&gt; Widget n -&gt; Widget n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Widget n
+</span><a href="#local-6989586621679373109"><span class="hs-identifier hs-var">total</span></a></span><span>
+</span><span id="line-101"></span><span>
+</span><span id="line-102"></span><span class="hs-comment">-- | A horizontal border.  Fills all horizontal space.</span><span>
+</span><span id="line-103"></span><span id="local-6989586621679373104"><span class="annot"><a href="Brick.Widgets.Border.html#hBorder"><span class="hs-identifier hs-type">hBorder</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-type">Widget</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373104"><span class="hs-identifier hs-type">n</span></a></span></span><span>
+</span><span id="line-104"></span><span id="hBorder"><span class="annot"><span class="annottext">hBorder :: Widget n
+</span><a href="Brick.Widgets.Border.html#hBorder"><span class="hs-identifier hs-var hs-var">hBorder</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-105"></span><span>    </span><span class="annot"><span class="annottext">AttrName -&gt; Widget n -&gt; Widget n
+forall n. AttrName -&gt; Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Core.html#withAttr"><span class="hs-identifier hs-var">withAttr</span></a></span><span> </span><span class="annot"><span class="annottext">AttrName
+</span><a href="Brick.Widgets.Border.html#borderAttr"><span class="hs-identifier hs-var">borderAttr</span></a></span><span> </span><span class="annot"><span class="annottext">(Widget n -&gt; Widget n) -&gt; Widget n -&gt; Widget n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Size -&gt; Size -&gt; RenderM n (Result n) -&gt; Widget n
+forall n. Size -&gt; Size -&gt; RenderM n (Result n) -&gt; Widget n
+</span><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-var">Widget</span></a></span><span> </span><span class="annot"><span class="annottext">Size
+</span><a href="Brick.Types.html#Greedy"><span class="hs-identifier hs-var">Greedy</span></a></span><span> </span><span class="annot"><span class="annottext">Size
+</span><a href="Brick.Types.html#Fixed"><span class="hs-identifier hs-var">Fixed</span></a></span><span> </span><span class="annot"><span class="annottext">(RenderM n (Result n) -&gt; Widget n)
+-&gt; RenderM n (Result n) -&gt; Widget n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-106"></span><span>      </span><span id="local-6989586621679373102"><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679373102"><span class="hs-identifier hs-var">ctx</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">RenderM n Context
+forall n. RenderM n Context
+</span><a href="Brick.Types.html#getContext"><span class="hs-identifier hs-var">getContext</span></a></span><span>
+</span><span id="line-107"></span><span>      </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679373101"><span class="annot"><span class="annottext">bs :: BorderStyle
+</span><a href="#local-6989586621679373101"><span class="hs-identifier hs-var hs-var">bs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Context -&gt; BorderStyle
+</span><a href="Brick.Types.Internal.html#ctxBorderStyle"><span class="hs-identifier hs-var hs-var">ctxBorderStyle</span></a></span><span> </span><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679373102"><span class="hs-identifier hs-var">ctx</span></a></span><span>
+</span><span id="line-108"></span><span>          </span><span id="local-6989586621679373100"><span class="annot"><span class="annottext">w :: Int
+</span><a href="#local-6989586621679373100"><span class="hs-identifier hs-var hs-var">w</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Context -&gt; Int
+</span><a href="Brick.Types.Internal.html#availWidth"><span class="hs-identifier hs-var hs-var">availWidth</span></a></span><span> </span><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679373102"><span class="hs-identifier hs-var">ctx</span></a></span><span>
+</span><span id="line-109"></span><span>      </span><span id="local-6989586621679373098"><span class="annot"><span class="annottext">DynBorder
+</span><a href="#local-6989586621679373098"><span class="hs-identifier hs-var">db</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Edges Bool -&gt; RenderM n DynBorder
+forall n. Edges Bool -&gt; RenderM n DynBorder
+</span><a href="Brick.Widgets.Border.html#dynBorderFromDirections"><span class="hs-identifier hs-var">dynBorderFromDirections</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool -&gt; Bool -&gt; Edges Bool
+forall a. a -&gt; a -&gt; a -&gt; a -&gt; Edges a
+</span><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier hs-var">Edges</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span class="hs-special">)</span><span>
+</span><span id="line-110"></span><span>      </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679373096"><span class="annot"><span class="annottext">dynBorders :: BorderMap DynBorder
+</span><a href="#local-6989586621679373096"><span class="hs-identifier hs-var hs-var">dynBorders</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Location
+-&gt; Run DynBorder -&gt; BorderMap DynBorder -&gt; BorderMap DynBorder
+forall a. Location -&gt; Run a -&gt; BorderMap a -&gt; BorderMap a
+</span><a href="Brick.BorderMap.html#insertH"><span class="hs-identifier hs-var">BM.insertH</span></a></span><span> </span><span class="annot"><span class="annottext">Location
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; DynBorder -&gt; Run DynBorder
+forall a. Int -&gt; a -&gt; Run a
+</span><a href="Data.IMap.html#Run"><span class="hs-identifier hs-var">Run</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679373100"><span class="hs-identifier hs-var">w</span></a></span><span> </span><span class="annot"><span class="annottext">DynBorder
+</span><a href="#local-6989586621679373098"><span class="hs-identifier hs-var">db</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-111"></span><span>                     </span><span class="annot"><span class="annottext">(BorderMap DynBorder -&gt; BorderMap DynBorder)
+-&gt; BorderMap DynBorder -&gt; BorderMap DynBorder
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Edges Int -&gt; BorderMap DynBorder
+forall a. Edges Int -&gt; BorderMap a
+</span><a href="Brick.BorderMap.html#emptyCoordinates"><span class="hs-identifier hs-var">BM.emptyCoordinates</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int -&gt; Int -&gt; Edges Int
+forall a. a -&gt; a -&gt; a -&gt; a -&gt; Edges a
+</span><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier hs-var">Edges</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679373100"><span class="hs-identifier hs-var">w</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-112"></span><span>      </span><span class="annot"><span class="annottext">BorderMap DynBorder -&gt; RenderM n (Result n) -&gt; RenderM n (Result n)
+forall n.
+BorderMap DynBorder -&gt; RenderM n (Result n) -&gt; RenderM n (Result n)
+</span><a href="Brick.Widgets.Border.html#setDynBorders"><span class="hs-identifier hs-var">setDynBorders</span></a></span><span> </span><span class="annot"><span class="annottext">BorderMap DynBorder
+</span><a href="#local-6989586621679373096"><span class="hs-identifier hs-var">dynBorders</span></a></span><span> </span><span class="annot"><span class="annottext">(RenderM n (Result n) -&gt; RenderM n (Result n))
+-&gt; RenderM n (Result n) -&gt; RenderM n (Result n)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Widget n -&gt; RenderM n (Result n)
+forall n. Widget n -&gt; RenderM n (Result n)
+</span><a href="Brick.Types.html#render"><span class="hs-identifier hs-var hs-var">render</span></a></span><span> </span><span class="annot"><span class="annottext">(Widget n -&gt; RenderM n (Result n))
+-&gt; Widget n -&gt; RenderM n (Result n)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Widget n -&gt; Widget n
+forall n. Int -&gt; Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Core.html#vLimit"><span class="hs-identifier hs-var">vLimit</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">(Widget n -&gt; Widget n) -&gt; Widget n -&gt; Widget n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Char -&gt; Widget n
+forall n. Char -&gt; Widget n
+</span><a href="Brick.Widgets.Core.html#fill"><span class="hs-identifier hs-var">fill</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BorderStyle -&gt; Char
+</span><a href="Brick.Widgets.Border.Style.html#bsHorizontal"><span class="hs-identifier hs-var hs-var">bsHorizontal</span></a></span><span> </span><span class="annot"><span class="annottext">BorderStyle
+</span><a href="#local-6989586621679373101"><span class="hs-identifier hs-var">bs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-113"></span><span>
+</span><span id="line-114"></span><span class="hs-comment">-- | A horizontal border with a label placed in the center of the</span><span>
+</span><span id="line-115"></span><span class="hs-comment">-- border. Fills all horizontal space.</span><span>
+</span><span id="line-116"></span><span id="local-6989586621679373203"><span class="annot"><a href="Brick.Widgets.Border.html#hBorderWithLabel"><span class="hs-identifier hs-type">hBorderWithLabel</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-type">Widget</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373203"><span class="hs-identifier hs-type">n</span></a></span><span>
+</span><span id="line-117"></span><span>                 </span><span class="hs-comment">-- ^ The label widget</span><span>
+</span><span id="line-118"></span><span>                 </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-type">Widget</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373203"><span class="hs-identifier hs-type">n</span></a></span></span><span>
+</span><span id="line-119"></span><span id="hBorderWithLabel"><span class="annot"><span class="annottext">hBorderWithLabel :: Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Border.html#hBorderWithLabel"><span class="hs-identifier hs-var hs-var">hBorderWithLabel</span></a></span></span><span> </span><span id="local-6989586621679373089"><span class="annot"><span class="annottext">Widget n
+</span><a href="#local-6989586621679373089"><span class="hs-keyword hs-var">label</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-120"></span><span>    </span><span class="annot"><span class="annottext">Size -&gt; Size -&gt; RenderM n (Result n) -&gt; Widget n
+forall n. Size -&gt; Size -&gt; RenderM n (Result n) -&gt; Widget n
+</span><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-var">Widget</span></a></span><span> </span><span class="annot"><span class="annottext">Size
+</span><a href="Brick.Types.html#Greedy"><span class="hs-identifier hs-var">Greedy</span></a></span><span> </span><span class="annot"><span class="annottext">Size
+</span><a href="Brick.Types.html#Fixed"><span class="hs-identifier hs-var">Fixed</span></a></span><span> </span><span class="annot"><span class="annottext">(RenderM n (Result n) -&gt; Widget n)
+-&gt; RenderM n (Result n) -&gt; Widget n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-121"></span><span>      </span><span id="local-6989586621679373088"><span class="annot"><span class="annottext">Result n
+</span><a href="#local-6989586621679373088"><span class="hs-identifier hs-var">res</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Widget n -&gt; RenderM n (Result n)
+forall n. Widget n -&gt; RenderM n (Result n)
+</span><a href="Brick.Types.html#render"><span class="hs-identifier hs-var hs-var">render</span></a></span><span> </span><span class="annot"><span class="annottext">(Widget n -&gt; RenderM n (Result n))
+-&gt; Widget n -&gt; RenderM n (Result n)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Widget n -&gt; Widget n
+forall n. Int -&gt; Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Core.html#vLimit"><span class="hs-identifier hs-var">vLimit</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">Widget n
+</span><a href="#local-6989586621679373089"><span class="hs-keyword hs-var">label</span></a></span><span>
+</span><span id="line-122"></span><span>      </span><span class="annot"><span class="annottext">Widget n -&gt; RenderM n (Result n)
+forall n. Widget n -&gt; RenderM n (Result n)
+</span><a href="Brick.Types.html#render"><span class="hs-identifier hs-var hs-var">render</span></a></span><span> </span><span class="annot"><span class="annottext">(Widget n -&gt; RenderM n (Result n))
+-&gt; Widget n -&gt; RenderM n (Result n)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[Widget n] -&gt; Widget n
+forall n. [Widget n] -&gt; Widget n
+</span><a href="Brick.Widgets.Core.html#hBox"><span class="hs-identifier hs-var">hBox</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Widget n
+forall n. Widget n
+</span><a href="Brick.Widgets.Border.html#hBorder"><span class="hs-identifier hs-var">hBorder</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Size -&gt; Size -&gt; RenderM n (Result n) -&gt; Widget n
+forall n. Size -&gt; Size -&gt; RenderM n (Result n) -&gt; Widget n
+</span><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-var">Widget</span></a></span><span> </span><span class="annot"><span class="annottext">Size
+</span><a href="Brick.Types.html#Fixed"><span class="hs-identifier hs-var">Fixed</span></a></span><span> </span><span class="annot"><span class="annottext">Size
+</span><a href="Brick.Types.html#Fixed"><span class="hs-identifier hs-var">Fixed</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Result n -&gt; RenderM n (Result n)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Result n
+</span><a href="#local-6989586621679373088"><span class="hs-identifier hs-var">res</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Widget n
+forall n. Widget n
+</span><a href="Brick.Widgets.Border.html#hBorder"><span class="hs-identifier hs-var">hBorder</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-123"></span><span>
+</span><span id="line-124"></span><span class="hs-comment">-- | A vertical border.  Fills all vertical space.</span><span>
+</span><span id="line-125"></span><span id="local-6989586621679373086"><span class="annot"><a href="Brick.Widgets.Border.html#vBorder"><span class="hs-identifier hs-type">vBorder</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-type">Widget</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373086"><span class="hs-identifier hs-type">n</span></a></span></span><span>
+</span><span id="line-126"></span><span id="vBorder"><span class="annot"><span class="annottext">vBorder :: Widget n
+</span><a href="Brick.Widgets.Border.html#vBorder"><span class="hs-identifier hs-var hs-var">vBorder</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-127"></span><span>    </span><span class="annot"><span class="annottext">AttrName -&gt; Widget n -&gt; Widget n
+forall n. AttrName -&gt; Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Core.html#withAttr"><span class="hs-identifier hs-var">withAttr</span></a></span><span> </span><span class="annot"><span class="annottext">AttrName
+</span><a href="Brick.Widgets.Border.html#borderAttr"><span class="hs-identifier hs-var">borderAttr</span></a></span><span> </span><span class="annot"><span class="annottext">(Widget n -&gt; Widget n) -&gt; Widget n -&gt; Widget n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Size -&gt; Size -&gt; RenderM n (Result n) -&gt; Widget n
+forall n. Size -&gt; Size -&gt; RenderM n (Result n) -&gt; Widget n
+</span><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-var">Widget</span></a></span><span> </span><span class="annot"><span class="annottext">Size
+</span><a href="Brick.Types.html#Fixed"><span class="hs-identifier hs-var">Fixed</span></a></span><span> </span><span class="annot"><span class="annottext">Size
+</span><a href="Brick.Types.html#Greedy"><span class="hs-identifier hs-var">Greedy</span></a></span><span> </span><span class="annot"><span class="annottext">(RenderM n (Result n) -&gt; Widget n)
+-&gt; RenderM n (Result n) -&gt; Widget n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-128"></span><span>      </span><span id="local-6989586621679373085"><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679373085"><span class="hs-identifier hs-var">ctx</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">RenderM n Context
+forall n. RenderM n Context
+</span><a href="Brick.Types.html#getContext"><span class="hs-identifier hs-var">getContext</span></a></span><span>
+</span><span id="line-129"></span><span>      </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679373084"><span class="annot"><span class="annottext">bs :: BorderStyle
+</span><a href="#local-6989586621679373084"><span class="hs-identifier hs-var hs-var">bs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Context -&gt; BorderStyle
+</span><a href="Brick.Types.Internal.html#ctxBorderStyle"><span class="hs-identifier hs-var hs-var">ctxBorderStyle</span></a></span><span> </span><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679373085"><span class="hs-identifier hs-var">ctx</span></a></span><span>
+</span><span id="line-130"></span><span>          </span><span id="local-6989586621679373083"><span class="annot"><span class="annottext">h :: Int
+</span><a href="#local-6989586621679373083"><span class="hs-identifier hs-var hs-var">h</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Context -&gt; Int
+</span><a href="Brick.Types.Internal.html#availHeight"><span class="hs-identifier hs-var hs-var">availHeight</span></a></span><span> </span><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679373085"><span class="hs-identifier hs-var">ctx</span></a></span><span>
+</span><span id="line-131"></span><span>      </span><span id="local-6989586621679373081"><span class="annot"><span class="annottext">DynBorder
+</span><a href="#local-6989586621679373081"><span class="hs-identifier hs-var">db</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Edges Bool -&gt; RenderM n DynBorder
+forall n. Edges Bool -&gt; RenderM n DynBorder
+</span><a href="Brick.Widgets.Border.html#dynBorderFromDirections"><span class="hs-identifier hs-var">dynBorderFromDirections</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool -&gt; Bool -&gt; Edges Bool
+forall a. a -&gt; a -&gt; a -&gt; a -&gt; Edges a
+</span><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier hs-var">Edges</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span class="hs-special">)</span><span>
+</span><span id="line-132"></span><span>      </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679373080"><span class="annot"><span class="annottext">dynBorders :: BorderMap DynBorder
+</span><a href="#local-6989586621679373080"><span class="hs-identifier hs-var hs-var">dynBorders</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Location
+-&gt; Run DynBorder -&gt; BorderMap DynBorder -&gt; BorderMap DynBorder
+forall a. Location -&gt; Run a -&gt; BorderMap a -&gt; BorderMap a
+</span><a href="Brick.BorderMap.html#insertV"><span class="hs-identifier hs-var">BM.insertV</span></a></span><span> </span><span class="annot"><span class="annottext">Location
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; DynBorder -&gt; Run DynBorder
+forall a. Int -&gt; a -&gt; Run a
+</span><a href="Data.IMap.html#Run"><span class="hs-identifier hs-var">Run</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679373083"><span class="hs-identifier hs-var">h</span></a></span><span> </span><span class="annot"><span class="annottext">DynBorder
+</span><a href="#local-6989586621679373081"><span class="hs-identifier hs-var">db</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-133"></span><span>                     </span><span class="annot"><span class="annottext">(BorderMap DynBorder -&gt; BorderMap DynBorder)
+-&gt; BorderMap DynBorder -&gt; BorderMap DynBorder
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Edges Int -&gt; BorderMap DynBorder
+forall a. Edges Int -&gt; BorderMap a
+</span><a href="Brick.BorderMap.html#emptyCoordinates"><span class="hs-identifier hs-var">BM.emptyCoordinates</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int -&gt; Int -&gt; Edges Int
+forall a. a -&gt; a -&gt; a -&gt; a -&gt; Edges a
+</span><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier hs-var">Edges</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679373083"><span class="hs-identifier hs-var">h</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span>
+</span><span id="line-134"></span><span>      </span><span class="annot"><span class="annottext">BorderMap DynBorder -&gt; RenderM n (Result n) -&gt; RenderM n (Result n)
+forall n.
+BorderMap DynBorder -&gt; RenderM n (Result n) -&gt; RenderM n (Result n)
+</span><a href="Brick.Widgets.Border.html#setDynBorders"><span class="hs-identifier hs-var">setDynBorders</span></a></span><span> </span><span class="annot"><span class="annottext">BorderMap DynBorder
+</span><a href="#local-6989586621679373080"><span class="hs-identifier hs-var">dynBorders</span></a></span><span> </span><span class="annot"><span class="annottext">(RenderM n (Result n) -&gt; RenderM n (Result n))
+-&gt; RenderM n (Result n) -&gt; RenderM n (Result n)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Widget n -&gt; RenderM n (Result n)
+forall n. Widget n -&gt; RenderM n (Result n)
+</span><a href="Brick.Types.html#render"><span class="hs-identifier hs-var hs-var">render</span></a></span><span> </span><span class="annot"><span class="annottext">(Widget n -&gt; RenderM n (Result n))
+-&gt; Widget n -&gt; RenderM n (Result n)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Widget n -&gt; Widget n
+forall n. Int -&gt; Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Core.html#hLimit"><span class="hs-identifier hs-var">hLimit</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">(Widget n -&gt; Widget n) -&gt; Widget n -&gt; Widget n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Char -&gt; Widget n
+forall n. Char -&gt; Widget n
+</span><a href="Brick.Widgets.Core.html#fill"><span class="hs-identifier hs-var">fill</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BorderStyle -&gt; Char
+</span><a href="Brick.Widgets.Border.Style.html#bsVertical"><span class="hs-identifier hs-var hs-var">bsVertical</span></a></span><span> </span><span class="annot"><span class="annottext">BorderStyle
+</span><a href="#local-6989586621679373084"><span class="hs-identifier hs-var">bs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-135"></span><span>
+</span><span id="line-136"></span><span class="hs-comment">-- | Initialize a 'DynBorder'. It will be 'bsDraw'n and 'bsOffer'ing</span><span>
+</span><span id="line-137"></span><span class="hs-comment">-- in the given directions to begin with, and accept join offers from</span><span>
+</span><span id="line-138"></span><span class="hs-comment">-- all directions. We consult the context to choose the 'dbStyle' and</span><span>
+</span><span id="line-139"></span><span class="hs-comment">-- 'dbAttr'.</span><span>
+</span><span id="line-140"></span><span class="hs-comment">--</span><span>
+</span><span id="line-141"></span><span class="hs-comment">-- This is likely to be useful only for custom widgets that need more</span><span>
+</span><span id="line-142"></span><span class="hs-comment">-- complicated dynamic border behavior than 'border', 'vBorder', or</span><span>
+</span><span id="line-143"></span><span class="hs-comment">-- 'hBorder' offer.</span><span>
+</span><span id="line-144"></span><span id="local-6989586621679373188"><span class="annot"><a href="Brick.Widgets.Border.html#dynBorderFromDirections"><span class="hs-identifier hs-type">dynBorderFromDirections</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier hs-type">Edges</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Types.html#RenderM"><span class="hs-identifier hs-type">RenderM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373188"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#DynBorder"><span class="hs-identifier hs-type">DynBorder</span></a></span></span><span>
+</span><span id="line-145"></span><span id="dynBorderFromDirections"><span class="annot"><span class="annottext">dynBorderFromDirections :: Edges Bool -&gt; RenderM n DynBorder
+</span><a href="Brick.Widgets.Border.html#dynBorderFromDirections"><span class="hs-identifier hs-var hs-var">dynBorderFromDirections</span></a></span></span><span> </span><span id="local-6989586621679373077"><span class="annot"><span class="annottext">Edges Bool
+</span><a href="#local-6989586621679373077"><span class="hs-identifier hs-var">dirs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-146"></span><span>    </span><span id="local-6989586621679373076"><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679373076"><span class="hs-identifier hs-var">ctx</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">RenderM n Context
+forall n. RenderM n Context
+</span><a href="Brick.Types.html#getContext"><span class="hs-identifier hs-var">getContext</span></a></span><span>
+</span><span id="line-147"></span><span>    </span><span class="annot"><span class="annottext">DynBorder -&gt; RenderM n DynBorder
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">DynBorder :: BorderStyle -&gt; Attr -&gt; Edges BorderSegment -&gt; DynBorder
+</span><a href="Brick.Types.Internal.html#DynBorder"><span class="hs-identifier hs-type">DynBorder</span></a></span><span>
+</span><span id="line-148"></span><span>        </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">dbStyle :: BorderStyle
+</span><a href="Brick.Types.Internal.html#dbStyle"><span class="hs-identifier hs-var">dbStyle</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Context -&gt; BorderStyle
+</span><a href="Brick.Types.Internal.html#ctxBorderStyle"><span class="hs-identifier hs-var hs-var">ctxBorderStyle</span></a></span><span> </span><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679373076"><span class="hs-identifier hs-var">ctx</span></a></span><span>
+</span><span id="line-149"></span><span>        </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">dbAttr :: Attr
+</span><a href="Brick.Types.Internal.html#dbAttr"><span class="hs-identifier hs-var">dbAttr</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">AttrName -&gt; AttrMap -&gt; Attr
+</span><a href="Brick.AttrMap.html#attrMapLookup"><span class="hs-identifier hs-var">attrMapLookup</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Context -&gt; AttrName
+</span><a href="Brick.Types.Internal.html#ctxAttrName"><span class="hs-identifier hs-var hs-var">ctxAttrName</span></a></span><span> </span><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679373076"><span class="hs-identifier hs-var">ctx</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Context -&gt; AttrMap
+</span><a href="Brick.Types.Internal.html#ctxAttrMap"><span class="hs-identifier hs-var hs-var">ctxAttrMap</span></a></span><span> </span><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679373076"><span class="hs-identifier hs-var">ctx</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-150"></span><span>        </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">dbSegments :: Edges BorderSegment
+</span><a href="Brick.Types.Internal.html#dbSegments"><span class="hs-identifier hs-var">dbSegments</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679373068"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679373068"><span class="hs-identifier hs-var">draw</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool -&gt; BorderSegment
+</span><a href="Brick.Types.Internal.html#BorderSegment"><span class="hs-identifier hs-var">BorderSegment</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679373068"><span class="hs-identifier hs-var">draw</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679373068"><span class="hs-identifier hs-var">draw</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; BorderSegment) -&gt; Edges Bool -&gt; Edges BorderSegment
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Edges Bool
+</span><a href="#local-6989586621679373077"><span class="hs-identifier hs-var">dirs</span></a></span><span>
+</span><span id="line-151"></span><span>        </span><span class="hs-special">}</span><span>
+</span><span id="line-152"></span><span>
+</span><span id="line-153"></span><span class="hs-comment">-- | Replace the 'Result'\'s dynamic borders with the given one,</span><span>
+</span><span id="line-154"></span><span class="hs-comment">-- provided the context says to use dynamic borders at all.</span><span>
+</span><span id="line-155"></span><span id="local-6989586621679373180"><span class="annot"><a href="Brick.Widgets.Border.html#setDynBorders"><span class="hs-identifier hs-type">setDynBorders</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#BorderMap"><span class="hs-identifier hs-type">BM.BorderMap</span></a></span><span> </span><span class="annot"><a href="Brick.Types.Internal.html#DynBorder"><span class="hs-identifier hs-type">DynBorder</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Types.html#RenderM"><span class="hs-identifier hs-type">RenderM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373180"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Brick.Types.Internal.html#Result"><span class="hs-identifier hs-type">Result</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373180"><span class="hs-identifier hs-type">n</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Types.html#RenderM"><span class="hs-identifier hs-type">RenderM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373180"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Brick.Types.Internal.html#Result"><span class="hs-identifier hs-type">Result</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373180"><span class="hs-identifier hs-type">n</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-156"></span><span id="setDynBorders"><span class="annot"><span class="annottext">setDynBorders :: BorderMap DynBorder -&gt; RenderM n (Result n) -&gt; RenderM n (Result n)
+</span><a href="Brick.Widgets.Border.html#setDynBorders"><span class="hs-identifier hs-var hs-var">setDynBorders</span></a></span></span><span> </span><span id="local-6989586621679373066"><span class="annot"><span class="annottext">BorderMap DynBorder
+</span><a href="#local-6989586621679373066"><span class="hs-identifier hs-var">newBorders</span></a></span></span><span> </span><span id="local-6989586621679373065"><span class="annot"><span class="annottext">RenderM n (Result n)
+</span><a href="#local-6989586621679373065"><span class="hs-identifier hs-var">act</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-157"></span><span>    </span><span id="local-6989586621679373064"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679373064"><span class="hs-identifier hs-var">dyn</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Context -&gt; Bool
+</span><a href="Brick.Types.Internal.html#ctxDynBorders"><span class="hs-identifier hs-var hs-var">ctxDynBorders</span></a></span><span> </span><span class="annot"><span class="annottext">(Context -&gt; Bool)
+-&gt; ReaderT Context (State (RenderState n)) Context
+-&gt; ReaderT Context (State (RenderState n)) Bool
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">ReaderT Context (State (RenderState n)) Context
+forall n. RenderM n Context
+</span><a href="Brick.Types.html#getContext"><span class="hs-identifier hs-var">getContext</span></a></span><span>
+</span><span id="line-158"></span><span>    </span><span id="local-6989586621679373062"><span class="annot"><span class="annottext">Result n
+</span><a href="#local-6989586621679373062"><span class="hs-identifier hs-var">res</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">RenderM n (Result n)
+</span><a href="#local-6989586621679373065"><span class="hs-identifier hs-var">act</span></a></span><span>
+</span><span id="line-159"></span><span>    </span><span class="annot"><span class="annottext">Result n -&gt; RenderM n (Result n)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(Result n -&gt; RenderM n (Result n))
+-&gt; Result n -&gt; RenderM n (Result n)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679373064"><span class="hs-identifier hs-var">dyn</span></a></span><span>
+</span><span id="line-160"></span><span>        </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Result n
+</span><a href="#local-6989586621679373062"><span class="hs-identifier hs-var">res</span></a></span><span> </span><span class="annot"><span class="annottext">Result n -&gt; (Result n -&gt; Result n) -&gt; Result n
+forall a b. a -&gt; (a -&gt; b) -&gt; b
+</span><span class="hs-operator hs-var">&amp;</span></span><span> </span><span class="annot"><span class="annottext">(BorderMap DynBorder -&gt; Identity (BorderMap DynBorder))
+-&gt; Result n -&gt; Identity (Result n)
+forall n. Lens' (Result n) (BorderMap DynBorder)
+</span><a href="Brick.Types.Internal.html#bordersL"><span class="hs-identifier hs-var">bordersL</span></a></span><span> </span><span class="annot"><span class="annottext">((BorderMap DynBorder -&gt; Identity (BorderMap DynBorder))
+ -&gt; Result n -&gt; Identity (Result n))
+-&gt; BorderMap DynBorder -&gt; Result n -&gt; Result n
+forall s t a b. ASetter s t a b -&gt; b -&gt; s -&gt; t
+</span><span class="hs-operator hs-var">.~</span></span><span> </span><span class="annot"><span class="annottext">BorderMap DynBorder
+</span><a href="#local-6989586621679373066"><span class="hs-identifier hs-var">newBorders</span></a></span><span>
+</span><span id="line-161"></span><span>        </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Result n
+</span><a href="#local-6989586621679373062"><span class="hs-identifier hs-var">res</span></a></span><span>
+</span><span id="line-162"></span><span>
+</span><span id="line-163"></span><span class="hs-comment">-- | A single-character dynamic border that will react to neighboring</span><span>
+</span><span id="line-164"></span><span class="hs-comment">-- borders, initially connecting in the given directions.</span><span>
+</span><span id="line-165"></span><span id="local-6989586621679373211"><span class="annot"><a href="Brick.Widgets.Border.html#joinableBorder"><span class="hs-identifier hs-type">joinableBorder</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier hs-type">Edges</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-type">Widget</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373211"><span class="hs-identifier hs-type">n</span></a></span></span><span>
+</span><span id="line-166"></span><span id="joinableBorder"><span class="annot"><span class="annottext">joinableBorder :: Edges Bool -&gt; Widget n
+</span><a href="Brick.Widgets.Border.html#joinableBorder"><span class="hs-identifier hs-var hs-var">joinableBorder</span></a></span></span><span> </span><span id="local-6989586621679373060"><span class="annot"><span class="annottext">Edges Bool
+</span><a href="#local-6989586621679373060"><span class="hs-identifier hs-var">dirs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">AttrName -&gt; Widget n -&gt; Widget n
+forall n. AttrName -&gt; Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Core.html#withAttr"><span class="hs-identifier hs-var">withAttr</span></a></span><span> </span><span class="annot"><span class="annottext">AttrName
+</span><a href="Brick.Widgets.Border.html#borderAttr"><span class="hs-identifier hs-var">borderAttr</span></a></span><span> </span><span class="annot"><span class="annottext">(Widget n -&gt; Widget n)
+-&gt; (RenderM n (Result n) -&gt; Widget n)
+-&gt; RenderM n (Result n)
+-&gt; Widget n
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Size -&gt; Size -&gt; RenderM n (Result n) -&gt; Widget n
+forall n. Size -&gt; Size -&gt; RenderM n (Result n) -&gt; Widget n
+</span><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-var">Widget</span></a></span><span> </span><span class="annot"><span class="annottext">Size
+</span><a href="Brick.Types.html#Fixed"><span class="hs-identifier hs-var">Fixed</span></a></span><span> </span><span class="annot"><span class="annottext">Size
+</span><a href="Brick.Types.html#Fixed"><span class="hs-identifier hs-var">Fixed</span></a></span><span> </span><span class="annot"><span class="annottext">(RenderM n (Result n) -&gt; Widget n)
+-&gt; RenderM n (Result n) -&gt; Widget n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-167"></span><span>    </span><span id="local-6989586621679373059"><span class="annot"><span class="annottext">DynBorder
+</span><a href="#local-6989586621679373059"><span class="hs-identifier hs-var">db</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Edges Bool -&gt; RenderM n DynBorder
+forall n. Edges Bool -&gt; RenderM n DynBorder
+</span><a href="Brick.Widgets.Border.html#dynBorderFromDirections"><span class="hs-identifier hs-var">dynBorderFromDirections</span></a></span><span> </span><span class="annot"><span class="annottext">Edges Bool
+</span><a href="#local-6989586621679373060"><span class="hs-identifier hs-var">dirs</span></a></span><span>
+</span><span id="line-168"></span><span>    </span><span class="annot"><span class="annottext">BorderMap DynBorder -&gt; RenderM n (Result n) -&gt; RenderM n (Result n)
+forall n.
+BorderMap DynBorder -&gt; RenderM n (Result n) -&gt; RenderM n (Result n)
+</span><a href="Brick.Widgets.Border.html#setDynBorders"><span class="hs-identifier hs-var">setDynBorders</span></a></span><span>
+</span><span id="line-169"></span><span>        </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Location -&gt; DynBorder -&gt; BorderMap DynBorder
+forall a. Location -&gt; a -&gt; BorderMap a
+</span><a href="Brick.BorderMap.html#singleton"><span class="hs-identifier hs-var">BM.singleton</span></a></span><span> </span><span class="annot"><span class="annottext">Location
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span> </span><span class="annot"><span class="annottext">DynBorder
+</span><a href="#local-6989586621679373059"><span class="hs-identifier hs-var">db</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-170"></span><span>        </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Widget n -&gt; RenderM n (Result n)
+forall n. Widget n -&gt; RenderM n (Result n)
+</span><a href="Brick.Types.html#render"><span class="hs-identifier hs-var hs-var">render</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Image -&gt; Widget n
+forall n. Image -&gt; Widget n
+</span><a href="Brick.Widgets.Core.html#raw"><span class="hs-identifier hs-var">raw</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DynBorder -&gt; Image
+</span><a href="Brick.Widgets.Internal.html#renderDynBorder"><span class="hs-identifier hs-var">renderDynBorder</span></a></span><span> </span><span class="annot"><span class="annottext">DynBorder
+</span><a href="#local-6989586621679373059"><span class="hs-identifier hs-var">db</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-171"></span></pre></body></html>

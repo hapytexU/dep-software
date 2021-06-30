@@ -1,0 +1,1103 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span id="%24con2tag_1LDr5ah8ROfEoMDHW2W2v5"><span id="%24maxtag_1LDr5ah8ROfEoMDHW2W2v5"><span id="%24tag2con_1LDr5ah8ROfEoMDHW2W2v5"><span id="%24con2tag_JkU4ZkPyu35GxX9vpl294h"><span id="%24maxtag_JkU4ZkPyu35GxX9vpl294h"><span id="%24tag2con_JkU4ZkPyu35GxX9vpl294h"><span id="%24con2tag_LEznkc2V4fEBbn9aPgAzGf"><span id="%24maxtag_LEznkc2V4fEBbn9aPgAzGf"><span id="%24tag2con_LEznkc2V4fEBbn9aPgAzGf"><span id="%24con2tag_6qALGr2rNZFBO919InRCX0"><span id="%24maxtag_6qALGr2rNZFBO919InRCX0"><span id="%24tag2con_6qALGr2rNZFBO919InRCX0"><span id="%24con2tag_Dj8TbQ4Qun7ABUleSJ19T9"><span id="%24maxtag_Dj8TbQ4Qun7ABUleSJ19T9"><span id="%24tag2con_Dj8TbQ4Qun7ABUleSJ19T9"><span id="%24con2tag_HElzXy3SJVh3heab1tByjO"></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span><span class="hs-pragma">{-# LANGUAGE PatternSynonyms, Safe #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-comment">{-|
+Module      : Data.Char.Chess
+Description : Support for chess characters in unicode.
+Maintainer  : hapytexeu+gh@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+One can make use of a &lt;https://www.unicode.org/charts/PDF/U2600.pdf block 2600&gt; and &lt;https://www.unicode.org/charts/PDF/U1FA00.pdf block 1fa00&gt; of Unicode characters to render chess characters. One can render chess characters as /netral/, /white/, or /black/
+pieces, for such pieces one can render these rotated by 0, 90, 180 and 270 degrees. Knights can be rendered on 45, 135, 225 and 315 degrees as well. Furthermore unicode allows to render an /equihopper/, and special variants like a /knight-queen/, /knight-rook/, and /knight-bishop/.
+
+The module contains pattern synonyms for names that are often given to the pieces.
+-}</span><span>
+</span><span id="line-15"></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Data.Char.Chess</span><span> </span><span class="hs-special">(</span><span>
+</span><span id="line-17"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Data structures to represent the possible chess pieces.</span></span><span>
+</span><span id="line-18"></span><span>    </span><span class="annot"><a href="Data.Char.Chess.html#ChessColor"><span class="hs-identifier">ChessColor</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Data.Char.Chess.html#White"><span class="hs-identifier">White</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#Black"><span class="hs-identifier">Black</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#Neutral"><span class="hs-identifier">Neutral</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-19"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessColorBinary"><span class="hs-identifier">ChessColorBinary</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Data.Char.Chess.html#BWhite"><span class="hs-identifier">BWhite</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#BBlack"><span class="hs-identifier">BBlack</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-20"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessPieceType"><span class="hs-identifier">ChessPieceType</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Data.Char.Chess.html#King"><span class="hs-identifier">King</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#Queen"><span class="hs-identifier">Queen</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#Rook"><span class="hs-identifier">Rook</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#Bishop"><span class="hs-identifier">Bishop</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#Knight"><span class="hs-identifier">Knight</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#Pawn"><span class="hs-identifier">Pawn</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#Equihopper"><span class="hs-identifier">Equihopper</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessHybridType"><span class="hs-identifier">ChessHybridType</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Data.Char.Chess.html#KnightQueen"><span class="hs-identifier">KnightQueen</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#KnightRook"><span class="hs-identifier">KnightRook</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#KnightBishop"><span class="hs-identifier">KnightBishop</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessPiece"><span class="hs-identifier">ChessPiece</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Data.Char.Chess.html#Chess90"><span class="hs-identifier">Chess90</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#Chess45Knight"><span class="hs-identifier">Chess45Knight</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessHybrid"><span class="hs-identifier">ChessHybrid</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-23"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#Rotate45"><span class="hs-identifier">Rotate45</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Data.Char.Chess.html#R45"><span class="hs-identifier">R45</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#R135"><span class="hs-identifier">R135</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#R225"><span class="hs-identifier">R225</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#R315"><span class="hs-identifier">R315</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-24"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Convert the chess piece to its unicode equivalent.</span></span><span>
+</span><span id="line-25"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#chessPiece"><span class="hs-identifier">chessPiece</span></a></span><span>
+</span><span id="line-26"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Pattern synonyms of special pieces</span></span><span>
+</span><span id="line-27"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="hs-keyword">pattern</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#Grasshopper"><span class="hs-identifier">Grasshopper</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-keyword">pattern</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#Nightrider"><span class="hs-identifier">Nightrider</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-keyword">pattern</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#Amazon"><span class="hs-identifier">Amazon</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-keyword">pattern</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#Terror"><span class="hs-identifier">Terror</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-keyword">pattern</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#OmnipotentQueen"><span class="hs-identifier">OmnipotentQueen</span></a></span><span>
+</span><span id="line-28"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="hs-keyword">pattern</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#Superqueen"><span class="hs-identifier">Superqueen</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-keyword">pattern</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#Chancellor"><span class="hs-identifier">Chancellor</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-keyword">pattern</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#Marshall"><span class="hs-identifier">Marshall</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-keyword">pattern</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#Empress"><span class="hs-identifier">Empress</span></a></span><span class="hs-special">,</span><span> </span><span class="hs-keyword">pattern</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#Cardinal"><span class="hs-identifier">Cardinal</span></a></span><span>
+</span><span id="line-29"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="hs-keyword">pattern</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#Princess"><span class="hs-identifier">Princess</span></a></span><span>
+</span><span id="line-30"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-31"></span><span>
+</span><span id="line-32"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Bits</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-operator">(.|.)</span></span><span class="hs-special">)</span><span>
+</span><span id="line-33"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Char</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">chr</span></span><span class="hs-special">)</span><span>
+</span><span id="line-34"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Data.Char.Core.html"><span class="hs-identifier">Data.Char.Core</span></a></span><span class="hs-special">(</span><span>
+</span><span id="line-35"></span><span>    </span><span class="annot"><a href="Data.Char.Core.html#Rotate90"><span class="hs-identifier">Rotate90</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Data.Char.Core.html#R0"><span class="hs-identifier">R0</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Char.Core.html#R180"><span class="hs-identifier">R180</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-36"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-37"></span><span>
+</span><span id="line-38"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Test.QuickCheck.Arbitrary</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Arbitrary</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">arbitrary</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">arbitraryBoundedEnum</span></span><span class="hs-special">)</span><span>
+</span><span id="line-39"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Test.QuickCheck.Gen</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">oneof</span></span><span class="hs-special">)</span><span>
+</span><span id="line-40"></span><span>
+</span><span id="line-41"></span><span class="hs-comment">-- | A data type that defined binary colors ('BWhite', and 'BBlack'), this is</span><span>
+</span><span id="line-42"></span><span class="hs-comment">-- used for special chess pieces like a /knight queen/, /knight rook/, and</span><span>
+</span><span id="line-43"></span><span class="hs-comment">-- /knight bishop/ that only have no neutral color in unicode.</span><span>
+</span><span id="line-44"></span><span class="hs-keyword">data</span><span> </span><span id="ChessColorBinary"><span class="annot"><a href="Data.Char.Chess.html#ChessColorBinary"><span class="hs-identifier hs-var">ChessColorBinary</span></a></span></span><span>
+</span><span id="line-45"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span id="BWhite"><span class="annot"><a href="Data.Char.Chess.html#BWhite"><span class="hs-identifier hs-var">BWhite</span></a></span></span><span> </span><span class="hs-comment">-- ^ /White/ color.</span><span>
+</span><span id="line-46"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="BBlack"><span class="annot"><a href="Data.Char.Chess.html#BBlack"><span class="hs-identifier hs-var">BBlack</span></a></span></span><span> </span><span class="hs-comment">-- ^ /Black/ color.</span><span>
+</span><span id="line-47"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679102516"><span id="local-6989586621679102518"><span class="annot"><span class="annottext">ChessColorBinary
+ChessColorBinary -&gt; ChessColorBinary -&gt; Bounded ChessColorBinary
+forall a. a -&gt; a -&gt; Bounded a
+maxBound :: ChessColorBinary
+$cmaxBound :: ChessColorBinary
+minBound :: ChessColorBinary
+$cminBound :: ChessColorBinary
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Bounded</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679102499"><span id="local-6989586621679102501"><span id="local-6989586621679102503"><span id="local-6989586621679102505"><span id="local-6989586621679102507"><span id="local-6989586621679102509"><span id="local-6989586621679102511"><span id="local-6989586621679102513"><span class="annot"><span class="annottext">Int -&gt; ChessColorBinary
+ChessColorBinary -&gt; Int
+ChessColorBinary -&gt; [ChessColorBinary]
+ChessColorBinary -&gt; ChessColorBinary
+ChessColorBinary -&gt; ChessColorBinary -&gt; [ChessColorBinary]
+ChessColorBinary
+-&gt; ChessColorBinary -&gt; ChessColorBinary -&gt; [ChessColorBinary]
+(ChessColorBinary -&gt; ChessColorBinary)
+-&gt; (ChessColorBinary -&gt; ChessColorBinary)
+-&gt; (Int -&gt; ChessColorBinary)
+-&gt; (ChessColorBinary -&gt; Int)
+-&gt; (ChessColorBinary -&gt; [ChessColorBinary])
+-&gt; (ChessColorBinary -&gt; ChessColorBinary -&gt; [ChessColorBinary])
+-&gt; (ChessColorBinary -&gt; ChessColorBinary -&gt; [ChessColorBinary])
+-&gt; (ChessColorBinary
+    -&gt; ChessColorBinary -&gt; ChessColorBinary -&gt; [ChessColorBinary])
+-&gt; Enum ChessColorBinary
+forall a.
+(a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (Int -&gt; a)
+-&gt; (a -&gt; Int)
+-&gt; (a -&gt; [a])
+-&gt; (a -&gt; a -&gt; [a])
+-&gt; (a -&gt; a -&gt; [a])
+-&gt; (a -&gt; a -&gt; a -&gt; [a])
+-&gt; Enum a
+enumFromThenTo :: ChessColorBinary
+-&gt; ChessColorBinary -&gt; ChessColorBinary -&gt; [ChessColorBinary]
+$cenumFromThenTo :: ChessColorBinary
+-&gt; ChessColorBinary -&gt; ChessColorBinary -&gt; [ChessColorBinary]
+enumFromTo :: ChessColorBinary -&gt; ChessColorBinary -&gt; [ChessColorBinary]
+$cenumFromTo :: ChessColorBinary -&gt; ChessColorBinary -&gt; [ChessColorBinary]
+enumFromThen :: ChessColorBinary -&gt; ChessColorBinary -&gt; [ChessColorBinary]
+$cenumFromThen :: ChessColorBinary -&gt; ChessColorBinary -&gt; [ChessColorBinary]
+enumFrom :: ChessColorBinary -&gt; [ChessColorBinary]
+$cenumFrom :: ChessColorBinary -&gt; [ChessColorBinary]
+fromEnum :: ChessColorBinary -&gt; Int
+$cfromEnum :: ChessColorBinary -&gt; Int
+toEnum :: Int -&gt; ChessColorBinary
+$ctoEnum :: Int -&gt; ChessColorBinary
+pred :: ChessColorBinary -&gt; ChessColorBinary
+$cpred :: ChessColorBinary -&gt; ChessColorBinary
+succ :: ChessColorBinary -&gt; ChessColorBinary
+$csucc :: ChessColorBinary -&gt; ChessColorBinary
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Enum</span></span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679102494"><span id="local-6989586621679102496"><span class="annot"><span class="annottext">ChessColorBinary -&gt; ChessColorBinary -&gt; Bool
+(ChessColorBinary -&gt; ChessColorBinary -&gt; Bool)
+-&gt; (ChessColorBinary -&gt; ChessColorBinary -&gt; Bool)
+-&gt; Eq ChessColorBinary
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: ChessColorBinary -&gt; ChessColorBinary -&gt; Bool
+$c/= :: ChessColorBinary -&gt; ChessColorBinary -&gt; Bool
+== :: ChessColorBinary -&gt; ChessColorBinary -&gt; Bool
+$c== :: ChessColorBinary -&gt; ChessColorBinary -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679102478"><span id="local-6989586621679102480"><span id="local-6989586621679102482"><span id="local-6989586621679102484"><span id="local-6989586621679102486"><span id="local-6989586621679102488"><span id="local-6989586621679102490"><span class="annot"><span class="annottext">Eq ChessColorBinary
+Eq ChessColorBinary
+-&gt; (ChessColorBinary -&gt; ChessColorBinary -&gt; Ordering)
+-&gt; (ChessColorBinary -&gt; ChessColorBinary -&gt; Bool)
+-&gt; (ChessColorBinary -&gt; ChessColorBinary -&gt; Bool)
+-&gt; (ChessColorBinary -&gt; ChessColorBinary -&gt; Bool)
+-&gt; (ChessColorBinary -&gt; ChessColorBinary -&gt; Bool)
+-&gt; (ChessColorBinary -&gt; ChessColorBinary -&gt; ChessColorBinary)
+-&gt; (ChessColorBinary -&gt; ChessColorBinary -&gt; ChessColorBinary)
+-&gt; Ord ChessColorBinary
+ChessColorBinary -&gt; ChessColorBinary -&gt; Bool
+ChessColorBinary -&gt; ChessColorBinary -&gt; Ordering
+ChessColorBinary -&gt; ChessColorBinary -&gt; ChessColorBinary
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: ChessColorBinary -&gt; ChessColorBinary -&gt; ChessColorBinary
+$cmin :: ChessColorBinary -&gt; ChessColorBinary -&gt; ChessColorBinary
+max :: ChessColorBinary -&gt; ChessColorBinary -&gt; ChessColorBinary
+$cmax :: ChessColorBinary -&gt; ChessColorBinary -&gt; ChessColorBinary
+&gt;= :: ChessColorBinary -&gt; ChessColorBinary -&gt; Bool
+$c&gt;= :: ChessColorBinary -&gt; ChessColorBinary -&gt; Bool
+&gt; :: ChessColorBinary -&gt; ChessColorBinary -&gt; Bool
+$c&gt; :: ChessColorBinary -&gt; ChessColorBinary -&gt; Bool
+&lt;= :: ChessColorBinary -&gt; ChessColorBinary -&gt; Bool
+$c&lt;= :: ChessColorBinary -&gt; ChessColorBinary -&gt; Bool
+&lt; :: ChessColorBinary -&gt; ChessColorBinary -&gt; Bool
+$c&lt; :: ChessColorBinary -&gt; ChessColorBinary -&gt; Bool
+compare :: ChessColorBinary -&gt; ChessColorBinary -&gt; Ordering
+$ccompare :: ChessColorBinary -&gt; ChessColorBinary -&gt; Ordering
+$cp1Ord :: Eq ChessColorBinary
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679102469"><span id="local-6989586621679102471"><span id="local-6989586621679102473"><span id="local-6989586621679102475"><span class="annot"><span class="annottext">ReadPrec [ChessColorBinary]
+ReadPrec ChessColorBinary
+Int -&gt; ReadS ChessColorBinary
+ReadS [ChessColorBinary]
+(Int -&gt; ReadS ChessColorBinary)
+-&gt; ReadS [ChessColorBinary]
+-&gt; ReadPrec ChessColorBinary
+-&gt; ReadPrec [ChessColorBinary]
+-&gt; Read ChessColorBinary
+forall a.
+(Int -&gt; ReadS a)
+-&gt; ReadS [a] -&gt; ReadPrec a -&gt; ReadPrec [a] -&gt; Read a
+readListPrec :: ReadPrec [ChessColorBinary]
+$creadListPrec :: ReadPrec [ChessColorBinary]
+readPrec :: ReadPrec ChessColorBinary
+$creadPrec :: ReadPrec ChessColorBinary
+readList :: ReadS [ChessColorBinary]
+$creadList :: ReadS [ChessColorBinary]
+readsPrec :: Int -&gt; ReadS ChessColorBinary
+$creadsPrec :: Int -&gt; ReadS ChessColorBinary
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Read</span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679102462"><span id="local-6989586621679102464"><span id="local-6989586621679102466"><span class="annot"><span class="annottext">Int -&gt; ChessColorBinary -&gt; ShowS
+[ChessColorBinary] -&gt; ShowS
+ChessColorBinary -&gt; String
+(Int -&gt; ChessColorBinary -&gt; ShowS)
+-&gt; (ChessColorBinary -&gt; String)
+-&gt; ([ChessColorBinary] -&gt; ShowS)
+-&gt; Show ChessColorBinary
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [ChessColorBinary] -&gt; ShowS
+$cshowList :: [ChessColorBinary] -&gt; ShowS
+show :: ChessColorBinary -&gt; String
+$cshow :: ChessColorBinary -&gt; String
+showsPrec :: Int -&gt; ChessColorBinary -&gt; ShowS
+$cshowsPrec :: Int -&gt; ChessColorBinary -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-48"></span><span>
+</span><span id="line-49"></span><span class="hs-comment">-- | The color of a chess piece, this can for most pieces be 'Black', 'White',</span><span>
+</span><span id="line-50"></span><span class="hs-comment">-- or 'Neutral'.</span><span>
+</span><span id="line-51"></span><span class="hs-keyword">data</span><span> </span><span id="ChessColor"><span class="annot"><a href="Data.Char.Chess.html#ChessColor"><span class="hs-identifier hs-var">ChessColor</span></a></span></span><span>
+</span><span id="line-52"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span id="White"><span class="annot"><a href="Data.Char.Chess.html#White"><span class="hs-identifier hs-var">White</span></a></span></span><span> </span><span class="hs-comment">-- ^ /White/ color.</span><span>
+</span><span id="line-53"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="Black"><span class="annot"><a href="Data.Char.Chess.html#Black"><span class="hs-identifier hs-var">Black</span></a></span></span><span> </span><span class="hs-comment">-- ^ /Black/ color.</span><span>
+</span><span id="line-54"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="Neutral"><span class="annot"><a href="Data.Char.Chess.html#Neutral"><span class="hs-identifier hs-var">Neutral</span></a></span></span><span> </span><span class="hs-comment">-- ^ Neutral chess pieces, sometimes depicted half /white/ and half /black/.</span><span>
+</span><span id="line-55"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679102457"><span id="local-6989586621679102459"><span class="annot"><span class="annottext">ChessColor
+ChessColor -&gt; ChessColor -&gt; Bounded ChessColor
+forall a. a -&gt; a -&gt; Bounded a
+maxBound :: ChessColor
+$cmaxBound :: ChessColor
+minBound :: ChessColor
+$cminBound :: ChessColor
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Bounded</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679102441"><span id="local-6989586621679102443"><span id="local-6989586621679102445"><span id="local-6989586621679102447"><span id="local-6989586621679102449"><span id="local-6989586621679102451"><span id="local-6989586621679102453"><span id="local-6989586621679102455"><span class="annot"><span class="annottext">Int -&gt; ChessColor
+ChessColor -&gt; Int
+ChessColor -&gt; [ChessColor]
+ChessColor -&gt; ChessColor
+ChessColor -&gt; ChessColor -&gt; [ChessColor]
+ChessColor -&gt; ChessColor -&gt; ChessColor -&gt; [ChessColor]
+(ChessColor -&gt; ChessColor)
+-&gt; (ChessColor -&gt; ChessColor)
+-&gt; (Int -&gt; ChessColor)
+-&gt; (ChessColor -&gt; Int)
+-&gt; (ChessColor -&gt; [ChessColor])
+-&gt; (ChessColor -&gt; ChessColor -&gt; [ChessColor])
+-&gt; (ChessColor -&gt; ChessColor -&gt; [ChessColor])
+-&gt; (ChessColor -&gt; ChessColor -&gt; ChessColor -&gt; [ChessColor])
+-&gt; Enum ChessColor
+forall a.
+(a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (Int -&gt; a)
+-&gt; (a -&gt; Int)
+-&gt; (a -&gt; [a])
+-&gt; (a -&gt; a -&gt; [a])
+-&gt; (a -&gt; a -&gt; [a])
+-&gt; (a -&gt; a -&gt; a -&gt; [a])
+-&gt; Enum a
+enumFromThenTo :: ChessColor -&gt; ChessColor -&gt; ChessColor -&gt; [ChessColor]
+$cenumFromThenTo :: ChessColor -&gt; ChessColor -&gt; ChessColor -&gt; [ChessColor]
+enumFromTo :: ChessColor -&gt; ChessColor -&gt; [ChessColor]
+$cenumFromTo :: ChessColor -&gt; ChessColor -&gt; [ChessColor]
+enumFromThen :: ChessColor -&gt; ChessColor -&gt; [ChessColor]
+$cenumFromThen :: ChessColor -&gt; ChessColor -&gt; [ChessColor]
+enumFrom :: ChessColor -&gt; [ChessColor]
+$cenumFrom :: ChessColor -&gt; [ChessColor]
+fromEnum :: ChessColor -&gt; Int
+$cfromEnum :: ChessColor -&gt; Int
+toEnum :: Int -&gt; ChessColor
+$ctoEnum :: Int -&gt; ChessColor
+pred :: ChessColor -&gt; ChessColor
+$cpred :: ChessColor -&gt; ChessColor
+succ :: ChessColor -&gt; ChessColor
+$csucc :: ChessColor -&gt; ChessColor
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Enum</span></span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679102437"><span id="local-6989586621679102439"><span class="annot"><span class="annottext">ChessColor -&gt; ChessColor -&gt; Bool
+(ChessColor -&gt; ChessColor -&gt; Bool)
+-&gt; (ChessColor -&gt; ChessColor -&gt; Bool) -&gt; Eq ChessColor
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: ChessColor -&gt; ChessColor -&gt; Bool
+$c/= :: ChessColor -&gt; ChessColor -&gt; Bool
+== :: ChessColor -&gt; ChessColor -&gt; Bool
+$c== :: ChessColor -&gt; ChessColor -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679102422"><span id="local-6989586621679102424"><span id="local-6989586621679102426"><span id="local-6989586621679102428"><span id="local-6989586621679102430"><span id="local-6989586621679102432"><span id="local-6989586621679102434"><span class="annot"><span class="annottext">Eq ChessColor
+Eq ChessColor
+-&gt; (ChessColor -&gt; ChessColor -&gt; Ordering)
+-&gt; (ChessColor -&gt; ChessColor -&gt; Bool)
+-&gt; (ChessColor -&gt; ChessColor -&gt; Bool)
+-&gt; (ChessColor -&gt; ChessColor -&gt; Bool)
+-&gt; (ChessColor -&gt; ChessColor -&gt; Bool)
+-&gt; (ChessColor -&gt; ChessColor -&gt; ChessColor)
+-&gt; (ChessColor -&gt; ChessColor -&gt; ChessColor)
+-&gt; Ord ChessColor
+ChessColor -&gt; ChessColor -&gt; Bool
+ChessColor -&gt; ChessColor -&gt; Ordering
+ChessColor -&gt; ChessColor -&gt; ChessColor
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: ChessColor -&gt; ChessColor -&gt; ChessColor
+$cmin :: ChessColor -&gt; ChessColor -&gt; ChessColor
+max :: ChessColor -&gt; ChessColor -&gt; ChessColor
+$cmax :: ChessColor -&gt; ChessColor -&gt; ChessColor
+&gt;= :: ChessColor -&gt; ChessColor -&gt; Bool
+$c&gt;= :: ChessColor -&gt; ChessColor -&gt; Bool
+&gt; :: ChessColor -&gt; ChessColor -&gt; Bool
+$c&gt; :: ChessColor -&gt; ChessColor -&gt; Bool
+&lt;= :: ChessColor -&gt; ChessColor -&gt; Bool
+$c&lt;= :: ChessColor -&gt; ChessColor -&gt; Bool
+&lt; :: ChessColor -&gt; ChessColor -&gt; Bool
+$c&lt; :: ChessColor -&gt; ChessColor -&gt; Bool
+compare :: ChessColor -&gt; ChessColor -&gt; Ordering
+$ccompare :: ChessColor -&gt; ChessColor -&gt; Ordering
+$cp1Ord :: Eq ChessColor
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679102414"><span id="local-6989586621679102416"><span id="local-6989586621679102418"><span id="local-6989586621679102420"><span class="annot"><span class="annottext">ReadPrec [ChessColor]
+ReadPrec ChessColor
+Int -&gt; ReadS ChessColor
+ReadS [ChessColor]
+(Int -&gt; ReadS ChessColor)
+-&gt; ReadS [ChessColor]
+-&gt; ReadPrec ChessColor
+-&gt; ReadPrec [ChessColor]
+-&gt; Read ChessColor
+forall a.
+(Int -&gt; ReadS a)
+-&gt; ReadS [a] -&gt; ReadPrec a -&gt; ReadPrec [a] -&gt; Read a
+readListPrec :: ReadPrec [ChessColor]
+$creadListPrec :: ReadPrec [ChessColor]
+readPrec :: ReadPrec ChessColor
+$creadPrec :: ReadPrec ChessColor
+readList :: ReadS [ChessColor]
+$creadList :: ReadS [ChessColor]
+readsPrec :: Int -&gt; ReadS ChessColor
+$creadsPrec :: Int -&gt; ReadS ChessColor
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Read</span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679102408"><span id="local-6989586621679102410"><span id="local-6989586621679102412"><span class="annot"><span class="annottext">Int -&gt; ChessColor -&gt; ShowS
+[ChessColor] -&gt; ShowS
+ChessColor -&gt; String
+(Int -&gt; ChessColor -&gt; ShowS)
+-&gt; (ChessColor -&gt; String)
+-&gt; ([ChessColor] -&gt; ShowS)
+-&gt; Show ChessColor
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [ChessColor] -&gt; ShowS
+$cshowList :: [ChessColor] -&gt; ShowS
+show :: ChessColor -&gt; String
+$cshow :: ChessColor -&gt; String
+showsPrec :: Int -&gt; ChessColor -&gt; ShowS
+$cshowsPrec :: Int -&gt; ChessColor -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-56"></span><span>
+</span><span id="line-57"></span><span class="hs-comment">-- | The type of chess pieces. Unicode includes an 'Equihopper' as piece as</span><span>
+</span><span id="line-58"></span><span class="hs-comment">-- well.</span><span>
+</span><span id="line-59"></span><span class="hs-keyword">data</span><span> </span><span id="ChessPieceType"><span class="annot"><a href="Data.Char.Chess.html#ChessPieceType"><span class="hs-identifier hs-var">ChessPieceType</span></a></span></span><span>
+</span><span id="line-60"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span id="King"><span class="annot"><a href="Data.Char.Chess.html#King"><span class="hs-identifier hs-var">King</span></a></span></span><span> </span><span class="hs-comment">-- ^ The /king/ chess piece.</span><span>
+</span><span id="line-61"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="Queen"><span class="annot"><a href="Data.Char.Chess.html#Queen"><span class="hs-identifier hs-var">Queen</span></a></span></span><span> </span><span class="hs-comment">-- ^ The /queen/ chess piece.</span><span>
+</span><span id="line-62"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="Rook"><span class="annot"><a href="Data.Char.Chess.html#Rook"><span class="hs-identifier hs-var">Rook</span></a></span></span><span> </span><span class="hs-comment">-- ^ The /rook/ chess piece.</span><span>
+</span><span id="line-63"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="Bishop"><span class="annot"><a href="Data.Char.Chess.html#Bishop"><span class="hs-identifier hs-var">Bishop</span></a></span></span><span> </span><span class="hs-comment">-- ^ The /bishop/ chess piece.</span><span>
+</span><span id="line-64"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="Knight"><span class="annot"><a href="Data.Char.Chess.html#Knight"><span class="hs-identifier hs-var">Knight</span></a></span></span><span> </span><span class="hs-comment">-- ^ The /knight/ chess piece.</span><span>
+</span><span id="line-65"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="Pawn"><span class="annot"><a href="Data.Char.Chess.html#Pawn"><span class="hs-identifier hs-var">Pawn</span></a></span></span><span> </span><span class="hs-comment">-- ^ The /pawn/ chess piece.</span><span>
+</span><span id="line-66"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="Equihopper"><span class="annot"><a href="Data.Char.Chess.html#Equihopper"><span class="hs-identifier hs-var">Equihopper</span></a></span></span><span> </span><span class="hs-comment">-- ^ The /equihopper/ chess piece.</span><span>
+</span><span id="line-67"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679102404"><span id="local-6989586621679102406"><span class="annot"><span class="annottext">ChessPieceType
+ChessPieceType -&gt; ChessPieceType -&gt; Bounded ChessPieceType
+forall a. a -&gt; a -&gt; Bounded a
+maxBound :: ChessPieceType
+$cmaxBound :: ChessPieceType
+minBound :: ChessPieceType
+$cminBound :: ChessPieceType
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Bounded</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679102388"><span id="local-6989586621679102390"><span id="local-6989586621679102392"><span id="local-6989586621679102394"><span id="local-6989586621679102396"><span id="local-6989586621679102398"><span id="local-6989586621679102400"><span id="local-6989586621679102402"><span class="annot"><span class="annottext">Int -&gt; ChessPieceType
+ChessPieceType -&gt; Int
+ChessPieceType -&gt; [ChessPieceType]
+ChessPieceType -&gt; ChessPieceType
+ChessPieceType -&gt; ChessPieceType -&gt; [ChessPieceType]
+ChessPieceType
+-&gt; ChessPieceType -&gt; ChessPieceType -&gt; [ChessPieceType]
+(ChessPieceType -&gt; ChessPieceType)
+-&gt; (ChessPieceType -&gt; ChessPieceType)
+-&gt; (Int -&gt; ChessPieceType)
+-&gt; (ChessPieceType -&gt; Int)
+-&gt; (ChessPieceType -&gt; [ChessPieceType])
+-&gt; (ChessPieceType -&gt; ChessPieceType -&gt; [ChessPieceType])
+-&gt; (ChessPieceType -&gt; ChessPieceType -&gt; [ChessPieceType])
+-&gt; (ChessPieceType
+    -&gt; ChessPieceType -&gt; ChessPieceType -&gt; [ChessPieceType])
+-&gt; Enum ChessPieceType
+forall a.
+(a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (Int -&gt; a)
+-&gt; (a -&gt; Int)
+-&gt; (a -&gt; [a])
+-&gt; (a -&gt; a -&gt; [a])
+-&gt; (a -&gt; a -&gt; [a])
+-&gt; (a -&gt; a -&gt; a -&gt; [a])
+-&gt; Enum a
+enumFromThenTo :: ChessPieceType
+-&gt; ChessPieceType -&gt; ChessPieceType -&gt; [ChessPieceType]
+$cenumFromThenTo :: ChessPieceType
+-&gt; ChessPieceType -&gt; ChessPieceType -&gt; [ChessPieceType]
+enumFromTo :: ChessPieceType -&gt; ChessPieceType -&gt; [ChessPieceType]
+$cenumFromTo :: ChessPieceType -&gt; ChessPieceType -&gt; [ChessPieceType]
+enumFromThen :: ChessPieceType -&gt; ChessPieceType -&gt; [ChessPieceType]
+$cenumFromThen :: ChessPieceType -&gt; ChessPieceType -&gt; [ChessPieceType]
+enumFrom :: ChessPieceType -&gt; [ChessPieceType]
+$cenumFrom :: ChessPieceType -&gt; [ChessPieceType]
+fromEnum :: ChessPieceType -&gt; Int
+$cfromEnum :: ChessPieceType -&gt; Int
+toEnum :: Int -&gt; ChessPieceType
+$ctoEnum :: Int -&gt; ChessPieceType
+pred :: ChessPieceType -&gt; ChessPieceType
+$cpred :: ChessPieceType -&gt; ChessPieceType
+succ :: ChessPieceType -&gt; ChessPieceType
+$csucc :: ChessPieceType -&gt; ChessPieceType
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Enum</span></span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679102384"><span id="local-6989586621679102386"><span class="annot"><span class="annottext">ChessPieceType -&gt; ChessPieceType -&gt; Bool
+(ChessPieceType -&gt; ChessPieceType -&gt; Bool)
+-&gt; (ChessPieceType -&gt; ChessPieceType -&gt; Bool) -&gt; Eq ChessPieceType
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: ChessPieceType -&gt; ChessPieceType -&gt; Bool
+$c/= :: ChessPieceType -&gt; ChessPieceType -&gt; Bool
+== :: ChessPieceType -&gt; ChessPieceType -&gt; Bool
+$c== :: ChessPieceType -&gt; ChessPieceType -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679102369"><span id="local-6989586621679102371"><span id="local-6989586621679102373"><span id="local-6989586621679102375"><span id="local-6989586621679102377"><span id="local-6989586621679102379"><span id="local-6989586621679102381"><span class="annot"><span class="annottext">Eq ChessPieceType
+Eq ChessPieceType
+-&gt; (ChessPieceType -&gt; ChessPieceType -&gt; Ordering)
+-&gt; (ChessPieceType -&gt; ChessPieceType -&gt; Bool)
+-&gt; (ChessPieceType -&gt; ChessPieceType -&gt; Bool)
+-&gt; (ChessPieceType -&gt; ChessPieceType -&gt; Bool)
+-&gt; (ChessPieceType -&gt; ChessPieceType -&gt; Bool)
+-&gt; (ChessPieceType -&gt; ChessPieceType -&gt; ChessPieceType)
+-&gt; (ChessPieceType -&gt; ChessPieceType -&gt; ChessPieceType)
+-&gt; Ord ChessPieceType
+ChessPieceType -&gt; ChessPieceType -&gt; Bool
+ChessPieceType -&gt; ChessPieceType -&gt; Ordering
+ChessPieceType -&gt; ChessPieceType -&gt; ChessPieceType
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: ChessPieceType -&gt; ChessPieceType -&gt; ChessPieceType
+$cmin :: ChessPieceType -&gt; ChessPieceType -&gt; ChessPieceType
+max :: ChessPieceType -&gt; ChessPieceType -&gt; ChessPieceType
+$cmax :: ChessPieceType -&gt; ChessPieceType -&gt; ChessPieceType
+&gt;= :: ChessPieceType -&gt; ChessPieceType -&gt; Bool
+$c&gt;= :: ChessPieceType -&gt; ChessPieceType -&gt; Bool
+&gt; :: ChessPieceType -&gt; ChessPieceType -&gt; Bool
+$c&gt; :: ChessPieceType -&gt; ChessPieceType -&gt; Bool
+&lt;= :: ChessPieceType -&gt; ChessPieceType -&gt; Bool
+$c&lt;= :: ChessPieceType -&gt; ChessPieceType -&gt; Bool
+&lt; :: ChessPieceType -&gt; ChessPieceType -&gt; Bool
+$c&lt; :: ChessPieceType -&gt; ChessPieceType -&gt; Bool
+compare :: ChessPieceType -&gt; ChessPieceType -&gt; Ordering
+$ccompare :: ChessPieceType -&gt; ChessPieceType -&gt; Ordering
+$cp1Ord :: Eq ChessPieceType
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679102361"><span id="local-6989586621679102363"><span id="local-6989586621679102365"><span id="local-6989586621679102367"><span class="annot"><span class="annottext">ReadPrec [ChessPieceType]
+ReadPrec ChessPieceType
+Int -&gt; ReadS ChessPieceType
+ReadS [ChessPieceType]
+(Int -&gt; ReadS ChessPieceType)
+-&gt; ReadS [ChessPieceType]
+-&gt; ReadPrec ChessPieceType
+-&gt; ReadPrec [ChessPieceType]
+-&gt; Read ChessPieceType
+forall a.
+(Int -&gt; ReadS a)
+-&gt; ReadS [a] -&gt; ReadPrec a -&gt; ReadPrec [a] -&gt; Read a
+readListPrec :: ReadPrec [ChessPieceType]
+$creadListPrec :: ReadPrec [ChessPieceType]
+readPrec :: ReadPrec ChessPieceType
+$creadPrec :: ReadPrec ChessPieceType
+readList :: ReadS [ChessPieceType]
+$creadList :: ReadS [ChessPieceType]
+readsPrec :: Int -&gt; ReadS ChessPieceType
+$creadsPrec :: Int -&gt; ReadS ChessPieceType
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Read</span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679102355"><span id="local-6989586621679102357"><span id="local-6989586621679102359"><span class="annot"><span class="annottext">Int -&gt; ChessPieceType -&gt; ShowS
+[ChessPieceType] -&gt; ShowS
+ChessPieceType -&gt; String
+(Int -&gt; ChessPieceType -&gt; ShowS)
+-&gt; (ChessPieceType -&gt; String)
+-&gt; ([ChessPieceType] -&gt; ShowS)
+-&gt; Show ChessPieceType
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [ChessPieceType] -&gt; ShowS
+$cshowList :: [ChessPieceType] -&gt; ShowS
+show :: ChessPieceType -&gt; String
+$cshow :: ChessPieceType -&gt; String
+showsPrec :: Int -&gt; ChessPieceType -&gt; ShowS
+$cshowsPrec :: Int -&gt; ChessPieceType -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-68"></span><span>
+</span><span id="line-69"></span><span class="hs-comment">-- | Extra rotations that can be performed for knight chess pieces.</span><span>
+</span><span id="line-70"></span><span class="hs-keyword">data</span><span> </span><span id="Rotate45"><span class="annot"><a href="Data.Char.Chess.html#Rotate45"><span class="hs-identifier hs-var">Rotate45</span></a></span></span><span>
+</span><span id="line-71"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span id="R45"><span class="annot"><a href="Data.Char.Chess.html#R45"><span class="hs-identifier hs-var">R45</span></a></span></span><span> </span><span class="hs-comment">-- ^ Rotation over /45/ degrees.</span><span>
+</span><span id="line-72"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="R135"><span class="annot"><a href="Data.Char.Chess.html#R135"><span class="hs-identifier hs-var">R135</span></a></span></span><span> </span><span class="hs-comment">-- ^ Rotation over /135/ degrees.</span><span>
+</span><span id="line-73"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="R225"><span class="annot"><a href="Data.Char.Chess.html#R225"><span class="hs-identifier hs-var">R225</span></a></span></span><span> </span><span class="hs-comment">-- ^ Rotation over /225/ degrees.</span><span>
+</span><span id="line-74"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="R315"><span class="annot"><a href="Data.Char.Chess.html#R315"><span class="hs-identifier hs-var">R315</span></a></span></span><span> </span><span class="hs-comment">-- ^ Rotation over /315/ degrees.</span><span>
+</span><span id="line-75"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679102351"><span id="local-6989586621679102353"><span class="annot"><span class="annottext">Rotate45
+Rotate45 -&gt; Rotate45 -&gt; Bounded Rotate45
+forall a. a -&gt; a -&gt; Bounded a
+maxBound :: Rotate45
+$cmaxBound :: Rotate45
+minBound :: Rotate45
+$cminBound :: Rotate45
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Bounded</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679102335"><span id="local-6989586621679102337"><span id="local-6989586621679102339"><span id="local-6989586621679102341"><span id="local-6989586621679102343"><span id="local-6989586621679102345"><span id="local-6989586621679102347"><span id="local-6989586621679102349"><span class="annot"><span class="annottext">Int -&gt; Rotate45
+Rotate45 -&gt; Int
+Rotate45 -&gt; [Rotate45]
+Rotate45 -&gt; Rotate45
+Rotate45 -&gt; Rotate45 -&gt; [Rotate45]
+Rotate45 -&gt; Rotate45 -&gt; Rotate45 -&gt; [Rotate45]
+(Rotate45 -&gt; Rotate45)
+-&gt; (Rotate45 -&gt; Rotate45)
+-&gt; (Int -&gt; Rotate45)
+-&gt; (Rotate45 -&gt; Int)
+-&gt; (Rotate45 -&gt; [Rotate45])
+-&gt; (Rotate45 -&gt; Rotate45 -&gt; [Rotate45])
+-&gt; (Rotate45 -&gt; Rotate45 -&gt; [Rotate45])
+-&gt; (Rotate45 -&gt; Rotate45 -&gt; Rotate45 -&gt; [Rotate45])
+-&gt; Enum Rotate45
+forall a.
+(a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (Int -&gt; a)
+-&gt; (a -&gt; Int)
+-&gt; (a -&gt; [a])
+-&gt; (a -&gt; a -&gt; [a])
+-&gt; (a -&gt; a -&gt; [a])
+-&gt; (a -&gt; a -&gt; a -&gt; [a])
+-&gt; Enum a
+enumFromThenTo :: Rotate45 -&gt; Rotate45 -&gt; Rotate45 -&gt; [Rotate45]
+$cenumFromThenTo :: Rotate45 -&gt; Rotate45 -&gt; Rotate45 -&gt; [Rotate45]
+enumFromTo :: Rotate45 -&gt; Rotate45 -&gt; [Rotate45]
+$cenumFromTo :: Rotate45 -&gt; Rotate45 -&gt; [Rotate45]
+enumFromThen :: Rotate45 -&gt; Rotate45 -&gt; [Rotate45]
+$cenumFromThen :: Rotate45 -&gt; Rotate45 -&gt; [Rotate45]
+enumFrom :: Rotate45 -&gt; [Rotate45]
+$cenumFrom :: Rotate45 -&gt; [Rotate45]
+fromEnum :: Rotate45 -&gt; Int
+$cfromEnum :: Rotate45 -&gt; Int
+toEnum :: Int -&gt; Rotate45
+$ctoEnum :: Int -&gt; Rotate45
+pred :: Rotate45 -&gt; Rotate45
+$cpred :: Rotate45 -&gt; Rotate45
+succ :: Rotate45 -&gt; Rotate45
+$csucc :: Rotate45 -&gt; Rotate45
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Enum</span></span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679102331"><span id="local-6989586621679102333"><span class="annot"><span class="annottext">Rotate45 -&gt; Rotate45 -&gt; Bool
+(Rotate45 -&gt; Rotate45 -&gt; Bool)
+-&gt; (Rotate45 -&gt; Rotate45 -&gt; Bool) -&gt; Eq Rotate45
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: Rotate45 -&gt; Rotate45 -&gt; Bool
+$c/= :: Rotate45 -&gt; Rotate45 -&gt; Bool
+== :: Rotate45 -&gt; Rotate45 -&gt; Bool
+$c== :: Rotate45 -&gt; Rotate45 -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679102316"><span id="local-6989586621679102318"><span id="local-6989586621679102320"><span id="local-6989586621679102322"><span id="local-6989586621679102324"><span id="local-6989586621679102326"><span id="local-6989586621679102328"><span class="annot"><span class="annottext">Eq Rotate45
+Eq Rotate45
+-&gt; (Rotate45 -&gt; Rotate45 -&gt; Ordering)
+-&gt; (Rotate45 -&gt; Rotate45 -&gt; Bool)
+-&gt; (Rotate45 -&gt; Rotate45 -&gt; Bool)
+-&gt; (Rotate45 -&gt; Rotate45 -&gt; Bool)
+-&gt; (Rotate45 -&gt; Rotate45 -&gt; Bool)
+-&gt; (Rotate45 -&gt; Rotate45 -&gt; Rotate45)
+-&gt; (Rotate45 -&gt; Rotate45 -&gt; Rotate45)
+-&gt; Ord Rotate45
+Rotate45 -&gt; Rotate45 -&gt; Bool
+Rotate45 -&gt; Rotate45 -&gt; Ordering
+Rotate45 -&gt; Rotate45 -&gt; Rotate45
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: Rotate45 -&gt; Rotate45 -&gt; Rotate45
+$cmin :: Rotate45 -&gt; Rotate45 -&gt; Rotate45
+max :: Rotate45 -&gt; Rotate45 -&gt; Rotate45
+$cmax :: Rotate45 -&gt; Rotate45 -&gt; Rotate45
+&gt;= :: Rotate45 -&gt; Rotate45 -&gt; Bool
+$c&gt;= :: Rotate45 -&gt; Rotate45 -&gt; Bool
+&gt; :: Rotate45 -&gt; Rotate45 -&gt; Bool
+$c&gt; :: Rotate45 -&gt; Rotate45 -&gt; Bool
+&lt;= :: Rotate45 -&gt; Rotate45 -&gt; Bool
+$c&lt;= :: Rotate45 -&gt; Rotate45 -&gt; Bool
+&lt; :: Rotate45 -&gt; Rotate45 -&gt; Bool
+$c&lt; :: Rotate45 -&gt; Rotate45 -&gt; Bool
+compare :: Rotate45 -&gt; Rotate45 -&gt; Ordering
+$ccompare :: Rotate45 -&gt; Rotate45 -&gt; Ordering
+$cp1Ord :: Eq Rotate45
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679102308"><span id="local-6989586621679102310"><span id="local-6989586621679102312"><span id="local-6989586621679102314"><span class="annot"><span class="annottext">ReadPrec [Rotate45]
+ReadPrec Rotate45
+Int -&gt; ReadS Rotate45
+ReadS [Rotate45]
+(Int -&gt; ReadS Rotate45)
+-&gt; ReadS [Rotate45]
+-&gt; ReadPrec Rotate45
+-&gt; ReadPrec [Rotate45]
+-&gt; Read Rotate45
+forall a.
+(Int -&gt; ReadS a)
+-&gt; ReadS [a] -&gt; ReadPrec a -&gt; ReadPrec [a] -&gt; Read a
+readListPrec :: ReadPrec [Rotate45]
+$creadListPrec :: ReadPrec [Rotate45]
+readPrec :: ReadPrec Rotate45
+$creadPrec :: ReadPrec Rotate45
+readList :: ReadS [Rotate45]
+$creadList :: ReadS [Rotate45]
+readsPrec :: Int -&gt; ReadS Rotate45
+$creadsPrec :: Int -&gt; ReadS Rotate45
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Read</span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679102302"><span id="local-6989586621679102304"><span id="local-6989586621679102306"><span class="annot"><span class="annottext">Int -&gt; Rotate45 -&gt; ShowS
+[Rotate45] -&gt; ShowS
+Rotate45 -&gt; String
+(Int -&gt; Rotate45 -&gt; ShowS)
+-&gt; (Rotate45 -&gt; String) -&gt; ([Rotate45] -&gt; ShowS) -&gt; Show Rotate45
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [Rotate45] -&gt; ShowS
+$cshowList :: [Rotate45] -&gt; ShowS
+show :: Rotate45 -&gt; String
+$cshow :: Rotate45 -&gt; String
+showsPrec :: Int -&gt; Rotate45 -&gt; ShowS
+$cshowsPrec :: Int -&gt; Rotate45 -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-76"></span><span>
+</span><span id="line-77"></span><span class="hs-comment">-- | Hybrid chess pieces like the /knight-queen/, /knight-rook/ and</span><span>
+</span><span id="line-78"></span><span class="hs-comment">-- /knight-bishop/.</span><span>
+</span><span id="line-79"></span><span class="hs-keyword">data</span><span> </span><span id="ChessHybridType"><span class="annot"><a href="Data.Char.Chess.html#ChessHybridType"><span class="hs-identifier hs-var">ChessHybridType</span></a></span></span><span>
+</span><span id="line-80"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span id="KnightQueen"><span class="annot"><a href="Data.Char.Chess.html#KnightQueen"><span class="hs-identifier hs-var">KnightQueen</span></a></span></span><span> </span><span class="hs-comment">-- ^ The /knight-queen/ chess piece.</span><span>
+</span><span id="line-81"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="KnightRook"><span class="annot"><a href="Data.Char.Chess.html#KnightRook"><span class="hs-identifier hs-var">KnightRook</span></a></span></span><span> </span><span class="hs-comment">-- ^ The /knight-rook/ chess piece.</span><span>
+</span><span id="line-82"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="KnightBishop"><span class="annot"><a href="Data.Char.Chess.html#KnightBishop"><span class="hs-identifier hs-var">KnightBishop</span></a></span></span><span> </span><span class="hs-comment">-- ^ The /knight-bishop/ chess piece.</span><span>
+</span><span id="line-83"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679102298"><span id="local-6989586621679102300"><span class="annot"><span class="annottext">ChessHybridType
+ChessHybridType -&gt; ChessHybridType -&gt; Bounded ChessHybridType
+forall a. a -&gt; a -&gt; Bounded a
+maxBound :: ChessHybridType
+$cmaxBound :: ChessHybridType
+minBound :: ChessHybridType
+$cminBound :: ChessHybridType
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Bounded</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679102282"><span id="local-6989586621679102284"><span id="local-6989586621679102286"><span id="local-6989586621679102288"><span id="local-6989586621679102290"><span id="local-6989586621679102292"><span id="local-6989586621679102294"><span id="local-6989586621679102296"><span class="annot"><span class="annottext">Int -&gt; ChessHybridType
+ChessHybridType -&gt; Int
+ChessHybridType -&gt; [ChessHybridType]
+ChessHybridType -&gt; ChessHybridType
+ChessHybridType -&gt; ChessHybridType -&gt; [ChessHybridType]
+ChessHybridType
+-&gt; ChessHybridType -&gt; ChessHybridType -&gt; [ChessHybridType]
+(ChessHybridType -&gt; ChessHybridType)
+-&gt; (ChessHybridType -&gt; ChessHybridType)
+-&gt; (Int -&gt; ChessHybridType)
+-&gt; (ChessHybridType -&gt; Int)
+-&gt; (ChessHybridType -&gt; [ChessHybridType])
+-&gt; (ChessHybridType -&gt; ChessHybridType -&gt; [ChessHybridType])
+-&gt; (ChessHybridType -&gt; ChessHybridType -&gt; [ChessHybridType])
+-&gt; (ChessHybridType
+    -&gt; ChessHybridType -&gt; ChessHybridType -&gt; [ChessHybridType])
+-&gt; Enum ChessHybridType
+forall a.
+(a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (Int -&gt; a)
+-&gt; (a -&gt; Int)
+-&gt; (a -&gt; [a])
+-&gt; (a -&gt; a -&gt; [a])
+-&gt; (a -&gt; a -&gt; [a])
+-&gt; (a -&gt; a -&gt; a -&gt; [a])
+-&gt; Enum a
+enumFromThenTo :: ChessHybridType
+-&gt; ChessHybridType -&gt; ChessHybridType -&gt; [ChessHybridType]
+$cenumFromThenTo :: ChessHybridType
+-&gt; ChessHybridType -&gt; ChessHybridType -&gt; [ChessHybridType]
+enumFromTo :: ChessHybridType -&gt; ChessHybridType -&gt; [ChessHybridType]
+$cenumFromTo :: ChessHybridType -&gt; ChessHybridType -&gt; [ChessHybridType]
+enumFromThen :: ChessHybridType -&gt; ChessHybridType -&gt; [ChessHybridType]
+$cenumFromThen :: ChessHybridType -&gt; ChessHybridType -&gt; [ChessHybridType]
+enumFrom :: ChessHybridType -&gt; [ChessHybridType]
+$cenumFrom :: ChessHybridType -&gt; [ChessHybridType]
+fromEnum :: ChessHybridType -&gt; Int
+$cfromEnum :: ChessHybridType -&gt; Int
+toEnum :: Int -&gt; ChessHybridType
+$ctoEnum :: Int -&gt; ChessHybridType
+pred :: ChessHybridType -&gt; ChessHybridType
+$cpred :: ChessHybridType -&gt; ChessHybridType
+succ :: ChessHybridType -&gt; ChessHybridType
+$csucc :: ChessHybridType -&gt; ChessHybridType
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Enum</span></span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679102278"><span id="local-6989586621679102280"><span class="annot"><span class="annottext">ChessHybridType -&gt; ChessHybridType -&gt; Bool
+(ChessHybridType -&gt; ChessHybridType -&gt; Bool)
+-&gt; (ChessHybridType -&gt; ChessHybridType -&gt; Bool)
+-&gt; Eq ChessHybridType
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: ChessHybridType -&gt; ChessHybridType -&gt; Bool
+$c/= :: ChessHybridType -&gt; ChessHybridType -&gt; Bool
+== :: ChessHybridType -&gt; ChessHybridType -&gt; Bool
+$c== :: ChessHybridType -&gt; ChessHybridType -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679102263"><span id="local-6989586621679102265"><span id="local-6989586621679102267"><span id="local-6989586621679102269"><span id="local-6989586621679102271"><span id="local-6989586621679102273"><span id="local-6989586621679102275"><span class="annot"><span class="annottext">Eq ChessHybridType
+Eq ChessHybridType
+-&gt; (ChessHybridType -&gt; ChessHybridType -&gt; Ordering)
+-&gt; (ChessHybridType -&gt; ChessHybridType -&gt; Bool)
+-&gt; (ChessHybridType -&gt; ChessHybridType -&gt; Bool)
+-&gt; (ChessHybridType -&gt; ChessHybridType -&gt; Bool)
+-&gt; (ChessHybridType -&gt; ChessHybridType -&gt; Bool)
+-&gt; (ChessHybridType -&gt; ChessHybridType -&gt; ChessHybridType)
+-&gt; (ChessHybridType -&gt; ChessHybridType -&gt; ChessHybridType)
+-&gt; Ord ChessHybridType
+ChessHybridType -&gt; ChessHybridType -&gt; Bool
+ChessHybridType -&gt; ChessHybridType -&gt; Ordering
+ChessHybridType -&gt; ChessHybridType -&gt; ChessHybridType
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: ChessHybridType -&gt; ChessHybridType -&gt; ChessHybridType
+$cmin :: ChessHybridType -&gt; ChessHybridType -&gt; ChessHybridType
+max :: ChessHybridType -&gt; ChessHybridType -&gt; ChessHybridType
+$cmax :: ChessHybridType -&gt; ChessHybridType -&gt; ChessHybridType
+&gt;= :: ChessHybridType -&gt; ChessHybridType -&gt; Bool
+$c&gt;= :: ChessHybridType -&gt; ChessHybridType -&gt; Bool
+&gt; :: ChessHybridType -&gt; ChessHybridType -&gt; Bool
+$c&gt; :: ChessHybridType -&gt; ChessHybridType -&gt; Bool
+&lt;= :: ChessHybridType -&gt; ChessHybridType -&gt; Bool
+$c&lt;= :: ChessHybridType -&gt; ChessHybridType -&gt; Bool
+&lt; :: ChessHybridType -&gt; ChessHybridType -&gt; Bool
+$c&lt; :: ChessHybridType -&gt; ChessHybridType -&gt; Bool
+compare :: ChessHybridType -&gt; ChessHybridType -&gt; Ordering
+$ccompare :: ChessHybridType -&gt; ChessHybridType -&gt; Ordering
+$cp1Ord :: Eq ChessHybridType
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679102255"><span id="local-6989586621679102257"><span id="local-6989586621679102259"><span id="local-6989586621679102261"><span class="annot"><span class="annottext">ReadPrec [ChessHybridType]
+ReadPrec ChessHybridType
+Int -&gt; ReadS ChessHybridType
+ReadS [ChessHybridType]
+(Int -&gt; ReadS ChessHybridType)
+-&gt; ReadS [ChessHybridType]
+-&gt; ReadPrec ChessHybridType
+-&gt; ReadPrec [ChessHybridType]
+-&gt; Read ChessHybridType
+forall a.
+(Int -&gt; ReadS a)
+-&gt; ReadS [a] -&gt; ReadPrec a -&gt; ReadPrec [a] -&gt; Read a
+readListPrec :: ReadPrec [ChessHybridType]
+$creadListPrec :: ReadPrec [ChessHybridType]
+readPrec :: ReadPrec ChessHybridType
+$creadPrec :: ReadPrec ChessHybridType
+readList :: ReadS [ChessHybridType]
+$creadList :: ReadS [ChessHybridType]
+readsPrec :: Int -&gt; ReadS ChessHybridType
+$creadsPrec :: Int -&gt; ReadS ChessHybridType
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Read</span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679102249"><span id="local-6989586621679102251"><span id="local-6989586621679102253"><span class="annot"><span class="annottext">Int -&gt; ChessHybridType -&gt; ShowS
+[ChessHybridType] -&gt; ShowS
+ChessHybridType -&gt; String
+(Int -&gt; ChessHybridType -&gt; ShowS)
+-&gt; (ChessHybridType -&gt; String)
+-&gt; ([ChessHybridType] -&gt; ShowS)
+-&gt; Show ChessHybridType
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [ChessHybridType] -&gt; ShowS
+$cshowList :: [ChessHybridType] -&gt; ShowS
+show :: ChessHybridType -&gt; String
+$cshow :: ChessHybridType -&gt; String
+showsPrec :: Int -&gt; ChessHybridType -&gt; ShowS
+$cshowsPrec :: Int -&gt; ChessHybridType -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-84"></span><span>
+</span><span id="line-85"></span><span class="hs-comment">-- | Chess pieces that can be represented in Unicode. These are the /king/,</span><span>
+</span><span id="line-86"></span><span class="hs-comment">-- /queen/, /rook/, /bishop/, /knight/, /pawn/, and /equihopper/ over 0, 90,</span><span>
+</span><span id="line-87"></span><span class="hs-comment">-- 180, and 270 degrees; and the /knight/ over /45/, /135/, /225/, and /315/</span><span>
+</span><span id="line-88"></span><span class="hs-comment">-- degrees in 'Black', 'White' and 'Neutral'.</span><span>
+</span><span id="line-89"></span><span class="hs-comment">-- Furthermore one can draw a /knight-queen/, /knight-rook/, and /knight-bishop/</span><span>
+</span><span id="line-90"></span><span class="hs-comment">-- pieces can be drawn without rotation and only in 'BBlack' or 'BWhite'.</span><span>
+</span><span id="line-91"></span><span class="hs-keyword">data</span><span> </span><span id="ChessPiece"><span class="annot"><a href="Data.Char.Chess.html#ChessPiece"><span class="hs-identifier hs-var">ChessPiece</span></a></span></span><span>
+</span><span id="line-92"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span id="Chess90"><span class="annot"><a href="Data.Char.Chess.html#Chess90"><span class="hs-identifier hs-var">Chess90</span></a></span></span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessColor"><span class="hs-identifier hs-type">ChessColor</span></a></span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessPieceType"><span class="hs-identifier hs-type">ChessPieceType</span></a></span><span> </span><span class="annot"><a href="Data.Char.Core.html#Rotate90"><span class="hs-identifier hs-type">Rotate90</span></a></span><span> </span><span class="hs-comment">-- ^ Standard pieces drawn in /black/, /white/, or /neutral/ and with rotation.</span><span>
+</span><span id="line-93"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="Chess45Knight"><span class="annot"><a href="Data.Char.Chess.html#Chess45Knight"><span class="hs-identifier hs-var">Chess45Knight</span></a></span></span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessColor"><span class="hs-identifier hs-type">ChessColor</span></a></span><span> </span><span class="annot"><a href="Data.Char.Chess.html#Rotate45"><span class="hs-identifier hs-type">Rotate45</span></a></span><span> </span><span class="hs-comment">-- ^ /Knights/ have unicode characters to render these rotated over /45/, /135/, /225/ and /315/ degrees.</span><span>
+</span><span id="line-94"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="ChessHybrid"><span class="annot"><a href="Data.Char.Chess.html#ChessHybrid"><span class="hs-identifier hs-var">ChessHybrid</span></a></span></span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessHybridType"><span class="hs-identifier hs-type">ChessHybridType</span></a></span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessColorBinary"><span class="hs-identifier hs-type">ChessColorBinary</span></a></span><span> </span><span class="hs-comment">-- ^ Hybrid chess pieces can only be rendered in 'BBlack' and 'BWhite'.</span><span>
+</span><span id="line-95"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679102245"><span id="local-6989586621679102247"><span class="annot"><span class="annottext">ChessPiece -&gt; ChessPiece -&gt; Bool
+(ChessPiece -&gt; ChessPiece -&gt; Bool)
+-&gt; (ChessPiece -&gt; ChessPiece -&gt; Bool) -&gt; Eq ChessPiece
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: ChessPiece -&gt; ChessPiece -&gt; Bool
+$c/= :: ChessPiece -&gt; ChessPiece -&gt; Bool
+== :: ChessPiece -&gt; ChessPiece -&gt; Bool
+$c== :: ChessPiece -&gt; ChessPiece -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679102230"><span id="local-6989586621679102232"><span id="local-6989586621679102234"><span id="local-6989586621679102236"><span id="local-6989586621679102238"><span id="local-6989586621679102240"><span id="local-6989586621679102242"><span class="annot"><span class="annottext">Eq ChessPiece
+Eq ChessPiece
+-&gt; (ChessPiece -&gt; ChessPiece -&gt; Ordering)
+-&gt; (ChessPiece -&gt; ChessPiece -&gt; Bool)
+-&gt; (ChessPiece -&gt; ChessPiece -&gt; Bool)
+-&gt; (ChessPiece -&gt; ChessPiece -&gt; Bool)
+-&gt; (ChessPiece -&gt; ChessPiece -&gt; Bool)
+-&gt; (ChessPiece -&gt; ChessPiece -&gt; ChessPiece)
+-&gt; (ChessPiece -&gt; ChessPiece -&gt; ChessPiece)
+-&gt; Ord ChessPiece
+ChessPiece -&gt; ChessPiece -&gt; Bool
+ChessPiece -&gt; ChessPiece -&gt; Ordering
+ChessPiece -&gt; ChessPiece -&gt; ChessPiece
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: ChessPiece -&gt; ChessPiece -&gt; ChessPiece
+$cmin :: ChessPiece -&gt; ChessPiece -&gt; ChessPiece
+max :: ChessPiece -&gt; ChessPiece -&gt; ChessPiece
+$cmax :: ChessPiece -&gt; ChessPiece -&gt; ChessPiece
+&gt;= :: ChessPiece -&gt; ChessPiece -&gt; Bool
+$c&gt;= :: ChessPiece -&gt; ChessPiece -&gt; Bool
+&gt; :: ChessPiece -&gt; ChessPiece -&gt; Bool
+$c&gt; :: ChessPiece -&gt; ChessPiece -&gt; Bool
+&lt;= :: ChessPiece -&gt; ChessPiece -&gt; Bool
+$c&lt;= :: ChessPiece -&gt; ChessPiece -&gt; Bool
+&lt; :: ChessPiece -&gt; ChessPiece -&gt; Bool
+$c&lt; :: ChessPiece -&gt; ChessPiece -&gt; Bool
+compare :: ChessPiece -&gt; ChessPiece -&gt; Ordering
+$ccompare :: ChessPiece -&gt; ChessPiece -&gt; Ordering
+$cp1Ord :: Eq ChessPiece
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679102222"><span id="local-6989586621679102224"><span id="local-6989586621679102226"><span id="local-6989586621679102228"><span class="annot"><span class="annottext">ReadPrec [ChessPiece]
+ReadPrec ChessPiece
+Int -&gt; ReadS ChessPiece
+ReadS [ChessPiece]
+(Int -&gt; ReadS ChessPiece)
+-&gt; ReadS [ChessPiece]
+-&gt; ReadPrec ChessPiece
+-&gt; ReadPrec [ChessPiece]
+-&gt; Read ChessPiece
+forall a.
+(Int -&gt; ReadS a)
+-&gt; ReadS [a] -&gt; ReadPrec a -&gt; ReadPrec [a] -&gt; Read a
+readListPrec :: ReadPrec [ChessPiece]
+$creadListPrec :: ReadPrec [ChessPiece]
+readPrec :: ReadPrec ChessPiece
+$creadPrec :: ReadPrec ChessPiece
+readList :: ReadS [ChessPiece]
+$creadList :: ReadS [ChessPiece]
+readsPrec :: Int -&gt; ReadS ChessPiece
+$creadsPrec :: Int -&gt; ReadS ChessPiece
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Read</span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679102216"><span id="local-6989586621679102218"><span id="local-6989586621679102220"><span class="annot"><span class="annottext">Int -&gt; ChessPiece -&gt; ShowS
+[ChessPiece] -&gt; ShowS
+ChessPiece -&gt; String
+(Int -&gt; ChessPiece -&gt; ShowS)
+-&gt; (ChessPiece -&gt; String)
+-&gt; ([ChessPiece] -&gt; ShowS)
+-&gt; Show ChessPiece
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [ChessPiece] -&gt; ShowS
+$cshowList :: [ChessPiece] -&gt; ShowS
+show :: ChessPiece -&gt; String
+$cshow :: ChessPiece -&gt; String
+showsPrec :: Int -&gt; ChessPiece -&gt; ShowS
+$cshowsPrec :: Int -&gt; ChessPiece -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-96"></span><span>
+</span><span id="line-97"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679102213"><span class="annot"><span class="hs-identifier hs-type">Arbitrary</span></span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessColorBinary"><span class="hs-identifier hs-type">ChessColorBinary</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-98"></span><span>    </span><span id="local-6989586621679102211"><span class="annot"><span class="annottext">arbitrary :: Gen ChessColorBinary
+</span><a href="#local-6989586621679102211"><span class="hs-identifier hs-var hs-var hs-var hs-var">arbitrary</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Gen ChessColorBinary
+forall a. (Bounded a, Enum a) =&gt; Gen a
+</span><span class="hs-identifier hs-var">arbitraryBoundedEnum</span></span><span>
+</span><span id="line-99"></span><span>
+</span><span id="line-100"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679102208"><span class="annot"><span class="hs-identifier hs-type">Arbitrary</span></span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessColor"><span class="hs-identifier hs-type">ChessColor</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-101"></span><span>    </span><span id="local-6989586621679102207"><span class="annot"><span class="annottext">arbitrary :: Gen ChessColor
+</span><a href="#local-6989586621679102207"><span class="hs-identifier hs-var hs-var hs-var hs-var">arbitrary</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Gen ChessColor
+forall a. (Bounded a, Enum a) =&gt; Gen a
+</span><span class="hs-identifier hs-var">arbitraryBoundedEnum</span></span><span>
+</span><span id="line-102"></span><span>
+</span><span id="line-103"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679102204"><span class="annot"><span class="hs-identifier hs-type">Arbitrary</span></span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessPieceType"><span class="hs-identifier hs-type">ChessPieceType</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-104"></span><span>    </span><span id="local-6989586621679102203"><span class="annot"><span class="annottext">arbitrary :: Gen ChessPieceType
+</span><a href="#local-6989586621679102203"><span class="hs-identifier hs-var hs-var hs-var hs-var">arbitrary</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Gen ChessPieceType
+forall a. (Bounded a, Enum a) =&gt; Gen a
+</span><span class="hs-identifier hs-var">arbitraryBoundedEnum</span></span><span>
+</span><span id="line-105"></span><span>
+</span><span id="line-106"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679102200"><span class="annot"><span class="hs-identifier hs-type">Arbitrary</span></span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessHybridType"><span class="hs-identifier hs-type">ChessHybridType</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-107"></span><span>    </span><span id="local-6989586621679102199"><span class="annot"><span class="annottext">arbitrary :: Gen ChessHybridType
+</span><a href="#local-6989586621679102199"><span class="hs-identifier hs-var hs-var hs-var hs-var">arbitrary</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Gen ChessHybridType
+forall a. (Bounded a, Enum a) =&gt; Gen a
+</span><span class="hs-identifier hs-var">arbitraryBoundedEnum</span></span><span>
+</span><span id="line-108"></span><span>
+</span><span id="line-109"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679102196"><span class="annot"><span class="hs-identifier hs-type">Arbitrary</span></span><span> </span><span class="annot"><a href="Data.Char.Chess.html#Rotate45"><span class="hs-identifier hs-type">Rotate45</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-110"></span><span>    </span><span id="local-6989586621679102195"><span class="annot"><span class="annottext">arbitrary :: Gen Rotate45
+</span><a href="#local-6989586621679102195"><span class="hs-identifier hs-var hs-var hs-var hs-var">arbitrary</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Gen Rotate45
+forall a. (Bounded a, Enum a) =&gt; Gen a
+</span><span class="hs-identifier hs-var">arbitraryBoundedEnum</span></span><span>
+</span><span id="line-111"></span><span>
+</span><span id="line-112"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679102192"><span class="annot"><span class="hs-identifier hs-type">Arbitrary</span></span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessPiece"><span class="hs-identifier hs-type">ChessPiece</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-113"></span><span>    </span><span id="local-6989586621679102191"><span class="annot"><span class="annottext">arbitrary :: Gen ChessPiece
+</span><a href="#local-6989586621679102191"><span class="hs-identifier hs-var hs-var hs-var hs-var">arbitrary</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Gen ChessPiece] -&gt; Gen ChessPiece
+forall a. [Gen a] -&gt; Gen a
+</span><span class="hs-identifier hs-var">oneof</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">ChessColor -&gt; ChessPieceType -&gt; Rotate90 -&gt; ChessPiece
+</span><a href="Data.Char.Chess.html#Chess90"><span class="hs-identifier hs-var">Chess90</span></a></span><span> </span><span class="annot"><span class="annottext">(ChessColor -&gt; ChessPieceType -&gt; Rotate90 -&gt; ChessPiece)
+-&gt; Gen ChessColor -&gt; Gen (ChessPieceType -&gt; Rotate90 -&gt; ChessPiece)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Gen ChessColor
+forall a. Arbitrary a =&gt; Gen a
+</span><span class="hs-identifier hs-var">arbitrary</span></span><span> </span><span class="annot"><span class="annottext">Gen (ChessPieceType -&gt; Rotate90 -&gt; ChessPiece)
+-&gt; Gen ChessPieceType -&gt; Gen (Rotate90 -&gt; ChessPiece)
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Gen ChessPieceType
+forall a. Arbitrary a =&gt; Gen a
+</span><span class="hs-identifier hs-var">arbitrary</span></span><span> </span><span class="annot"><span class="annottext">Gen (Rotate90 -&gt; ChessPiece) -&gt; Gen Rotate90 -&gt; Gen ChessPiece
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Gen Rotate90
+forall a. Arbitrary a =&gt; Gen a
+</span><span class="hs-identifier hs-var">arbitrary</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">ChessColor -&gt; Rotate45 -&gt; ChessPiece
+</span><a href="Data.Char.Chess.html#Chess45Knight"><span class="hs-identifier hs-var">Chess45Knight</span></a></span><span> </span><span class="annot"><span class="annottext">(ChessColor -&gt; Rotate45 -&gt; ChessPiece)
+-&gt; Gen ChessColor -&gt; Gen (Rotate45 -&gt; ChessPiece)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Gen ChessColor
+forall a. Arbitrary a =&gt; Gen a
+</span><span class="hs-identifier hs-var">arbitrary</span></span><span> </span><span class="annot"><span class="annottext">Gen (Rotate45 -&gt; ChessPiece) -&gt; Gen Rotate45 -&gt; Gen ChessPiece
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Gen Rotate45
+forall a. Arbitrary a =&gt; Gen a
+</span><span class="hs-identifier hs-var">arbitrary</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">ChessHybridType -&gt; ChessColorBinary -&gt; ChessPiece
+</span><a href="Data.Char.Chess.html#ChessHybrid"><span class="hs-identifier hs-var">ChessHybrid</span></a></span><span> </span><span class="annot"><span class="annottext">(ChessHybridType -&gt; ChessColorBinary -&gt; ChessPiece)
+-&gt; Gen ChessHybridType -&gt; Gen (ChessColorBinary -&gt; ChessPiece)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Gen ChessHybridType
+forall a. Arbitrary a =&gt; Gen a
+</span><span class="hs-identifier hs-var">arbitrary</span></span><span> </span><span class="annot"><span class="annottext">Gen (ChessColorBinary -&gt; ChessPiece)
+-&gt; Gen ChessColorBinary -&gt; Gen ChessPiece
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Gen ChessColorBinary
+forall a. Arbitrary a =&gt; Gen a
+</span><span class="hs-identifier hs-var">arbitrary</span></span><span class="hs-special">]</span><span>
+</span><span id="line-114"></span><span>
+</span><span id="line-115"></span><span class="hs-comment">-- | A /grasshopper/ is a /queen/ rotated over 180 degrees.</span><span>
+</span><span id="line-116"></span><span class="hs-keyword">pattern</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#Grasshopper"><span class="hs-identifier hs-type">Grasshopper</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessColor"><span class="hs-identifier hs-type">ChessColor</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessPiece"><span class="hs-identifier hs-type">ChessPiece</span></a></span><span>
+</span><span id="line-117"></span><span class="hs-keyword">pattern</span><span> </span><span id="%24bGrasshopper"><span id="%24mGrasshopper"><span id="Grasshopper"><span class="annot"><span class="annottext">$bGrasshopper :: ChessColor -&gt; ChessPiece
+$mGrasshopper :: forall r. ChessPiece -&gt; (ChessColor -&gt; r) -&gt; (Void# -&gt; r) -&gt; r
+</span><a href="Data.Char.Chess.html#%24bGrasshopper"><span class="hs-identifier hs-var hs-var hs-var">Grasshopper</span></a></span></span></span></span><span> </span><span class="annot"><a href="#local-6989586621679102187"><span class="hs-identifier hs-type">c</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#Chess90"><span class="hs-identifier hs-type">Chess90</span></a></span><span> </span><span id="local-6989586621679102187"><span class="annot"><a href="#local-6989586621679102187"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="annot"><a href="Data.Char.Chess.html#Queen"><span class="hs-identifier hs-type">Queen</span></a></span><span> </span><span class="annot"><a href="Data.Char.Core.html#R180"><span class="hs-identifier hs-type">R180</span></a></span><span>
+</span><span id="line-118"></span><span>
+</span><span id="line-119"></span><span class="hs-comment">-- | A /Nightrider/ is a /knight/ rotated over 180 degrees.</span><span>
+</span><span id="line-120"></span><span class="hs-keyword">pattern</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#Nightrider"><span class="hs-identifier hs-type">Nightrider</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessColor"><span class="hs-identifier hs-type">ChessColor</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessPiece"><span class="hs-identifier hs-type">ChessPiece</span></a></span><span>
+</span><span id="line-121"></span><span class="hs-keyword">pattern</span><span> </span><span id="%24bNightrider"><span id="%24mNightrider"><span id="Nightrider"><span class="annot"><span class="annottext">$bNightrider :: ChessColor -&gt; ChessPiece
+$mNightrider :: forall r. ChessPiece -&gt; (ChessColor -&gt; r) -&gt; (Void# -&gt; r) -&gt; r
+</span><a href="Data.Char.Chess.html#%24bNightrider"><span class="hs-identifier hs-var hs-var hs-var">Nightrider</span></a></span></span></span></span><span> </span><span class="annot"><a href="#local-6989586621679102184"><span class="hs-identifier hs-type">c</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#Chess90"><span class="hs-identifier hs-type">Chess90</span></a></span><span> </span><span id="local-6989586621679102184"><span class="annot"><a href="#local-6989586621679102184"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="annot"><a href="Data.Char.Chess.html#Knight"><span class="hs-identifier hs-type">Knight</span></a></span><span> </span><span class="annot"><a href="Data.Char.Core.html#R180"><span class="hs-identifier hs-type">R180</span></a></span><span>
+</span><span id="line-122"></span><span>
+</span><span id="line-123"></span><span class="hs-comment">-- | An /amazon/ is alterative name for a /knight-queen/.</span><span>
+</span><span id="line-124"></span><span class="hs-keyword">pattern</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#Amazon"><span class="hs-identifier hs-type">Amazon</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessColorBinary"><span class="hs-identifier hs-type">ChessColorBinary</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessPiece"><span class="hs-identifier hs-type">ChessPiece</span></a></span><span>
+</span><span id="line-125"></span><span class="hs-keyword">pattern</span><span> </span><span id="%24bAmazon"><span id="%24mAmazon"><span id="Amazon"><span class="annot"><span class="annottext">$bAmazon :: ChessColorBinary -&gt; ChessPiece
+$mAmazon :: forall r.
+ChessPiece -&gt; (ChessColorBinary -&gt; r) -&gt; (Void# -&gt; r) -&gt; r
+</span><a href="Data.Char.Chess.html#%24bAmazon"><span class="hs-identifier hs-var hs-var hs-var">Amazon</span></a></span></span></span></span><span> </span><span class="annot"><a href="#local-6989586621679102181"><span class="hs-identifier hs-type">c</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessHybrid"><span class="hs-identifier hs-type">ChessHybrid</span></a></span><span> </span><span class="annot"><a href="Data.Char.Chess.html#KnightQueen"><span class="hs-identifier hs-type">KnightQueen</span></a></span><span> </span><span id="local-6989586621679102181"><span class="annot"><a href="#local-6989586621679102181"><span class="hs-identifier hs-var">c</span></a></span></span><span>
+</span><span id="line-126"></span><span>
+</span><span id="line-127"></span><span class="hs-comment">-- | A /terror/ is alterative name for a /knight-queen/.</span><span>
+</span><span id="line-128"></span><span class="hs-keyword">pattern</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#Terror"><span class="hs-identifier hs-type">Terror</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessColorBinary"><span class="hs-identifier hs-type">ChessColorBinary</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessPiece"><span class="hs-identifier hs-type">ChessPiece</span></a></span><span>
+</span><span id="line-129"></span><span class="hs-keyword">pattern</span><span> </span><span id="%24bTerror"><span id="%24mTerror"><span id="Terror"><span class="annot"><span class="annottext">$bTerror :: ChessColorBinary -&gt; ChessPiece
+$mTerror :: forall r.
+ChessPiece -&gt; (ChessColorBinary -&gt; r) -&gt; (Void# -&gt; r) -&gt; r
+</span><a href="Data.Char.Chess.html#%24bTerror"><span class="hs-identifier hs-var hs-var hs-var">Terror</span></a></span></span></span></span><span> </span><span class="annot"><a href="#local-6989586621679102178"><span class="hs-identifier hs-type">c</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessHybrid"><span class="hs-identifier hs-type">ChessHybrid</span></a></span><span> </span><span class="annot"><a href="Data.Char.Chess.html#KnightQueen"><span class="hs-identifier hs-type">KnightQueen</span></a></span><span> </span><span id="local-6989586621679102178"><span class="annot"><a href="#local-6989586621679102178"><span class="hs-identifier hs-var">c</span></a></span></span><span>
+</span><span id="line-130"></span><span>
+</span><span id="line-131"></span><span class="hs-comment">-- | An /omnipotent queen/ is alterative name for a /knight-queen/.</span><span>
+</span><span id="line-132"></span><span class="hs-keyword">pattern</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#OmnipotentQueen"><span class="hs-identifier hs-type">OmnipotentQueen</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessColorBinary"><span class="hs-identifier hs-type">ChessColorBinary</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessPiece"><span class="hs-identifier hs-type">ChessPiece</span></a></span><span>
+</span><span id="line-133"></span><span class="hs-keyword">pattern</span><span> </span><span id="%24bOmnipotentQueen"><span id="%24mOmnipotentQueen"><span id="OmnipotentQueen"><span class="annot"><span class="annottext">$bOmnipotentQueen :: ChessColorBinary -&gt; ChessPiece
+$mOmnipotentQueen :: forall r.
+ChessPiece -&gt; (ChessColorBinary -&gt; r) -&gt; (Void# -&gt; r) -&gt; r
+</span><a href="Data.Char.Chess.html#%24bOmnipotentQueen"><span class="hs-identifier hs-var hs-var hs-var">OmnipotentQueen</span></a></span></span></span></span><span> </span><span class="annot"><a href="#local-6989586621679102175"><span class="hs-identifier hs-type">c</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessHybrid"><span class="hs-identifier hs-type">ChessHybrid</span></a></span><span> </span><span class="annot"><a href="Data.Char.Chess.html#KnightQueen"><span class="hs-identifier hs-type">KnightQueen</span></a></span><span> </span><span id="local-6989586621679102175"><span class="annot"><a href="#local-6989586621679102175"><span class="hs-identifier hs-var">c</span></a></span></span><span>
+</span><span id="line-134"></span><span>
+</span><span id="line-135"></span><span class="hs-comment">-- | A /superqueen/ is alterative name for a /knight-queen/.</span><span>
+</span><span id="line-136"></span><span class="hs-keyword">pattern</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#Superqueen"><span class="hs-identifier hs-type">Superqueen</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessColorBinary"><span class="hs-identifier hs-type">ChessColorBinary</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessPiece"><span class="hs-identifier hs-type">ChessPiece</span></a></span><span>
+</span><span id="line-137"></span><span class="hs-keyword">pattern</span><span> </span><span id="%24bSuperqueen"><span id="%24mSuperqueen"><span id="Superqueen"><span class="annot"><span class="annottext">$bSuperqueen :: ChessColorBinary -&gt; ChessPiece
+$mSuperqueen :: forall r.
+ChessPiece -&gt; (ChessColorBinary -&gt; r) -&gt; (Void# -&gt; r) -&gt; r
+</span><a href="Data.Char.Chess.html#%24bSuperqueen"><span class="hs-identifier hs-var hs-var hs-var">Superqueen</span></a></span></span></span></span><span> </span><span class="annot"><a href="#local-6989586621679102172"><span class="hs-identifier hs-type">c</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessHybrid"><span class="hs-identifier hs-type">ChessHybrid</span></a></span><span> </span><span class="annot"><a href="Data.Char.Chess.html#KnightQueen"><span class="hs-identifier hs-type">KnightQueen</span></a></span><span> </span><span id="local-6989586621679102172"><span class="annot"><a href="#local-6989586621679102172"><span class="hs-identifier hs-var">c</span></a></span></span><span>
+</span><span id="line-138"></span><span>
+</span><span id="line-139"></span><span class="hs-comment">-- | A /chancellor/ is alterative name for a /knight-rook/.</span><span>
+</span><span id="line-140"></span><span class="hs-keyword">pattern</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#Chancellor"><span class="hs-identifier hs-type">Chancellor</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessColorBinary"><span class="hs-identifier hs-type">ChessColorBinary</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessPiece"><span class="hs-identifier hs-type">ChessPiece</span></a></span><span>
+</span><span id="line-141"></span><span class="hs-keyword">pattern</span><span> </span><span id="%24bChancellor"><span id="%24mChancellor"><span id="Chancellor"><span class="annot"><span class="annottext">$bChancellor :: ChessColorBinary -&gt; ChessPiece
+$mChancellor :: forall r.
+ChessPiece -&gt; (ChessColorBinary -&gt; r) -&gt; (Void# -&gt; r) -&gt; r
+</span><a href="Data.Char.Chess.html#%24bChancellor"><span class="hs-identifier hs-var hs-var hs-var">Chancellor</span></a></span></span></span></span><span> </span><span class="annot"><a href="#local-6989586621679102169"><span class="hs-identifier hs-type">c</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessHybrid"><span class="hs-identifier hs-type">ChessHybrid</span></a></span><span> </span><span class="annot"><a href="Data.Char.Chess.html#KnightRook"><span class="hs-identifier hs-type">KnightRook</span></a></span><span> </span><span id="local-6989586621679102169"><span class="annot"><a href="#local-6989586621679102169"><span class="hs-identifier hs-var">c</span></a></span></span><span>
+</span><span id="line-142"></span><span>
+</span><span id="line-143"></span><span class="hs-comment">-- | A /marshall/ is alterative name for a /knight-rook/.</span><span>
+</span><span id="line-144"></span><span class="hs-keyword">pattern</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#Marshall"><span class="hs-identifier hs-type">Marshall</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessColorBinary"><span class="hs-identifier hs-type">ChessColorBinary</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessPiece"><span class="hs-identifier hs-type">ChessPiece</span></a></span><span>
+</span><span id="line-145"></span><span class="hs-keyword">pattern</span><span> </span><span id="%24bMarshall"><span id="%24mMarshall"><span id="Marshall"><span class="annot"><span class="annottext">$bMarshall :: ChessColorBinary -&gt; ChessPiece
+$mMarshall :: forall r.
+ChessPiece -&gt; (ChessColorBinary -&gt; r) -&gt; (Void# -&gt; r) -&gt; r
+</span><a href="Data.Char.Chess.html#%24bMarshall"><span class="hs-identifier hs-var hs-var hs-var">Marshall</span></a></span></span></span></span><span> </span><span class="annot"><a href="#local-6989586621679102166"><span class="hs-identifier hs-type">c</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessHybrid"><span class="hs-identifier hs-type">ChessHybrid</span></a></span><span> </span><span class="annot"><a href="Data.Char.Chess.html#KnightRook"><span class="hs-identifier hs-type">KnightRook</span></a></span><span> </span><span id="local-6989586621679102166"><span class="annot"><a href="#local-6989586621679102166"><span class="hs-identifier hs-var">c</span></a></span></span><span>
+</span><span id="line-146"></span><span>
+</span><span id="line-147"></span><span class="hs-comment">-- | An /empress/ is alterative name for a /knight-rook/.</span><span>
+</span><span id="line-148"></span><span class="hs-keyword">pattern</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#Empress"><span class="hs-identifier hs-type">Empress</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessColorBinary"><span class="hs-identifier hs-type">ChessColorBinary</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessPiece"><span class="hs-identifier hs-type">ChessPiece</span></a></span><span>
+</span><span id="line-149"></span><span class="hs-keyword">pattern</span><span> </span><span id="%24bEmpress"><span id="%24mEmpress"><span id="Empress"><span class="annot"><span class="annottext">$bEmpress :: ChessColorBinary -&gt; ChessPiece
+$mEmpress :: forall r.
+ChessPiece -&gt; (ChessColorBinary -&gt; r) -&gt; (Void# -&gt; r) -&gt; r
+</span><a href="Data.Char.Chess.html#%24bEmpress"><span class="hs-identifier hs-var hs-var hs-var">Empress</span></a></span></span></span></span><span> </span><span class="annot"><a href="#local-6989586621679102163"><span class="hs-identifier hs-type">c</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessHybrid"><span class="hs-identifier hs-type">ChessHybrid</span></a></span><span> </span><span class="annot"><a href="Data.Char.Chess.html#KnightRook"><span class="hs-identifier hs-type">KnightRook</span></a></span><span> </span><span id="local-6989586621679102163"><span class="annot"><a href="#local-6989586621679102163"><span class="hs-identifier hs-var">c</span></a></span></span><span>
+</span><span id="line-150"></span><span>
+</span><span id="line-151"></span><span class="hs-comment">-- | A /cardinal/ is alterative name for a /knight-bishop/.</span><span>
+</span><span id="line-152"></span><span class="hs-keyword">pattern</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#Cardinal"><span class="hs-identifier hs-type">Cardinal</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessColorBinary"><span class="hs-identifier hs-type">ChessColorBinary</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessPiece"><span class="hs-identifier hs-type">ChessPiece</span></a></span><span>
+</span><span id="line-153"></span><span class="hs-keyword">pattern</span><span> </span><span id="%24bCardinal"><span id="%24mCardinal"><span id="Cardinal"><span class="annot"><span class="annottext">$bCardinal :: ChessColorBinary -&gt; ChessPiece
+$mCardinal :: forall r.
+ChessPiece -&gt; (ChessColorBinary -&gt; r) -&gt; (Void# -&gt; r) -&gt; r
+</span><a href="Data.Char.Chess.html#%24bCardinal"><span class="hs-identifier hs-var hs-var hs-var">Cardinal</span></a></span></span></span></span><span> </span><span class="annot"><a href="#local-6989586621679102160"><span class="hs-identifier hs-type">c</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessHybrid"><span class="hs-identifier hs-type">ChessHybrid</span></a></span><span> </span><span class="annot"><a href="Data.Char.Chess.html#KnightBishop"><span class="hs-identifier hs-type">KnightBishop</span></a></span><span> </span><span id="local-6989586621679102160"><span class="annot"><a href="#local-6989586621679102160"><span class="hs-identifier hs-var">c</span></a></span></span><span>
+</span><span id="line-154"></span><span>
+</span><span id="line-155"></span><span class="hs-comment">-- | A /princess/ is alterative name for a /knight-bishop/.</span><span>
+</span><span id="line-156"></span><span class="hs-keyword">pattern</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#Princess"><span class="hs-identifier hs-type">Princess</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessColorBinary"><span class="hs-identifier hs-type">ChessColorBinary</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessPiece"><span class="hs-identifier hs-type">ChessPiece</span></a></span><span>
+</span><span id="line-157"></span><span class="hs-keyword">pattern</span><span> </span><span id="%24bPrincess"><span id="%24mPrincess"><span id="Princess"><span class="annot"><span class="annottext">$bPrincess :: ChessColorBinary -&gt; ChessPiece
+$mPrincess :: forall r.
+ChessPiece -&gt; (ChessColorBinary -&gt; r) -&gt; (Void# -&gt; r) -&gt; r
+</span><a href="Data.Char.Chess.html#%24bPrincess"><span class="hs-identifier hs-var hs-var hs-var">Princess</span></a></span></span></span></span><span> </span><span class="annot"><a href="#local-6989586621679102157"><span class="hs-identifier hs-type">c</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessHybrid"><span class="hs-identifier hs-type">ChessHybrid</span></a></span><span> </span><span class="annot"><a href="Data.Char.Chess.html#KnightBishop"><span class="hs-identifier hs-type">KnightBishop</span></a></span><span> </span><span id="local-6989586621679102157"><span class="annot"><a href="#local-6989586621679102157"><span class="hs-identifier hs-var">c</span></a></span></span><span>
+</span><span id="line-158"></span><span>
+</span><span id="line-159"></span><span class="annot"><a href="Data.Char.Chess.html#_chessValue"><span class="hs-identifier hs-type">_chessValue</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessPieceType"><span class="hs-identifier hs-type">ChessPieceType</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessColor"><span class="hs-identifier hs-type">ChessColor</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-160"></span><span id="_chessValue"><span class="annot"><span class="annottext">_chessValue :: ChessPieceType -&gt; ChessColor -&gt; Int
+</span><a href="Data.Char.Chess.html#_chessValue"><span class="hs-identifier hs-var hs-var">_chessValue</span></a></span></span><span> </span><span id="local-6989586621679102155"><span class="annot"><span class="annottext">ChessPieceType
+</span><a href="#local-6989586621679102155"><span class="hs-identifier hs-var">t</span></a></span></span><span> </span><span id="local-6989586621679102154"><span class="annot"><span class="annottext">ChessColor
+</span><a href="#local-6989586621679102154"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">6</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">ChessColor -&gt; Int
+forall a. Enum a =&gt; a -&gt; Int
+</span><span class="hs-identifier hs-var">fromEnum</span></span><span> </span><span class="annot"><span class="annottext">ChessColor
+</span><a href="#local-6989586621679102154"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">ChessPieceType -&gt; Int
+forall a. Enum a =&gt; a -&gt; Int
+</span><span class="hs-identifier hs-var">fromEnum</span></span><span> </span><span class="annot"><span class="annottext">ChessPieceType
+</span><a href="#local-6989586621679102155"><span class="hs-identifier hs-var">t</span></a></span><span>
+</span><span id="line-161"></span><span>
+</span><span id="line-162"></span><span class="hs-comment">-- | Convert the given 'ChessPiece' to the corresponding unicode character.</span><span>
+</span><span id="line-163"></span><span class="annot"><a href="Data.Char.Chess.html#chessPiece"><span class="hs-identifier hs-type">chessPiece</span></a></span><span>
+</span><span id="line-164"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Char.Chess.html#ChessPiece"><span class="hs-identifier hs-type">ChessPiece</span></a></span><span> </span><span class="hs-comment">-- ^ The given 'ChessPiece' to convert.</span><span>
+</span><span id="line-165"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span> </span><span class="hs-comment">-- ^ The unicode character that represents the given 'ChessPiece'.</span><span>
+</span><span id="line-166"></span><span id="chessPiece"><span class="annot"><span class="annottext">chessPiece :: ChessPiece -&gt; Char
+</span><a href="Data.Char.Chess.html#chessPiece"><span class="hs-identifier hs-var hs-var">chessPiece</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Char.Chess.html#Chess90"><span class="hs-identifier hs-type">Chess90</span></a></span><span> </span><span id="local-6989586621679102150"><span class="annot"><span class="annottext">ChessColor
+</span><a href="#local-6989586621679102150"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="annot"><span class="annottext">ChessPieceType
+</span><a href="Data.Char.Chess.html#Equihopper"><span class="hs-identifier hs-var">Equihopper</span></a></span><span> </span><span id="local-6989586621679102149"><span class="annot"><span class="annottext">Rotate90
+</span><a href="#local-6989586621679102149"><span class="hs-identifier hs-var">r</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Char
+</span><span class="hs-identifier hs-var">chr</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">3</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Integral a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">mod</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Rotate90 -&gt; Int
+forall a. Enum a =&gt; a -&gt; Int
+</span><span class="hs-identifier hs-var">fromEnum</span></span><span> </span><span class="annot"><span class="annottext">Rotate90
+</span><a href="#local-6989586621679102149"><span class="hs-identifier hs-var">r</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">2</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">ChessColor -&gt; Int
+forall a. Enum a =&gt; a -&gt; Int
+</span><span class="hs-identifier hs-var">fromEnum</span></span><span> </span><span class="annot"><span class="annottext">ChessColor
+</span><a href="#local-6989586621679102150"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0x1fa48</span></span><span class="hs-special">)</span><span>
+</span><span id="line-167"></span><span class="annot"><a href="Data.Char.Chess.html#chessPiece"><span class="hs-identifier hs-var">chessPiece</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Char.Chess.html#Chess90"><span class="hs-identifier hs-type">Chess90</span></a></span><span> </span><span class="annot"><span class="annottext">ChessColor
+</span><a href="Data.Char.Chess.html#Neutral"><span class="hs-identifier hs-var">Neutral</span></a></span><span> </span><span id="local-6989586621679102147"><span class="annot"><span class="annottext">ChessPieceType
+</span><a href="#local-6989586621679102147"><span class="hs-identifier hs-var">t</span></a></span></span><span> </span><span class="annot"><span class="annottext">Rotate90
+</span><a href="Data.Char.Core.html#R0"><span class="hs-identifier hs-var">R0</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Char
+</span><span class="hs-identifier hs-var">chr</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0x1fa00</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.|.</span></span><span> </span><span class="annot"><span class="annottext">ChessPieceType -&gt; Int
+forall a. Enum a =&gt; a -&gt; Int
+</span><span class="hs-identifier hs-var">fromEnum</span></span><span> </span><span class="annot"><span class="annottext">ChessPieceType
+</span><a href="#local-6989586621679102147"><span class="hs-identifier hs-var">t</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-168"></span><span class="annot"><a href="Data.Char.Chess.html#chessPiece"><span class="hs-identifier hs-var">chessPiece</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Char.Chess.html#Chess90"><span class="hs-identifier hs-type">Chess90</span></a></span><span> </span><span id="local-6989586621679102146"><span class="annot"><span class="annottext">ChessColor
+</span><a href="#local-6989586621679102146"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span id="local-6989586621679102145"><span class="annot"><span class="annottext">ChessPieceType
+</span><a href="#local-6989586621679102145"><span class="hs-identifier hs-var">t</span></a></span></span><span> </span><span class="annot"><span class="annottext">Rotate90
+</span><a href="Data.Char.Core.html#R0"><span class="hs-identifier hs-var">R0</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Char
+</span><span class="hs-identifier hs-var">chr</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ChessPieceType -&gt; ChessColor -&gt; Int
+</span><a href="Data.Char.Chess.html#_chessValue"><span class="hs-identifier hs-var">_chessValue</span></a></span><span> </span><span class="annot"><span class="annottext">ChessPieceType
+</span><a href="#local-6989586621679102145"><span class="hs-identifier hs-var">t</span></a></span><span> </span><span class="annot"><span class="annottext">ChessColor
+</span><a href="#local-6989586621679102146"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0x2654</span></span><span class="hs-special">)</span><span>
+</span><span id="line-169"></span><span class="annot"><a href="Data.Char.Chess.html#chessPiece"><span class="hs-identifier hs-var">chessPiece</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Char.Chess.html#Chess90"><span class="hs-identifier hs-type">Chess90</span></a></span><span> </span><span id="local-6989586621679102144"><span class="annot"><span class="annottext">ChessColor
+</span><a href="#local-6989586621679102144"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span id="local-6989586621679102143"><span class="annot"><span class="annottext">ChessPieceType
+</span><a href="#local-6989586621679102143"><span class="hs-identifier hs-var">t</span></a></span></span><span> </span><span id="local-6989586621679102142"><span class="annot"><span class="annottext">Rotate90
+</span><a href="#local-6989586621679102142"><span class="hs-identifier hs-var">r</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Char
+</span><span class="hs-identifier hs-var">chr</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0x15</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">Rotate90 -&gt; Int
+forall a. Enum a =&gt; a -&gt; Int
+</span><span class="hs-identifier hs-var">fromEnum</span></span><span> </span><span class="annot"><span class="annottext">Rotate90
+</span><a href="#local-6989586621679102142"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">ChessPieceType -&gt; ChessColor -&gt; Int
+</span><a href="Data.Char.Chess.html#_chessValue"><span class="hs-identifier hs-var">_chessValue</span></a></span><span> </span><span class="annot"><span class="annottext">ChessPieceType
+</span><a href="#local-6989586621679102143"><span class="hs-identifier hs-var">t</span></a></span><span> </span><span class="annot"><span class="annottext">ChessColor
+</span><a href="#local-6989586621679102144"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0x1f9f4</span></span><span class="hs-special">)</span><span>
+</span><span id="line-170"></span><span class="annot"><a href="Data.Char.Chess.html#chessPiece"><span class="hs-identifier hs-var">chessPiece</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Char.Chess.html#Chess45Knight"><span class="hs-identifier hs-type">Chess45Knight</span></a></span><span> </span><span id="local-6989586621679102141"><span class="annot"><span class="annottext">ChessColor
+</span><a href="#local-6989586621679102141"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span id="local-6989586621679102140"><span class="annot"><span class="annottext">Rotate45
+</span><a href="#local-6989586621679102140"><span class="hs-identifier hs-var">r</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Char
+</span><span class="hs-identifier hs-var">chr</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0x15</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">Rotate45 -&gt; Int
+forall a. Enum a =&gt; a -&gt; Int
+</span><span class="hs-identifier hs-var">fromEnum</span></span><span> </span><span class="annot"><span class="annottext">Rotate45
+</span><a href="#local-6989586621679102140"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">ChessColor -&gt; Int
+forall a. Enum a =&gt; a -&gt; Int
+</span><span class="hs-identifier hs-var">fromEnum</span></span><span> </span><span class="annot"><span class="annottext">ChessColor
+</span><a href="#local-6989586621679102141"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0x1fa06</span></span><span class="hs-special">)</span><span>
+</span><span id="line-171"></span><span class="annot"><a href="Data.Char.Chess.html#chessPiece"><span class="hs-identifier hs-var">chessPiece</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Char.Chess.html#ChessHybrid"><span class="hs-identifier hs-type">ChessHybrid</span></a></span><span> </span><span id="local-6989586621679102139"><span class="annot"><span class="annottext">ChessHybridType
+</span><a href="#local-6989586621679102139"><span class="hs-identifier hs-var">t</span></a></span></span><span> </span><span id="local-6989586621679102138"><span class="annot"><span class="annottext">ChessColorBinary
+</span><a href="#local-6989586621679102138"><span class="hs-identifier hs-var">c</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Char
+</span><span class="hs-identifier hs-var">chr</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">3</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">ChessColorBinary -&gt; Int
+forall a. Enum a =&gt; a -&gt; Int
+</span><span class="hs-identifier hs-var">fromEnum</span></span><span> </span><span class="annot"><span class="annottext">ChessColorBinary
+</span><a href="#local-6989586621679102138"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">ChessHybridType -&gt; Int
+forall a. Enum a =&gt; a -&gt; Int
+</span><span class="hs-identifier hs-var">fromEnum</span></span><span> </span><span class="annot"><span class="annottext">ChessHybridType
+</span><a href="#local-6989586621679102139"><span class="hs-identifier hs-var">t</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0x1fa4e</span></span><span class="hs-special">)</span><span>
+</span><span id="line-172"></span></pre></body></html>

@@ -1,0 +1,437 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# OPTIONS_GHC -fno-warn-warnings-deprecations #-}</span><span>
+</span><span id="line-2"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Graphics.Vty.Input.Terminfo</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-3"></span><span>
+</span><span id="line-4"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Events.html"><span class="hs-identifier">Graphics.Vty.Input.Events</span></a></span><span>
+</span><span id="line-5"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Terminfo.ANSIVT.html"><span class="hs-identifier">Graphics.Vty.Input.Terminfo.ANSIVT</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">ANSIVT</span></span><span>
+</span><span id="line-6"></span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Arrow</span></span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">System.Console.Terminfo</span></span><span>
+</span><span id="line-9"></span><span>
+</span><span id="line-10"></span><span class="hs-comment">-- | Queries the terminal for all capability-based input sequences and</span><span>
+</span><span id="line-11"></span><span class="hs-comment">-- then adds on a terminal-dependent input sequence mapping.</span><span>
+</span><span id="line-12"></span><span class="hs-comment">--</span><span>
+</span><span id="line-13"></span><span class="hs-comment">-- For reference see:</span><span>
+</span><span id="line-14"></span><span class="hs-comment">--</span><span>
+</span><span id="line-15"></span><span class="hs-comment">-- * http://vimdoc.sourceforge.net/htmldoc/term.html</span><span>
+</span><span id="line-16"></span><span class="hs-comment">--</span><span>
+</span><span id="line-17"></span><span class="hs-comment">-- * vim74/src/term.c</span><span>
+</span><span id="line-18"></span><span class="hs-comment">--</span><span>
+</span><span id="line-19"></span><span class="hs-comment">-- * http://invisible-island.net/vttest/</span><span>
+</span><span id="line-20"></span><span class="hs-comment">--</span><span>
+</span><span id="line-21"></span><span class="hs-comment">-- * http://aperiodic.net/phil/archives/Geekery/term-function-keys.html</span><span>
+</span><span id="line-22"></span><span class="hs-comment">--</span><span>
+</span><span id="line-23"></span><span class="hs-comment">-- Terminfo is incomplete. The vim source implies that terminfo is also</span><span>
+</span><span id="line-24"></span><span class="hs-comment">-- incorrect. Vty assumes that the internal terminfo table added to the</span><span>
+</span><span id="line-25"></span><span class="hs-comment">-- system-provided terminfo table is correct.</span><span>
+</span><span id="line-26"></span><span class="hs-comment">--</span><span>
+</span><span id="line-27"></span><span class="hs-comment">-- The procedure used here is:</span><span>
+</span><span id="line-28"></span><span class="hs-comment">--</span><span>
+</span><span id="line-29"></span><span class="hs-comment">-- 1. Build terminfo table for all caps. Missing caps are not added.</span><span>
+</span><span id="line-30"></span><span class="hs-comment">--</span><span>
+</span><span id="line-31"></span><span class="hs-comment">-- 2. Add tables for visible chars, esc, del, ctrl, and meta.</span><span>
+</span><span id="line-32"></span><span class="hs-comment">--</span><span>
+</span><span id="line-33"></span><span class="hs-comment">-- 3. Add internally-defined table for given terminal type.</span><span>
+</span><span id="line-34"></span><span class="hs-comment">--</span><span>
+</span><span id="line-35"></span><span class="hs-comment">-- Precedence is currently implicit in the 'compile' algorithm.</span><span>
+</span><span id="line-36"></span><span class="annot"><a href="Graphics.Vty.Input.Terminfo.html#classifyMapForTerm"><span class="hs-identifier hs-type">classifyMapForTerm</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Terminal</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Events.html#ClassifyMap"><span class="hs-identifier hs-type">ClassifyMap</span></a></span><span>
+</span><span id="line-37"></span><span id="classifyMapForTerm"><span class="annot"><span class="annottext">classifyMapForTerm :: String -&gt; Terminal -&gt; ClassifyMap
+</span><a href="Graphics.Vty.Input.Terminfo.html#classifyMapForTerm"><span class="hs-identifier hs-var hs-var">classifyMapForTerm</span></a></span></span><span> </span><span id="local-6989586621679367208"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679367208"><span class="hs-identifier hs-var">termName</span></a></span></span><span> </span><span id="local-6989586621679367207"><span class="annot"><span class="annottext">Terminal
+</span><a href="#local-6989586621679367207"><span class="hs-identifier hs-var">term</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-38"></span><span>    </span><span class="annot"><span class="annottext">[ClassifyMap] -&gt; ClassifyMap
+forall (t :: * -&gt; *) a. Foldable t =&gt; t [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">concat</span></span><span> </span><span class="annot"><span class="annottext">([ClassifyMap] -&gt; ClassifyMap) -&gt; [ClassifyMap] -&gt; ClassifyMap
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Terminal -&gt; ClassifyMap -&gt; ClassifyMap
+</span><a href="Graphics.Vty.Input.Terminfo.html#capsClassifyMap"><span class="hs-identifier hs-var">capsClassifyMap</span></a></span><span> </span><span class="annot"><span class="annottext">Terminal
+</span><a href="#local-6989586621679367207"><span class="hs-identifier hs-var">term</span></a></span><span> </span><span class="annot"><span class="annottext">ClassifyMap
+</span><a href="Graphics.Vty.Input.Terminfo.html#keysFromCapsTable"><span class="hs-identifier hs-var">keysFromCapsTable</span></a></span><span>
+</span><span id="line-39"></span><span>           </span><span class="annot"><span class="annottext">ClassifyMap -&gt; [ClassifyMap] -&gt; [ClassifyMap]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">ClassifyMap
+</span><a href="Graphics.Vty.Input.Terminfo.html#universalTable"><span class="hs-identifier hs-var">universalTable</span></a></span><span>
+</span><span id="line-40"></span><span>           </span><span class="annot"><span class="annottext">ClassifyMap -&gt; [ClassifyMap] -&gt; [ClassifyMap]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; [ClassifyMap]
+</span><a href="Graphics.Vty.Input.Terminfo.html#termSpecificTables"><span class="hs-identifier hs-var">termSpecificTables</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679367208"><span class="hs-identifier hs-var">termName</span></a></span><span>
+</span><span id="line-41"></span><span>
+</span><span id="line-42"></span><span class="hs-comment">-- | The key table applicable to all terminals.</span><span>
+</span><span id="line-43"></span><span class="hs-comment">--</span><span>
+</span><span id="line-44"></span><span class="hs-comment">-- Note that some of these entries are probably only applicable to</span><span>
+</span><span id="line-45"></span><span class="hs-comment">-- ANSI/VT100 terminals.</span><span>
+</span><span id="line-46"></span><span class="annot"><a href="Graphics.Vty.Input.Terminfo.html#universalTable"><span class="hs-identifier hs-type">universalTable</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Events.html#ClassifyMap"><span class="hs-identifier hs-type">ClassifyMap</span></a></span><span>
+</span><span id="line-47"></span><span id="universalTable"><span class="annot"><span class="annottext">universalTable :: ClassifyMap
+</span><a href="Graphics.Vty.Input.Terminfo.html#universalTable"><span class="hs-identifier hs-var hs-var">universalTable</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[ClassifyMap] -&gt; ClassifyMap
+forall (t :: * -&gt; *) a. Foldable t =&gt; t [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">concat</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">ClassifyMap
+</span><a href="Graphics.Vty.Input.Terminfo.html#visibleChars"><span class="hs-identifier hs-var">visibleChars</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">ClassifyMap
+</span><a href="Graphics.Vty.Input.Terminfo.html#ctrlChars"><span class="hs-identifier hs-var">ctrlChars</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">ClassifyMap
+</span><a href="Graphics.Vty.Input.Terminfo.html#ctrlMetaChars"><span class="hs-identifier hs-var">ctrlMetaChars</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">ClassifyMap
+</span><a href="Graphics.Vty.Input.Terminfo.html#specialSupportKeys"><span class="hs-identifier hs-var">specialSupportKeys</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-48"></span><span>
+</span><span id="line-49"></span><span class="annot"><a href="Graphics.Vty.Input.Terminfo.html#capsClassifyMap"><span class="hs-identifier hs-type">capsClassifyMap</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Terminal</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span class="hs-special">,</span><span class="annot"><a href="Graphics.Vty.Input.Events.html#Event"><span class="hs-identifier hs-type">Event</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Events.html#ClassifyMap"><span class="hs-identifier hs-type">ClassifyMap</span></a></span><span>
+</span><span id="line-50"></span><span id="capsClassifyMap"><span class="annot"><span class="annottext">capsClassifyMap :: Terminal -&gt; ClassifyMap -&gt; ClassifyMap
+</span><a href="Graphics.Vty.Input.Terminfo.html#capsClassifyMap"><span class="hs-identifier hs-var hs-var">capsClassifyMap</span></a></span></span><span> </span><span id="local-6989586621679367197"><span class="annot"><span class="annottext">Terminal
+</span><a href="#local-6989586621679367197"><span class="hs-identifier hs-var">terminal</span></a></span></span><span> </span><span id="local-6989586621679367196"><span class="annot"><span class="annottext">ClassifyMap
+</span><a href="#local-6989586621679367196"><span class="hs-identifier hs-var">table</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679367195"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">,</span><span class="annot"><span class="annottext">Event
+</span><a href="#local-6989586621679367194"><span class="hs-identifier hs-var">y</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679367195"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679367195"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">,</span><span id="local-6989586621679367194"><span class="annot"><span class="annottext">Event
+</span><a href="#local-6989586621679367194"><span class="hs-identifier hs-var">y</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">((String, Event) -&gt; (Maybe String, Event))
+-&gt; ClassifyMap -&gt; [(Maybe String, Event)]
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="annot"><span class="annottext">(String, Event) -&gt; (Maybe String, Event)
+forall d. (String, d) -&gt; (Maybe String, d)
+</span><a href="#local-6989586621679367193"><span class="hs-identifier hs-var">extractCap</span></a></span><span> </span><span class="annot"><span class="annottext">ClassifyMap
+</span><a href="#local-6989586621679367196"><span class="hs-identifier hs-var">table</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-51"></span><span>    </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679367193"><span class="annot"><span class="annottext">extractCap :: (String, d) -&gt; (Maybe String, d)
+</span><a href="#local-6989586621679367193"><span class="hs-identifier hs-var hs-var">extractCap</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(String -&gt; Maybe String) -&gt; (String, d) -&gt; (Maybe String, d)
+forall (a :: * -&gt; * -&gt; *) b c d.
+Arrow a =&gt;
+a b c -&gt; a (b, d) (c, d)
+</span><span class="hs-identifier hs-var">first</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Terminal -&gt; Capability String -&gt; Maybe String
+forall a. Terminal -&gt; Capability a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">getCapability</span></span><span> </span><span class="annot"><span class="annottext">Terminal
+</span><a href="#local-6989586621679367197"><span class="hs-identifier hs-var">terminal</span></a></span><span> </span><span class="annot"><span class="annottext">(Capability String -&gt; Maybe String)
+-&gt; (String -&gt; Capability String) -&gt; String -&gt; Maybe String
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; Capability String
+</span><span class="hs-identifier hs-var">tiGetStr</span></span><span class="hs-special">)</span><span>
+</span><span id="line-52"></span><span>
+</span><span id="line-53"></span><span class="hs-comment">-- | Tables specific to a given terminal that are not derivable from</span><span>
+</span><span id="line-54"></span><span class="hs-comment">-- terminfo.</span><span>
+</span><span id="line-55"></span><span class="hs-comment">--</span><span>
+</span><span id="line-56"></span><span class="hs-comment">-- Note that this adds the ANSI/VT100/VT50 tables regardless of term</span><span>
+</span><span id="line-57"></span><span class="hs-comment">-- identifier.</span><span>
+</span><span id="line-58"></span><span class="annot"><a href="Graphics.Vty.Input.Terminfo.html#termSpecificTables"><span class="hs-identifier hs-type">termSpecificTables</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Graphics.Vty.Input.Events.html#ClassifyMap"><span class="hs-identifier hs-type">ClassifyMap</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-59"></span><span id="termSpecificTables"><span class="annot"><span class="annottext">termSpecificTables :: String -&gt; [ClassifyMap]
+</span><a href="Graphics.Vty.Input.Terminfo.html#termSpecificTables"><span class="hs-identifier hs-var hs-var">termSpecificTables</span></a></span></span><span> </span><span id="local-6989586621679367189"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679367189"><span class="hs-identifier hs-var">_termName</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[ClassifyMap]
+</span><a href="Graphics.Vty.Input.Terminfo.ANSIVT.html#classifyTable"><span class="hs-identifier hs-var">ANSIVT.classifyTable</span></a></span><span>
+</span><span id="line-60"></span><span>
+</span><span id="line-61"></span><span class="hs-comment">-- | Visible characters in the ISO-8859-1 and UTF-8 common set.</span><span>
+</span><span id="line-62"></span><span class="hs-comment">--</span><span>
+</span><span id="line-63"></span><span class="hs-comment">-- We limit to &lt; 0xC1. The UTF8 sequence detector will catch all values</span><span>
+</span><span id="line-64"></span><span class="hs-comment">-- 0xC2 and above before this classify table is reached.</span><span>
+</span><span id="line-65"></span><span class="annot"><a href="Graphics.Vty.Input.Terminfo.html#visibleChars"><span class="hs-identifier hs-type">visibleChars</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Events.html#ClassifyMap"><span class="hs-identifier hs-type">ClassifyMap</span></a></span><span>
+</span><span id="line-66"></span><span id="visibleChars"><span class="annot"><span class="annottext">visibleChars :: ClassifyMap
+</span><a href="Graphics.Vty.Input.Terminfo.html#visibleChars"><span class="hs-identifier hs-var hs-var">visibleChars</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span> </span><span class="hs-special">(</span><span class="hs-special">[</span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679367187"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">]</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Key -&gt; [Modifier] -&gt; Event
+</span><a href="Graphics.Vty.Input.Events.html#EvKey"><span class="hs-identifier hs-var">EvKey</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Char -&gt; Key
+</span><a href="Graphics.Vty.Input.Events.html#KChar"><span class="hs-identifier hs-var">KChar</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679367187"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-67"></span><span>               </span><span class="hs-glyph">|</span><span> </span><span id="local-6989586621679367187"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679367187"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">' '</span></span><span> </span><span class="hs-glyph">..</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Char
+forall a. Enum a =&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">toEnum</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0xC1</span></span><span class="hs-special">]</span><span>
+</span><span id="line-68"></span><span>               </span><span class="hs-special">]</span><span>
+</span><span id="line-69"></span><span>
+</span><span id="line-70"></span><span class="hs-comment">-- | Non-printable characters in the ISO-8859-1 and UTF-8 common set</span><span>
+</span><span id="line-71"></span><span class="hs-comment">-- translated to ctrl + char.</span><span>
+</span><span id="line-72"></span><span class="hs-comment">--</span><span>
+</span><span id="line-73"></span><span class="hs-comment">-- This treats CTRL-i the same as tab.</span><span>
+</span><span id="line-74"></span><span class="annot"><a href="Graphics.Vty.Input.Terminfo.html#ctrlChars"><span class="hs-identifier hs-type">ctrlChars</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Events.html#ClassifyMap"><span class="hs-identifier hs-type">ClassifyMap</span></a></span><span>
+</span><span id="line-75"></span><span id="ctrlChars"><span class="annot"><span class="annottext">ctrlChars :: ClassifyMap
+</span><a href="Graphics.Vty.Input.Terminfo.html#ctrlChars"><span class="hs-identifier hs-var hs-var">ctrlChars</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-76"></span><span>    </span><span class="hs-special">[</span><span> </span><span class="hs-special">(</span><span class="hs-special">[</span><span class="annot"><span class="annottext">Int -&gt; Char
+forall a. Enum a =&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">toEnum</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679367183"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">]</span><span class="hs-special">,</span><span class="annot"><span class="annottext">Key -&gt; [Modifier] -&gt; Event
+</span><a href="Graphics.Vty.Input.Events.html#EvKey"><span class="hs-identifier hs-var">EvKey</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Char -&gt; Key
+</span><a href="Graphics.Vty.Input.Events.html#KChar"><span class="hs-identifier hs-var">KChar</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679367182"><span class="hs-identifier hs-var">y</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Modifier
+</span><a href="Graphics.Vty.Input.Events.html#MCtrl"><span class="hs-identifier hs-var">MCtrl</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-77"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679367183"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679367183"><span class="hs-identifier hs-var">x</span></a></span></span><span class="hs-special">,</span><span id="local-6989586621679367182"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679367182"><span class="hs-identifier hs-var">y</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[Int] -&gt; String -&gt; [(Int, Char)]
+forall a b. [a] -&gt; [b] -&gt; [(a, b)]
+</span><span class="hs-identifier hs-var">zip</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">[</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-glyph">..</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">31</span></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'@'</span></span><span class="annot"><span class="annottext">Char -&gt; String -&gt; String
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span class="hs-special">[</span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'a'</span></span><span class="hs-glyph">..</span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'z'</span></span><span class="hs-special">]</span><span class="annot"><span class="annottext">String -&gt; String -&gt; String
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span class="hs-special">[</span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'['</span></span><span class="hs-glyph">..</span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'_'</span></span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-78"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679367182"><span class="hs-identifier hs-var">y</span></a></span><span> </span><span class="annot"><span class="annottext">Char -&gt; Char -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">/=</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'i'</span></span><span>  </span><span class="hs-comment">-- Resolve issue #3 where CTRL-i hides TAB.</span><span>
+</span><span id="line-79"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679367182"><span class="hs-identifier hs-var">y</span></a></span><span> </span><span class="annot"><span class="annottext">Char -&gt; Char -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">/=</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'h'</span></span><span>  </span><span class="hs-comment">-- CTRL-h should not hide BS</span><span>
+</span><span id="line-80"></span><span>    </span><span class="hs-special">]</span><span>
+</span><span id="line-81"></span><span>
+</span><span id="line-82"></span><span class="hs-comment">-- | Ctrl+Meta+Char</span><span>
+</span><span id="line-83"></span><span class="annot"><a href="Graphics.Vty.Input.Terminfo.html#ctrlMetaChars"><span class="hs-identifier hs-type">ctrlMetaChars</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Events.html#ClassifyMap"><span class="hs-identifier hs-type">ClassifyMap</span></a></span><span>
+</span><span id="line-84"></span><span id="ctrlMetaChars"><span class="annot"><span class="annottext">ctrlMetaChars :: ClassifyMap
+</span><a href="Graphics.Vty.Input.Terminfo.html#ctrlMetaChars"><span class="hs-identifier hs-var hs-var">ctrlMetaChars</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">((String, Event) -&gt; (String, Event)) -&gt; ClassifyMap -&gt; ClassifyMap
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679367179"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679367179"><span class="hs-identifier hs-var">s</span></a></span></span><span class="hs-special">,</span><span class="annot"><a href="Graphics.Vty.Input.Events.html#EvKey"><span class="hs-identifier hs-type">EvKey</span></a></span><span> </span><span id="local-6989586621679367178"><span class="annot"><span class="annottext">Key
+</span><a href="#local-6989586621679367178"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span id="local-6989586621679367177"><span class="annot"><span class="annottext">[Modifier]
+</span><a href="#local-6989586621679367177"><span class="hs-identifier hs-var">m</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\ESC'</span></span><span class="annot"><span class="annottext">Char -&gt; String -&gt; String
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679367179"><span class="hs-identifier hs-var">s</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Key -&gt; [Modifier] -&gt; Event
+</span><a href="Graphics.Vty.Input.Events.html#EvKey"><span class="hs-identifier hs-var">EvKey</span></a></span><span> </span><span class="annot"><span class="annottext">Key
+</span><a href="#local-6989586621679367178"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Modifier
+</span><a href="Graphics.Vty.Input.Events.html#MMeta"><span class="hs-identifier hs-var">MMeta</span></a></span><span class="annot"><span class="annottext">Modifier -&gt; [Modifier] -&gt; [Modifier]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span class="annot"><span class="annottext">[Modifier]
+</span><a href="#local-6989586621679367177"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">ClassifyMap
+</span><a href="Graphics.Vty.Input.Terminfo.html#ctrlChars"><span class="hs-identifier hs-var">ctrlChars</span></a></span><span>
+</span><span id="line-85"></span><span>
+</span><span id="line-86"></span><span class="hs-comment">-- | Esc, meta-esc, delete, meta-delete, enter, meta-enter.</span><span>
+</span><span id="line-87"></span><span class="annot"><a href="Graphics.Vty.Input.Terminfo.html#specialSupportKeys"><span class="hs-identifier hs-type">specialSupportKeys</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Events.html#ClassifyMap"><span class="hs-identifier hs-type">ClassifyMap</span></a></span><span>
+</span><span id="line-88"></span><span id="specialSupportKeys"><span class="annot"><span class="annottext">specialSupportKeys :: ClassifyMap
+</span><a href="Graphics.Vty.Input.Terminfo.html#specialSupportKeys"><span class="hs-identifier hs-var hs-var">specialSupportKeys</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-89"></span><span>    </span><span class="hs-special">[</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\ESC\ESC[5~&quot;</span></span><span class="hs-special">,</span><span class="annot"><span class="annottext">Key -&gt; [Modifier] -&gt; Event
+</span><a href="Graphics.Vty.Input.Events.html#EvKey"><span class="hs-identifier hs-var">EvKey</span></a></span><span> </span><span class="annot"><span class="annottext">Key
+</span><a href="Graphics.Vty.Input.Events.html#KPageUp"><span class="hs-identifier hs-var">KPageUp</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Modifier
+</span><a href="Graphics.Vty.Input.Events.html#MMeta"><span class="hs-identifier hs-var">MMeta</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-90"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\ESC\ESC[6~&quot;</span></span><span class="hs-special">,</span><span class="annot"><span class="annottext">Key -&gt; [Modifier] -&gt; Event
+</span><a href="Graphics.Vty.Input.Events.html#EvKey"><span class="hs-identifier hs-var">EvKey</span></a></span><span> </span><span class="annot"><span class="annottext">Key
+</span><a href="Graphics.Vty.Input.Events.html#KPageDown"><span class="hs-identifier hs-var">KPageDown</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Modifier
+</span><a href="Graphics.Vty.Input.Events.html#MMeta"><span class="hs-identifier hs-var">MMeta</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-91"></span><span>    </span><span class="hs-comment">-- special support for ESC</span><span>
+</span><span id="line-92"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\ESC&quot;</span></span><span class="hs-special">,</span><span class="annot"><span class="annottext">Key -&gt; [Modifier] -&gt; Event
+</span><a href="Graphics.Vty.Input.Events.html#EvKey"><span class="hs-identifier hs-var">EvKey</span></a></span><span> </span><span class="annot"><span class="annottext">Key
+</span><a href="Graphics.Vty.Input.Events.html#KEsc"><span class="hs-identifier hs-var">KEsc</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\ESC\ESC&quot;</span></span><span class="hs-special">,</span><span class="annot"><span class="annottext">Key -&gt; [Modifier] -&gt; Event
+</span><a href="Graphics.Vty.Input.Events.html#EvKey"><span class="hs-identifier hs-var">EvKey</span></a></span><span> </span><span class="annot"><span class="annottext">Key
+</span><a href="Graphics.Vty.Input.Events.html#KEsc"><span class="hs-identifier hs-var">KEsc</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Modifier
+</span><a href="Graphics.Vty.Input.Events.html#MMeta"><span class="hs-identifier hs-var">MMeta</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-93"></span><span>    </span><span class="hs-comment">-- Special support for backspace</span><span>
+</span><span id="line-94"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\DEL&quot;</span></span><span class="hs-special">,</span><span class="annot"><span class="annottext">Key -&gt; [Modifier] -&gt; Event
+</span><a href="Graphics.Vty.Input.Events.html#EvKey"><span class="hs-identifier hs-var">EvKey</span></a></span><span> </span><span class="annot"><span class="annottext">Key
+</span><a href="Graphics.Vty.Input.Events.html#KBS"><span class="hs-identifier hs-var">KBS</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\ESC\DEL&quot;</span></span><span class="hs-special">,</span><span class="annot"><span class="annottext">Key -&gt; [Modifier] -&gt; Event
+</span><a href="Graphics.Vty.Input.Events.html#EvKey"><span class="hs-identifier hs-var">EvKey</span></a></span><span> </span><span class="annot"><span class="annottext">Key
+</span><a href="Graphics.Vty.Input.Events.html#KBS"><span class="hs-identifier hs-var">KBS</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Modifier
+</span><a href="Graphics.Vty.Input.Events.html#MMeta"><span class="hs-identifier hs-var">MMeta</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-95"></span><span>    </span><span class="hs-comment">-- Special support for Enter</span><span>
+</span><span id="line-96"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\ESC\^J&quot;</span></span><span class="hs-special">,</span><span class="annot"><span class="annottext">Key -&gt; [Modifier] -&gt; Event
+</span><a href="Graphics.Vty.Input.Events.html#EvKey"><span class="hs-identifier hs-var">EvKey</span></a></span><span> </span><span class="annot"><span class="annottext">Key
+</span><a href="Graphics.Vty.Input.Events.html#KEnter"><span class="hs-identifier hs-var">KEnter</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Modifier
+</span><a href="Graphics.Vty.Input.Events.html#MMeta"><span class="hs-identifier hs-var">MMeta</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\^J&quot;</span></span><span class="hs-special">,</span><span class="annot"><span class="annottext">Key -&gt; [Modifier] -&gt; Event
+</span><a href="Graphics.Vty.Input.Events.html#EvKey"><span class="hs-identifier hs-var">EvKey</span></a></span><span> </span><span class="annot"><span class="annottext">Key
+</span><a href="Graphics.Vty.Input.Events.html#KEnter"><span class="hs-identifier hs-var">KEnter</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-97"></span><span>    </span><span class="hs-comment">-- explicit support for tab</span><span>
+</span><span id="line-98"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\t&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Key -&gt; [Modifier] -&gt; Event
+</span><a href="Graphics.Vty.Input.Events.html#EvKey"><span class="hs-identifier hs-var">EvKey</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Char -&gt; Key
+</span><a href="Graphics.Vty.Input.Events.html#KChar"><span class="hs-identifier hs-var">KChar</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\t'</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-99"></span><span>    </span><span class="hs-special">]</span><span>
+</span><span id="line-100"></span><span>
+</span><span id="line-101"></span><span class="hs-comment">-- | A classification table directly generated from terminfo cap</span><span>
+</span><span id="line-102"></span><span class="hs-comment">-- strings.  These are:</span><span>
+</span><span id="line-103"></span><span class="hs-comment">--</span><span>
+</span><span id="line-104"></span><span class="hs-comment">-- * ka1 - keypad up-left</span><span>
+</span><span id="line-105"></span><span class="hs-comment">--</span><span>
+</span><span id="line-106"></span><span class="hs-comment">-- * ka3 - keypad up-right</span><span>
+</span><span id="line-107"></span><span class="hs-comment">--</span><span>
+</span><span id="line-108"></span><span class="hs-comment">-- * kb2 - keypad center</span><span>
+</span><span id="line-109"></span><span class="hs-comment">--</span><span>
+</span><span id="line-110"></span><span class="hs-comment">-- * kbs - keypad backspace</span><span>
+</span><span id="line-111"></span><span class="hs-comment">--</span><span>
+</span><span id="line-112"></span><span class="hs-comment">-- * kbeg - begin</span><span>
+</span><span id="line-113"></span><span class="hs-comment">--</span><span>
+</span><span id="line-114"></span><span class="hs-comment">-- * kcbt - back tab</span><span>
+</span><span id="line-115"></span><span class="hs-comment">--</span><span>
+</span><span id="line-116"></span><span class="hs-comment">-- * kc1 - keypad left-down</span><span>
+</span><span id="line-117"></span><span class="hs-comment">--</span><span>
+</span><span id="line-118"></span><span class="hs-comment">-- * kc3 - keypad right-down</span><span>
+</span><span id="line-119"></span><span class="hs-comment">--</span><span>
+</span><span id="line-120"></span><span class="hs-comment">-- * kdch1 - delete</span><span>
+</span><span id="line-121"></span><span class="hs-comment">--</span><span>
+</span><span id="line-122"></span><span class="hs-comment">-- * kcud1 - down</span><span>
+</span><span id="line-123"></span><span class="hs-comment">--</span><span>
+</span><span id="line-124"></span><span class="hs-comment">-- * kend - end</span><span>
+</span><span id="line-125"></span><span class="hs-comment">--</span><span>
+</span><span id="line-126"></span><span class="hs-comment">-- * kent - enter</span><span>
+</span><span id="line-127"></span><span class="hs-comment">--</span><span>
+</span><span id="line-128"></span><span class="hs-comment">-- * kf0 - kf63 - function keys</span><span>
+</span><span id="line-129"></span><span class="hs-comment">--</span><span>
+</span><span id="line-130"></span><span class="hs-comment">-- * khome - KHome</span><span>
+</span><span id="line-131"></span><span class="hs-comment">--</span><span>
+</span><span id="line-132"></span><span class="hs-comment">-- * kich1 - insert</span><span>
+</span><span id="line-133"></span><span class="hs-comment">--</span><span>
+</span><span id="line-134"></span><span class="hs-comment">-- * kcub1 - left</span><span>
+</span><span id="line-135"></span><span class="hs-comment">--</span><span>
+</span><span id="line-136"></span><span class="hs-comment">-- * knp - next page (page down)</span><span>
+</span><span id="line-137"></span><span class="hs-comment">--</span><span>
+</span><span id="line-138"></span><span class="hs-comment">-- * kpp - previous page (page up)</span><span>
+</span><span id="line-139"></span><span class="hs-comment">--</span><span>
+</span><span id="line-140"></span><span class="hs-comment">-- * kcuf1 - right</span><span>
+</span><span id="line-141"></span><span class="hs-comment">--</span><span>
+</span><span id="line-142"></span><span class="hs-comment">-- * kDC - shift delete</span><span>
+</span><span id="line-143"></span><span class="hs-comment">--</span><span>
+</span><span id="line-144"></span><span class="hs-comment">-- * kEND - shift end</span><span>
+</span><span id="line-145"></span><span class="hs-comment">--</span><span>
+</span><span id="line-146"></span><span class="hs-comment">-- * kHOM - shift home</span><span>
+</span><span id="line-147"></span><span class="hs-comment">--</span><span>
+</span><span id="line-148"></span><span class="hs-comment">-- * kIC - shift insert</span><span>
+</span><span id="line-149"></span><span class="hs-comment">--</span><span>
+</span><span id="line-150"></span><span class="hs-comment">-- * kLFT - shift left</span><span>
+</span><span id="line-151"></span><span class="hs-comment">--</span><span>
+</span><span id="line-152"></span><span class="hs-comment">-- * kRIT - shift right</span><span>
+</span><span id="line-153"></span><span class="hs-comment">--</span><span>
+</span><span id="line-154"></span><span class="hs-comment">-- * kcuu1 - up</span><span>
+</span><span id="line-155"></span><span class="annot"><a href="Graphics.Vty.Input.Terminfo.html#keysFromCapsTable"><span class="hs-identifier hs-type">keysFromCapsTable</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Events.html#ClassifyMap"><span class="hs-identifier hs-type">ClassifyMap</span></a></span><span>
+</span><span id="line-156"></span><span id="keysFromCapsTable"><span class="annot"><span class="annottext">keysFromCapsTable :: ClassifyMap
+</span><a href="Graphics.Vty.Input.Terminfo.html#keysFromCapsTable"><span class="hs-identifier hs-var hs-var">keysFromCapsTable</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-157"></span><span>    </span><span class="hs-special">[</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;ka1&quot;</span></span><span class="hs-special">,</span><span>   </span><span class="annot"><span class="annottext">Key -&gt; [Modifier] -&gt; Event
+</span><a href="Graphics.Vty.Input.Events.html#EvKey"><span class="hs-identifier hs-var">EvKey</span></a></span><span> </span><span class="annot"><span class="annottext">Key
+</span><a href="Graphics.Vty.Input.Events.html#KUpLeft"><span class="hs-identifier hs-var">KUpLeft</span></a></span><span>    </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-158"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;ka3&quot;</span></span><span class="hs-special">,</span><span>   </span><span class="annot"><span class="annottext">Key -&gt; [Modifier] -&gt; Event
+</span><a href="Graphics.Vty.Input.Events.html#EvKey"><span class="hs-identifier hs-var">EvKey</span></a></span><span> </span><span class="annot"><span class="annottext">Key
+</span><a href="Graphics.Vty.Input.Events.html#KUpRight"><span class="hs-identifier hs-var">KUpRight</span></a></span><span>   </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-159"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;kb2&quot;</span></span><span class="hs-special">,</span><span>   </span><span class="annot"><span class="annottext">Key -&gt; [Modifier] -&gt; Event
+</span><a href="Graphics.Vty.Input.Events.html#EvKey"><span class="hs-identifier hs-var">EvKey</span></a></span><span> </span><span class="annot"><span class="annottext">Key
+</span><a href="Graphics.Vty.Input.Events.html#KCenter"><span class="hs-identifier hs-var">KCenter</span></a></span><span>    </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-160"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;kbs&quot;</span></span><span class="hs-special">,</span><span>   </span><span class="annot"><span class="annottext">Key -&gt; [Modifier] -&gt; Event
+</span><a href="Graphics.Vty.Input.Events.html#EvKey"><span class="hs-identifier hs-var">EvKey</span></a></span><span> </span><span class="annot"><span class="annottext">Key
+</span><a href="Graphics.Vty.Input.Events.html#KBS"><span class="hs-identifier hs-var">KBS</span></a></span><span>        </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-161"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;kbeg&quot;</span></span><span class="hs-special">,</span><span>  </span><span class="annot"><span class="annottext">Key -&gt; [Modifier] -&gt; Event
+</span><a href="Graphics.Vty.Input.Events.html#EvKey"><span class="hs-identifier hs-var">EvKey</span></a></span><span> </span><span class="annot"><span class="annottext">Key
+</span><a href="Graphics.Vty.Input.Events.html#KBegin"><span class="hs-identifier hs-var">KBegin</span></a></span><span>     </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-162"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;kcbt&quot;</span></span><span class="hs-special">,</span><span>  </span><span class="annot"><span class="annottext">Key -&gt; [Modifier] -&gt; Event
+</span><a href="Graphics.Vty.Input.Events.html#EvKey"><span class="hs-identifier hs-var">EvKey</span></a></span><span> </span><span class="annot"><span class="annottext">Key
+</span><a href="Graphics.Vty.Input.Events.html#KBackTab"><span class="hs-identifier hs-var">KBackTab</span></a></span><span>   </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-163"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;kc1&quot;</span></span><span class="hs-special">,</span><span>   </span><span class="annot"><span class="annottext">Key -&gt; [Modifier] -&gt; Event
+</span><a href="Graphics.Vty.Input.Events.html#EvKey"><span class="hs-identifier hs-var">EvKey</span></a></span><span> </span><span class="annot"><span class="annottext">Key
+</span><a href="Graphics.Vty.Input.Events.html#KDownLeft"><span class="hs-identifier hs-var">KDownLeft</span></a></span><span>  </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-164"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;kc3&quot;</span></span><span class="hs-special">,</span><span>   </span><span class="annot"><span class="annottext">Key -&gt; [Modifier] -&gt; Event
+</span><a href="Graphics.Vty.Input.Events.html#EvKey"><span class="hs-identifier hs-var">EvKey</span></a></span><span> </span><span class="annot"><span class="annottext">Key
+</span><a href="Graphics.Vty.Input.Events.html#KDownRight"><span class="hs-identifier hs-var">KDownRight</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-165"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;kdch1&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Key -&gt; [Modifier] -&gt; Event
+</span><a href="Graphics.Vty.Input.Events.html#EvKey"><span class="hs-identifier hs-var">EvKey</span></a></span><span> </span><span class="annot"><span class="annottext">Key
+</span><a href="Graphics.Vty.Input.Events.html#KDel"><span class="hs-identifier hs-var">KDel</span></a></span><span>       </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-166"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;kcud1&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Key -&gt; [Modifier] -&gt; Event
+</span><a href="Graphics.Vty.Input.Events.html#EvKey"><span class="hs-identifier hs-var">EvKey</span></a></span><span> </span><span class="annot"><span class="annottext">Key
+</span><a href="Graphics.Vty.Input.Events.html#KDown"><span class="hs-identifier hs-var">KDown</span></a></span><span>      </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-167"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;kend&quot;</span></span><span class="hs-special">,</span><span>  </span><span class="annot"><span class="annottext">Key -&gt; [Modifier] -&gt; Event
+</span><a href="Graphics.Vty.Input.Events.html#EvKey"><span class="hs-identifier hs-var">EvKey</span></a></span><span> </span><span class="annot"><span class="annottext">Key
+</span><a href="Graphics.Vty.Input.Events.html#KEnd"><span class="hs-identifier hs-var">KEnd</span></a></span><span>       </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-168"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;kent&quot;</span></span><span class="hs-special">,</span><span>  </span><span class="annot"><span class="annottext">Key -&gt; [Modifier] -&gt; Event
+</span><a href="Graphics.Vty.Input.Events.html#EvKey"><span class="hs-identifier hs-var">EvKey</span></a></span><span> </span><span class="annot"><span class="annottext">Key
+</span><a href="Graphics.Vty.Input.Events.html#KEnter"><span class="hs-identifier hs-var">KEnter</span></a></span><span>     </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-169"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;khome&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Key -&gt; [Modifier] -&gt; Event
+</span><a href="Graphics.Vty.Input.Events.html#EvKey"><span class="hs-identifier hs-var">EvKey</span></a></span><span> </span><span class="annot"><span class="annottext">Key
+</span><a href="Graphics.Vty.Input.Events.html#KHome"><span class="hs-identifier hs-var">KHome</span></a></span><span>      </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-170"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;kich1&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Key -&gt; [Modifier] -&gt; Event
+</span><a href="Graphics.Vty.Input.Events.html#EvKey"><span class="hs-identifier hs-var">EvKey</span></a></span><span> </span><span class="annot"><span class="annottext">Key
+</span><a href="Graphics.Vty.Input.Events.html#KIns"><span class="hs-identifier hs-var">KIns</span></a></span><span>       </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-171"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;kcub1&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Key -&gt; [Modifier] -&gt; Event
+</span><a href="Graphics.Vty.Input.Events.html#EvKey"><span class="hs-identifier hs-var">EvKey</span></a></span><span> </span><span class="annot"><span class="annottext">Key
+</span><a href="Graphics.Vty.Input.Events.html#KLeft"><span class="hs-identifier hs-var">KLeft</span></a></span><span>      </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-172"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;knp&quot;</span></span><span class="hs-special">,</span><span>   </span><span class="annot"><span class="annottext">Key -&gt; [Modifier] -&gt; Event
+</span><a href="Graphics.Vty.Input.Events.html#EvKey"><span class="hs-identifier hs-var">EvKey</span></a></span><span> </span><span class="annot"><span class="annottext">Key
+</span><a href="Graphics.Vty.Input.Events.html#KPageDown"><span class="hs-identifier hs-var">KPageDown</span></a></span><span>  </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-173"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;kpp&quot;</span></span><span class="hs-special">,</span><span>   </span><span class="annot"><span class="annottext">Key -&gt; [Modifier] -&gt; Event
+</span><a href="Graphics.Vty.Input.Events.html#EvKey"><span class="hs-identifier hs-var">EvKey</span></a></span><span> </span><span class="annot"><span class="annottext">Key
+</span><a href="Graphics.Vty.Input.Events.html#KPageUp"><span class="hs-identifier hs-var">KPageUp</span></a></span><span>    </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-174"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;kcuf1&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Key -&gt; [Modifier] -&gt; Event
+</span><a href="Graphics.Vty.Input.Events.html#EvKey"><span class="hs-identifier hs-var">EvKey</span></a></span><span> </span><span class="annot"><span class="annottext">Key
+</span><a href="Graphics.Vty.Input.Events.html#KRight"><span class="hs-identifier hs-var">KRight</span></a></span><span>     </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-175"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;kDC&quot;</span></span><span class="hs-special">,</span><span>   </span><span class="annot"><span class="annottext">Key -&gt; [Modifier] -&gt; Event
+</span><a href="Graphics.Vty.Input.Events.html#EvKey"><span class="hs-identifier hs-var">EvKey</span></a></span><span> </span><span class="annot"><span class="annottext">Key
+</span><a href="Graphics.Vty.Input.Events.html#KDel"><span class="hs-identifier hs-var">KDel</span></a></span><span>       </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Modifier
+</span><a href="Graphics.Vty.Input.Events.html#MShift"><span class="hs-identifier hs-var">MShift</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-176"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;kEND&quot;</span></span><span class="hs-special">,</span><span>  </span><span class="annot"><span class="annottext">Key -&gt; [Modifier] -&gt; Event
+</span><a href="Graphics.Vty.Input.Events.html#EvKey"><span class="hs-identifier hs-var">EvKey</span></a></span><span> </span><span class="annot"><span class="annottext">Key
+</span><a href="Graphics.Vty.Input.Events.html#KEnd"><span class="hs-identifier hs-var">KEnd</span></a></span><span>       </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Modifier
+</span><a href="Graphics.Vty.Input.Events.html#MShift"><span class="hs-identifier hs-var">MShift</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-177"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;kHOM&quot;</span></span><span class="hs-special">,</span><span>  </span><span class="annot"><span class="annottext">Key -&gt; [Modifier] -&gt; Event
+</span><a href="Graphics.Vty.Input.Events.html#EvKey"><span class="hs-identifier hs-var">EvKey</span></a></span><span> </span><span class="annot"><span class="annottext">Key
+</span><a href="Graphics.Vty.Input.Events.html#KHome"><span class="hs-identifier hs-var">KHome</span></a></span><span>      </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Modifier
+</span><a href="Graphics.Vty.Input.Events.html#MShift"><span class="hs-identifier hs-var">MShift</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-178"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;kIC&quot;</span></span><span class="hs-special">,</span><span>   </span><span class="annot"><span class="annottext">Key -&gt; [Modifier] -&gt; Event
+</span><a href="Graphics.Vty.Input.Events.html#EvKey"><span class="hs-identifier hs-var">EvKey</span></a></span><span> </span><span class="annot"><span class="annottext">Key
+</span><a href="Graphics.Vty.Input.Events.html#KIns"><span class="hs-identifier hs-var">KIns</span></a></span><span>       </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Modifier
+</span><a href="Graphics.Vty.Input.Events.html#MShift"><span class="hs-identifier hs-var">MShift</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-179"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;kLFT&quot;</span></span><span class="hs-special">,</span><span>  </span><span class="annot"><span class="annottext">Key -&gt; [Modifier] -&gt; Event
+</span><a href="Graphics.Vty.Input.Events.html#EvKey"><span class="hs-identifier hs-var">EvKey</span></a></span><span> </span><span class="annot"><span class="annottext">Key
+</span><a href="Graphics.Vty.Input.Events.html#KLeft"><span class="hs-identifier hs-var">KLeft</span></a></span><span>      </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Modifier
+</span><a href="Graphics.Vty.Input.Events.html#MShift"><span class="hs-identifier hs-var">MShift</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-180"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;kRIT&quot;</span></span><span class="hs-special">,</span><span>  </span><span class="annot"><span class="annottext">Key -&gt; [Modifier] -&gt; Event
+</span><a href="Graphics.Vty.Input.Events.html#EvKey"><span class="hs-identifier hs-var">EvKey</span></a></span><span> </span><span class="annot"><span class="annottext">Key
+</span><a href="Graphics.Vty.Input.Events.html#KRight"><span class="hs-identifier hs-var">KRight</span></a></span><span>     </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Modifier
+</span><a href="Graphics.Vty.Input.Events.html#MShift"><span class="hs-identifier hs-var">MShift</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-181"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;kcuu1&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Key -&gt; [Modifier] -&gt; Event
+</span><a href="Graphics.Vty.Input.Events.html#EvKey"><span class="hs-identifier hs-var">EvKey</span></a></span><span> </span><span class="annot"><span class="annottext">Key
+</span><a href="Graphics.Vty.Input.Events.html#KUp"><span class="hs-identifier hs-var">KUp</span></a></span><span>        </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-182"></span><span>    </span><span class="hs-special">]</span><span> </span><span class="annot"><span class="annottext">ClassifyMap -&gt; ClassifyMap -&gt; ClassifyMap
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span> </span><span class="annot"><span class="annottext">ClassifyMap
+</span><a href="Graphics.Vty.Input.Terminfo.html#functionKeyCapsTable"><span class="hs-identifier hs-var">functionKeyCapsTable</span></a></span><span>
+</span><span id="line-183"></span><span>
+</span><span id="line-184"></span><span class="hs-comment">-- | Cap names for function keys.</span><span>
+</span><span id="line-185"></span><span class="annot"><a href="Graphics.Vty.Input.Terminfo.html#functionKeyCapsTable"><span class="hs-identifier hs-type">functionKeyCapsTable</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Input.Events.html#ClassifyMap"><span class="hs-identifier hs-type">ClassifyMap</span></a></span><span>
+</span><span id="line-186"></span><span id="functionKeyCapsTable"><span class="annot"><span class="annottext">functionKeyCapsTable :: ClassifyMap
+</span><a href="Graphics.Vty.Input.Terminfo.html#functionKeyCapsTable"><span class="hs-identifier hs-var hs-var">functionKeyCapsTable</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">((Int -&gt; (String, Event)) -&gt; [Int] -&gt; ClassifyMap)
+-&gt; [Int] -&gt; (Int -&gt; (String, Event)) -&gt; ClassifyMap
+forall a b c. (a -&gt; b -&gt; c) -&gt; b -&gt; a -&gt; c
+</span><span class="hs-identifier hs-var">flip</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; (String, Event)) -&gt; [Int] -&gt; ClassifyMap
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-glyph">..</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">63</span></span><span class="hs-special">]</span><span> </span><span class="annot"><span class="annottext">((Int -&gt; (String, Event)) -&gt; ClassifyMap)
+-&gt; (Int -&gt; (String, Event)) -&gt; ClassifyMap
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679367152"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679367152"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;kf&quot;</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; String -&gt; String
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; String
+forall a. Show a =&gt; a -&gt; String
+</span><span class="hs-identifier hs-var">show</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679367152"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Key -&gt; [Modifier] -&gt; Event
+</span><a href="Graphics.Vty.Input.Events.html#EvKey"><span class="hs-identifier hs-var">EvKey</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Key
+</span><a href="Graphics.Vty.Input.Events.html#KFun"><span class="hs-identifier hs-var">KFun</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679367152"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-187"></span></pre></body></html>

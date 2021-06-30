@@ -1,0 +1,530 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE BangPatterns #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-comment">{-|
+Module      : Dep.Bricks.Karnaugh
+Description : A module to render Karnaugh cards in an interactive way.
+Maintainer  : hapytexeu+gh@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+A module to render, update, and interact with Karnaugh cards.
+-}</span><span>
+</span><span id="line-12"></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Dep.Bricks.Karnaugh</span><span> </span><span class="hs-special">(</span><span>
+</span><span id="line-14"></span><span>    </span><span class="annot"><a href="Dep.Bricks.Karnaugh.html#renderKarnaugh"><span class="hs-identifier">renderKarnaugh</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Bricks.Karnaugh.html#renderKarnaugh%27"><span class="hs-identifier">renderKarnaugh'</span></a></span><span>
+</span><span id="line-15"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-16"></span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.List</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">transpose</span></span><span class="hs-special">)</span><span>
+</span><span id="line-18"></span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Dep.Algorithm.Synthesis.html"><span class="hs-identifier">Dep.Algorithm.Synthesis</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Algorithm.Synthesis.html#synthesis"><span class="hs-identifier">synthesis</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Dep.Bricks.Utils.html"><span class="hs-identifier">Dep.Bricks.Utils</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Bricks.Utils.html#fromRaster"><span class="hs-identifier">fromRaster</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Bricks.Utils.html#inRaster%27"><span class="hs-identifier">inRaster'</span></a></span><span class="hs-special">)</span><span>  </span><span class="hs-comment">-- harrow', varrow'</span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Dep.Class.Renderable.html"><span class="hs-identifier">Dep.Class.Renderable</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Class.Renderable.html#CharRenderable"><span class="hs-identifier">CharRenderable</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Class.Renderable.html#charRenderItem"><span class="hs-identifier">charRenderItem</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Dep.Data.Product.html"><span class="hs-identifier">Dep.Data.Product</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Product.html#SumOfProducts"><span class="hs-identifier">SumOfProducts</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Dep.Data.Three.html"><span class="hs-identifier">Dep.Data.Three</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Three.html#Three"><span class="hs-identifier">Three</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Three.html#Leaf"><span class="hs-identifier">Leaf</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#Link"><span class="hs-identifier">Link</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#Split"><span class="hs-identifier">Split</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#depth"><span class="hs-identifier">depth</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#leftmost"><span class="hs-identifier">leftmost</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html"><span class="hs-identifier">Dep.Data.ThreeValue</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier">ThreeValue</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-25"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Dep.Utils.html"><span class="hs-identifier">Dep.Utils</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Utils.html#Operator"><span class="hs-identifier">Operator</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-26"></span><span>
+</span><span id="line-27"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Graphics.Vty.Attributes</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Attr</span></span><span class="hs-special">)</span><span>
+</span><span id="line-28"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Graphics.Vty.Image</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Image</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-operator">(&lt;-&gt;)</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">string</span></span><span class="hs-special">)</span><span>  </span><span class="hs-comment">-- , (&lt;-&gt;), (&lt;|&gt;), char, safeWcswidth, string)</span><span>
+</span><span id="line-29"></span><span>
+</span><span id="line-30"></span><span class="hs-keyword">type</span><span> </span><span id="KLine"><span class="annot"><a href="Dep.Bricks.Karnaugh.html#KLine"><span class="hs-identifier hs-var">KLine</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
+</span><span id="line-31"></span><span class="hs-keyword">type</span><span> </span><span id="KRaster"><span class="annot"><a href="Dep.Bricks.Karnaugh.html#KRaster"><span class="hs-identifier hs-var">KRaster</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Dep.Bricks.Karnaugh.html#KLine"><span class="hs-identifier hs-type">KLine</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-32"></span><span>
+</span><span id="line-33"></span><span class="annot"><a href="Dep.Bricks.Karnaugh.html#hmask"><span class="hs-identifier hs-type">hmask</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
+</span><span id="line-34"></span><span id="hmask"><span class="annot"><span class="annottext">hmask :: Char -&gt; Char -&gt; Char -&gt; Int -&gt; Int -&gt; String
+</span><a href="Dep.Bricks.Karnaugh.html#hmask"><span class="hs-identifier hs-var hs-var">hmask</span></a></span></span><span> </span><span id="local-6989586621679128399"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679128399"><span class="hs-identifier hs-var">c0</span></a></span></span><span> </span><span id="local-6989586621679128398"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679128398"><span class="hs-identifier hs-var">ci</span></a></span></span><span> </span><span id="local-6989586621679128397"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679128397"><span class="hs-identifier hs-var">cn</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; String
+</span><a href="#local-6989586621679128396"><span class="hs-identifier hs-var">go</span></a></span><span>
+</span><span id="line-35"></span><span>  </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679128396"><span class="annot"><span class="annottext">go :: Int -&gt; Int -&gt; String
+</span><a href="#local-6989586621679128396"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span id="local-6989586621679128395"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128395"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679128394"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128394"><span class="hs-identifier hs-var">m</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Char -&gt; String
+forall a. Int -&gt; a -&gt; [a]
+</span><span class="hs-identifier hs-var">replicate</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128395"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">' '</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; String -&gt; String
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679128399"><span class="hs-identifier hs-var">c0</span></a></span><span> </span><span class="annot"><span class="annottext">Char -&gt; String -&gt; String
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Char -&gt; String
+forall a. Int -&gt; a -&gt; [a]
+</span><span class="hs-identifier hs-var">replicate</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128394"><span class="hs-identifier hs-var">m</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679128398"><span class="hs-identifier hs-var">ci</span></a></span><span> </span><span class="annot"><span class="annottext">String -&gt; String -&gt; String
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679128397"><span class="hs-identifier hs-var">cn</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-36"></span><span>
+</span><span id="line-37"></span><span class="annot"><a href="Dep.Bricks.Karnaugh.html#hvar"><span class="hs-identifier hs-type">hvar</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
+</span><span id="line-38"></span><span id="hvar"><span class="annot"><span class="annottext">hvar :: String -&gt; Int -&gt; Int -&gt; String
+</span><a href="Dep.Bricks.Karnaugh.html#hvar"><span class="hs-identifier hs-var hs-var">hvar</span></a></span></span><span> </span><span id="local-6989586621679128391"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679128391"><span class="hs-identifier hs-var">st</span></a></span></span><span> </span><span id="local-6989586621679128390"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128390"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679128389"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128389"><span class="hs-identifier hs-var">m</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Char -&gt; String
+forall a. Int -&gt; a -&gt; [a]
+</span><span class="hs-identifier hs-var">replicate</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128390"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Integral a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">div</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128389"><span class="hs-identifier hs-var">m</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span class="annot"><span class="annottext">String -&gt; Int
+forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Int
+</span><span class="hs-identifier hs-var">length</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679128391"><span class="hs-identifier hs-var">st</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">2</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">' '</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; String -&gt; String
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679128391"><span class="hs-identifier hs-var">st</span></a></span><span>
+</span><span id="line-39"></span><span>
+</span><span id="line-40"></span><span class="hs-comment">-- twig :: Attr -&gt; Int -&gt; Image</span><span>
+</span><span id="line-41"></span><span class="hs-comment">-- twig atr n = foldMap ((&lt;|&gt; char atr '\x2572') . string atr . (`replicate` ' ')) [0 .. n-1]</span><span>
+</span><span id="line-42"></span><span>
+</span><span id="line-43"></span><span class="annot"><a href="Dep.Bricks.Karnaugh.html#flipFrameH"><span class="hs-identifier hs-type">flipFrameH</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>
+</span><span id="line-44"></span><span id="flipFrameH"><span class="annot"><span class="annottext">flipFrameH :: Char -&gt; Char
+</span><a href="Dep.Bricks.Karnaugh.html#flipFrameH"><span class="hs-identifier hs-var hs-var">flipFrameH</span></a></span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x250f'</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x2517'</span></span><span>
+</span><span id="line-45"></span><span class="annot"><a href="Dep.Bricks.Karnaugh.html#flipFrameH"><span class="hs-identifier hs-var">flipFrameH</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x2517'</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x250f'</span></span><span>
+</span><span id="line-46"></span><span class="annot"><a href="Dep.Bricks.Karnaugh.html#flipFrameH"><span class="hs-identifier hs-var">flipFrameH</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x2513'</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x251b'</span></span><span>
+</span><span id="line-47"></span><span class="annot"><a href="Dep.Bricks.Karnaugh.html#flipFrameH"><span class="hs-identifier hs-var">flipFrameH</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x251b'</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x2513'</span></span><span>
+</span><span id="line-48"></span><span class="annot"><a href="Dep.Bricks.Karnaugh.html#flipFrameH"><span class="hs-identifier hs-var">flipFrameH</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x252f'</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x2537'</span></span><span>
+</span><span id="line-49"></span><span class="annot"><a href="Dep.Bricks.Karnaugh.html#flipFrameH"><span class="hs-identifier hs-var">flipFrameH</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x2537'</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x252f'</span></span><span>
+</span><span id="line-50"></span><span class="annot"><a href="Dep.Bricks.Karnaugh.html#flipFrameH"><span class="hs-identifier hs-var">flipFrameH</span></a></span><span> </span><span id="local-6989586621679128384"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679128384"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679128384"><span class="hs-identifier hs-var">c</span></a></span><span>
+</span><span id="line-51"></span><span>
+</span><span id="line-52"></span><span class="annot"><a href="Dep.Bricks.Karnaugh.html#flipFrameV"><span class="hs-identifier hs-type">flipFrameV</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>
+</span><span id="line-53"></span><span id="flipFrameV"><span class="annot"><span class="annottext">flipFrameV :: Char -&gt; Char
+</span><a href="Dep.Bricks.Karnaugh.html#flipFrameV"><span class="hs-identifier hs-var hs-var">flipFrameV</span></a></span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x250f'</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x2513'</span></span><span>
+</span><span id="line-54"></span><span class="annot"><a href="Dep.Bricks.Karnaugh.html#flipFrameV"><span class="hs-identifier hs-var">flipFrameV</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x2513'</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x250f'</span></span><span>
+</span><span id="line-55"></span><span class="annot"><a href="Dep.Bricks.Karnaugh.html#flipFrameV"><span class="hs-identifier hs-var">flipFrameV</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x2517'</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x251b'</span></span><span>
+</span><span id="line-56"></span><span class="annot"><a href="Dep.Bricks.Karnaugh.html#flipFrameV"><span class="hs-identifier hs-var">flipFrameV</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x251b'</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x2517'</span></span><span>
+</span><span id="line-57"></span><span class="annot"><a href="Dep.Bricks.Karnaugh.html#flipFrameV"><span class="hs-identifier hs-var">flipFrameV</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x2520'</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x2528'</span></span><span>
+</span><span id="line-58"></span><span class="annot"><a href="Dep.Bricks.Karnaugh.html#flipFrameV"><span class="hs-identifier hs-var">flipFrameV</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x2528'</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x2520'</span></span><span>
+</span><span id="line-59"></span><span class="annot"><a href="Dep.Bricks.Karnaugh.html#flipFrameV"><span class="hs-identifier hs-var">flipFrameV</span></a></span><span> </span><span id="local-6989586621679128382"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679128382"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679128382"><span class="hs-identifier hs-var">c</span></a></span><span>
+</span><span id="line-60"></span><span>
+</span><span id="line-61"></span><span class="annot"><a href="Dep.Bricks.Karnaugh.html#mapFrameH"><span class="hs-identifier hs-type">mapFrameH</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
+</span><span id="line-62"></span><span id="mapFrameH"><span class="annot"><span class="annottext">mapFrameH :: String -&gt; String
+</span><a href="Dep.Bricks.Karnaugh.html#mapFrameH"><span class="hs-identifier hs-var hs-var">mapFrameH</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Char -&gt; Char) -&gt; String -&gt; String
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="annot"><span class="annottext">Char -&gt; Char
+</span><a href="Dep.Bricks.Karnaugh.html#flipFrameH"><span class="hs-identifier hs-var">flipFrameH</span></a></span><span>
+</span><span id="line-63"></span><span>
+</span><span id="line-64"></span><span class="annot"><a href="Dep.Bricks.Karnaugh.html#mapFrameV"><span class="hs-identifier hs-type">mapFrameV</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
+</span><span id="line-65"></span><span id="mapFrameV"><span class="annot"><span class="annottext">mapFrameV :: String -&gt; String
+</span><a href="Dep.Bricks.Karnaugh.html#mapFrameV"><span class="hs-identifier hs-var hs-var">mapFrameV</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Char -&gt; Char) -&gt; String -&gt; String
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="annot"><span class="annottext">Char -&gt; Char
+</span><a href="Dep.Bricks.Karnaugh.html#flipFrameV"><span class="hs-identifier hs-var">flipFrameV</span></a></span><span>
+</span><span id="line-66"></span><span>
+</span><span id="line-67"></span><span class="annot"><a href="Dep.Bricks.Karnaugh.html#_mergeVertical"><span class="hs-identifier hs-type">_mergeVertical</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Dep.Bricks.Karnaugh.html#KLine"><span class="hs-identifier hs-type">KLine</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Bricks.Karnaugh.html#KRaster"><span class="hs-identifier hs-type">KRaster</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Utils.html#Operator"><span class="hs-identifier hs-type">Operator</span></a></span><span> </span><span class="annot"><a href="Dep.Bricks.Karnaugh.html#KRaster"><span class="hs-identifier hs-type">KRaster</span></a></span><span>
+</span><span id="line-68"></span><span id="_mergeVertical"><span class="annot"><span class="annottext">_mergeVertical :: String -&gt; KRaster -&gt; Int -&gt; Operator KRaster
+</span><a href="Dep.Bricks.Karnaugh.html#_mergeVertical"><span class="hs-identifier hs-var hs-var">_mergeVertical</span></a></span></span><span> </span><span id="local-6989586621679128378"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679128378"><span class="hs-identifier hs-var">spt</span></a></span></span><span> </span><span id="local-6989586621679128377"><span class="annot"><span class="annottext">KRaster
+</span><a href="#local-6989586621679128377"><span class="hs-identifier hs-var">spb</span></a></span></span><span> </span><span id="local-6989586621679128376"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128376"><span class="hs-identifier hs-var">n</span></a></span></span><span>
+</span><span id="line-69"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128376"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">4</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Operator KRaster
+</span><a href="#local-6989586621679128374"><span class="hs-identifier hs-var">go</span></a></span><span>
+</span><span id="line-70"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Operator KRaster
+</span><a href="#local-6989586621679128373"><span class="hs-identifier hs-var">go'</span></a></span><span>
+</span><span id="line-71"></span><span>  </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679128372"><span class="annot"><span class="annottext">cyspt :: [b] -&gt; String
+</span><a href="#local-6989586621679128372"><span class="hs-identifier hs-var hs-var">cyspt</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Char -&gt; b -&gt; Char) -&gt; String -&gt; [b] -&gt; String
+forall a b c. (a -&gt; b -&gt; c) -&gt; [a] -&gt; [b] -&gt; [c]
+</span><span class="hs-identifier hs-var">zipWith</span></span><span> </span><span class="annot"><span class="annottext">Char -&gt; b -&gt; Char
+forall a b. a -&gt; b -&gt; a
+</span><span class="hs-identifier hs-var">const</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679128378"><span class="hs-identifier hs-var">spt</span></a></span><span>
+</span><span id="line-72"></span><span>        </span><span id="local-6989586621679128369"><span class="annot"><span class="annottext">cyspb :: [b] -&gt; KRaster
+</span><a href="#local-6989586621679128369"><span class="hs-identifier hs-var hs-var">cyspb</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">KRaster -&gt; KRaster
+forall a. [[a]] -&gt; [[a]]
+</span><span class="hs-identifier hs-var">transpose</span></span><span> </span><span class="annot"><span class="annottext">(KRaster -&gt; KRaster) -&gt; ([b] -&gt; KRaster) -&gt; [b] -&gt; KRaster
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(String -&gt; b -&gt; String) -&gt; KRaster -&gt; [b] -&gt; KRaster
+forall a b c. (a -&gt; b -&gt; c) -&gt; [a] -&gt; [b] -&gt; [c]
+</span><span class="hs-identifier hs-var">zipWith</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; b -&gt; String
+forall a b. a -&gt; b -&gt; a
+</span><span class="hs-identifier hs-var">const</span></span><span> </span><span class="annot"><span class="annottext">KRaster
+</span><a href="#local-6989586621679128377"><span class="hs-identifier hs-var">spb</span></a></span><span>
+</span><span id="line-73"></span><span>        </span><span id="local-6989586621679128374"><span class="annot"><span class="annottext">go :: Operator KRaster
+</span><a href="#local-6989586621679128374"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="hs-special">(</span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">,</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><span id="line-74"></span><span>        </span><span class="annot"><a href="#local-6989586621679128374"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679128367"><span class="annot"><span class="annottext">xs :: KRaster
+</span><a href="#local-6989586621679128367"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span id="local-6989586621679128366"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679128366"><span class="hs-identifier hs-var">x</span></a></span></span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span class="annot"><span class="annottext">KRaster
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">KRaster
+</span><a href="#local-6989586621679128367"><span class="hs-identifier hs-var">xs</span></a></span><span> </span><span class="annot"><span class="annottext">KRaster -&gt; KRaster -&gt; KRaster
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">String -&gt; String
+forall b. [b] -&gt; String
+</span><a href="#local-6989586621679128372"><span class="hs-identifier hs-var">cyspt</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679128366"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-75"></span><span>        </span><span class="annot"><a href="#local-6989586621679128374"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679128365"><span class="annot"><span class="annottext">KRaster
+</span><a href="#local-6989586621679128365"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679128364"><span class="annot"><span class="annottext">ys :: KRaster
+</span><a href="#local-6989586621679128364"><span class="hs-identifier hs-var">ys</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span id="local-6989586621679128363"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679128363"><span class="hs-identifier hs-var">y</span></a></span></span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span class="annot"><span class="annottext">KRaster
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">KRaster
+</span><a href="#local-6989586621679128365"><span class="hs-identifier hs-var">xs</span></a></span><span> </span><span class="annot"><span class="annottext">KRaster -&gt; KRaster -&gt; KRaster
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; String
+forall b. [b] -&gt; String
+</span><a href="#local-6989586621679128372"><span class="hs-identifier hs-var">cyspt</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679128363"><span class="hs-identifier hs-var">y</span></a></span><span> </span><span class="annot"><span class="annottext">String -&gt; KRaster -&gt; KRaster
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">KRaster -&gt; KRaster
+forall a. [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">reverse</span></span><span> </span><span class="annot"><span class="annottext">KRaster
+</span><a href="#local-6989586621679128364"><span class="hs-identifier hs-var">ys</span></a></span><span>
+</span><span id="line-76"></span><span>        </span><span id="local-6989586621679128373"><span class="annot"><span class="annottext">go' :: Operator KRaster
+</span><a href="#local-6989586621679128373"><span class="hs-identifier hs-var hs-var">go'</span></a></span></span><span> </span><span class="hs-special">(</span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">,</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><span id="line-77"></span><span>        </span><span class="annot"><a href="#local-6989586621679128373"><span class="hs-identifier hs-var">go'</span></a></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679128361"><span class="annot"><span class="annottext">xs :: KRaster
+</span><a href="#local-6989586621679128361"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span id="local-6989586621679128360"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679128360"><span class="hs-identifier hs-var">x</span></a></span></span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span class="annot"><span class="annottext">KRaster
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">KRaster
+</span><a href="#local-6989586621679128361"><span class="hs-identifier hs-var">xs</span></a></span><span> </span><span class="annot"><span class="annottext">KRaster -&gt; KRaster -&gt; KRaster
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; KRaster
+forall b. [b] -&gt; KRaster
+</span><a href="#local-6989586621679128369"><span class="hs-identifier hs-var">cyspb</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679128360"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-78"></span><span>        </span><span class="annot"><a href="#local-6989586621679128373"><span class="hs-identifier hs-var">go'</span></a></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679128359"><span class="annot"><span class="annottext">KRaster
+</span><a href="#local-6989586621679128359"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679128358"><span class="annot"><span class="annottext">ys :: KRaster
+</span><a href="#local-6989586621679128358"><span class="hs-identifier hs-var">ys</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span id="local-6989586621679128357"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679128357"><span class="hs-identifier hs-var">y</span></a></span></span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span class="annot"><span class="annottext">KRaster
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">KRaster
+</span><a href="#local-6989586621679128359"><span class="hs-identifier hs-var">xs</span></a></span><span> </span><span class="annot"><span class="annottext">KRaster -&gt; KRaster -&gt; KRaster
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; KRaster
+forall b. [b] -&gt; KRaster
+</span><a href="#local-6989586621679128369"><span class="hs-identifier hs-var">cyspb</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679128357"><span class="hs-identifier hs-var">y</span></a></span><span> </span><span class="annot"><span class="annottext">KRaster -&gt; KRaster -&gt; KRaster
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span> </span><span class="annot"><span class="annottext">(String -&gt; String) -&gt; KRaster -&gt; KRaster
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; String
+</span><a href="Dep.Bricks.Karnaugh.html#mapFrameH"><span class="hs-identifier hs-var">mapFrameH</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">KRaster -&gt; KRaster
+forall a. [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">reverse</span></span><span> </span><span class="annot"><span class="annottext">KRaster
+</span><a href="#local-6989586621679128358"><span class="hs-identifier hs-var">ys</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-79"></span><span>
+</span><span id="line-80"></span><span>
+</span><span id="line-81"></span><span class="annot"><a href="Dep.Bricks.Karnaugh.html#_mergeHorizontal"><span class="hs-identifier hs-type">_mergeHorizontal</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Dep.Bricks.Karnaugh.html#KLine"><span class="hs-identifier hs-type">KLine</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Bricks.Karnaugh.html#KRaster"><span class="hs-identifier hs-type">KRaster</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Utils.html#Operator"><span class="hs-identifier hs-type">Operator</span></a></span><span> </span><span class="annot"><a href="Dep.Bricks.Karnaugh.html#KRaster"><span class="hs-identifier hs-type">KRaster</span></a></span><span>
+</span><span id="line-82"></span><span id="_mergeHorizontal"><span class="annot"><span class="annottext">_mergeHorizontal :: String -&gt; KRaster -&gt; Int -&gt; Operator KRaster
+</span><a href="Dep.Bricks.Karnaugh.html#_mergeHorizontal"><span class="hs-identifier hs-var hs-var">_mergeHorizontal</span></a></span></span><span> </span><span id="local-6989586621679128355"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679128355"><span class="hs-identifier hs-var">spl</span></a></span></span><span> </span><span id="local-6989586621679128354"><span class="annot"><span class="annottext">KRaster
+</span><a href="#local-6989586621679128354"><span class="hs-identifier hs-var">spr</span></a></span></span><span> </span><span id="local-6989586621679128353"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128353"><span class="hs-identifier hs-var">n</span></a></span></span><span>
+</span><span id="line-83"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128353"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">4</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(KRaster -&gt; KRaster -&gt; KRaster) -&gt; Operator KRaster
+forall a b c. (a -&gt; b -&gt; c) -&gt; (a, b) -&gt; c
+</span><span class="hs-identifier hs-var">uncurry</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Char -&gt; String -&gt; String -&gt; String)
+-&gt; String -&gt; KRaster -&gt; KRaster -&gt; KRaster
+forall a b c d. (a -&gt; b -&gt; c -&gt; d) -&gt; [a] -&gt; [b] -&gt; [c] -&gt; [d]
+</span><span class="hs-identifier hs-var">zipWith3</span></span><span> </span><span class="annot"><span class="annottext">Char -&gt; String -&gt; String -&gt; String
+forall a. a -&gt; [a] -&gt; [a] -&gt; [a]
+</span><a href="#local-6989586621679128350"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679128355"><span class="hs-identifier hs-var">spl</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-84"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(KRaster -&gt; KRaster -&gt; KRaster) -&gt; Operator KRaster
+forall a b c. (a -&gt; b -&gt; c) -&gt; (a, b) -&gt; c
+</span><span class="hs-identifier hs-var">uncurry</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(String -&gt; String -&gt; String -&gt; String)
+-&gt; KRaster -&gt; KRaster -&gt; KRaster -&gt; KRaster
+forall a b c d. (a -&gt; b -&gt; c -&gt; d) -&gt; [a] -&gt; [b] -&gt; [c] -&gt; [d]
+</span><span class="hs-identifier hs-var">zipWith3</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; String -&gt; String -&gt; String
+</span><a href="#local-6989586621679128349"><span class="hs-identifier hs-var">f'</span></a></span><span> </span><span class="annot"><span class="annottext">KRaster
+</span><a href="#local-6989586621679128354"><span class="hs-identifier hs-var">spr</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-85"></span><span>  </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679128350"><span class="annot"><span class="annottext">f :: a -&gt; [a] -&gt; [a] -&gt; [a]
+</span><a href="#local-6989586621679128350"><span class="hs-identifier hs-var hs-var">f</span></a></span></span><span> </span><span id="local-6989586621679128348"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679128348"><span class="hs-identifier hs-var">sp</span></a></span></span><span> </span><span id="local-6989586621679128347"><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679128347"><span class="hs-identifier hs-var">xs</span></a></span></span><span> </span><span id="local-6989586621679128346"><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679128346"><span class="hs-identifier hs-var">ys</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679128347"><span class="hs-identifier hs-var">xs</span></a></span><span> </span><span class="annot"><span class="annottext">[a] -&gt; [a] -&gt; [a]
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679128348"><span class="hs-identifier hs-var">sp</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; [a] -&gt; [a]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">[a] -&gt; [a]
+forall a. [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">reverse</span></span><span> </span><span class="annot"><span class="annottext">[a]
+</span><a href="#local-6989586621679128346"><span class="hs-identifier hs-var">ys</span></a></span><span>
+</span><span id="line-86"></span><span>        </span><span id="local-6989586621679128349"><span class="annot"><span class="annottext">f' :: String -&gt; String -&gt; String -&gt; String
+</span><a href="#local-6989586621679128349"><span class="hs-identifier hs-var hs-var">f'</span></a></span></span><span> </span><span id="local-6989586621679128345"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679128345"><span class="hs-identifier hs-var">sp</span></a></span></span><span> </span><span id="local-6989586621679128344"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679128344"><span class="hs-identifier hs-var">xs</span></a></span></span><span> </span><span id="local-6989586621679128343"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679128343"><span class="hs-identifier hs-var">ys</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679128344"><span class="hs-identifier hs-var">xs</span></a></span><span> </span><span class="annot"><span class="annottext">String -&gt; String -&gt; String
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679128345"><span class="hs-identifier hs-var">sp</span></a></span><span> </span><span class="annot"><span class="annottext">String -&gt; String -&gt; String
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; String
+</span><a href="Dep.Bricks.Karnaugh.html#mapFrameV"><span class="hs-identifier hs-var">mapFrameV</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; String
+forall a. [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">reverse</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679128343"><span class="hs-identifier hs-var">ys</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-87"></span><span>
+</span><span id="line-88"></span><span id="local-6989586621679128431"><span class="annot"><a href="Dep.Bricks.Karnaugh.html#_recurse"><span class="hs-identifier hs-type">_recurse</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Dep.Class.Renderable.html#CharRenderable"><span class="hs-identifier hs-type">CharRenderable</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679128431"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Utils.html#Operator"><span class="hs-identifier hs-type">Operator</span></a></span><span> </span><span class="annot"><a href="Dep.Bricks.Karnaugh.html#KRaster"><span class="hs-identifier hs-type">KRaster</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Utils.html#Operator"><span class="hs-identifier hs-type">Operator</span></a></span><span> </span><span class="annot"><a href="Dep.Bricks.Karnaugh.html#KRaster"><span class="hs-identifier hs-type">KRaster</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#Three"><span class="hs-identifier hs-type">Three</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679128431"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Bricks.Karnaugh.html#KRaster"><span class="hs-identifier hs-type">KRaster</span></a></span></span><span>
+</span><span id="line-89"></span><span id="_recurse"><span class="annot"><span class="annottext">_recurse :: (Int -&gt; Operator KRaster)
+-&gt; (Int -&gt; Operator KRaster) -&gt; Int -&gt; Three a -&gt; KRaster
+</span><a href="Dep.Bricks.Karnaugh.html#_recurse"><span class="hs-identifier hs-var hs-var">_recurse</span></a></span></span><span> </span><span id="local-6989586621679128341"><span class="annot"><span class="annottext">Int -&gt; Operator KRaster
+</span><a href="#local-6989586621679128341"><span class="hs-identifier hs-var">ma</span></a></span></span><span> </span><span id="local-6989586621679128340"><span class="annot"><span class="annottext">Int -&gt; Operator KRaster
+</span><a href="#local-6989586621679128340"><span class="hs-identifier hs-var">mb</span></a></span></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679128339"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128339"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Three a -&gt; KRaster
+</span><a href="#local-6989586621679128338"><span class="hs-identifier hs-var">go</span></a></span><span>
+</span><span id="line-90"></span><span>      </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679128337"><span class="annot"><span class="annottext">fn :: Three a -&gt; KRaster
+</span><a href="#local-6989586621679128337"><span class="hs-identifier hs-var hs-var">fn</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Operator KRaster)
+-&gt; (Int -&gt; Operator KRaster) -&gt; Int -&gt; Three a -&gt; KRaster
+forall a.
+CharRenderable a =&gt;
+(Int -&gt; Operator KRaster)
+-&gt; (Int -&gt; Operator KRaster) -&gt; Int -&gt; Three a -&gt; KRaster
+</span><a href="Dep.Bricks.Karnaugh.html#_recurse"><span class="hs-identifier hs-var">_recurse</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Operator KRaster
+</span><a href="#local-6989586621679128340"><span class="hs-identifier hs-var">mb</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Operator KRaster
+</span><a href="#local-6989586621679128341"><span class="hs-identifier hs-var">ma</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128339"><span class="hs-identifier hs-var">n</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-91"></span><span>            </span><span id="local-6989586621679128336"><span class="annot"><span class="annottext">man :: Operator KRaster
+</span><a href="#local-6989586621679128336"><span class="hs-identifier hs-var hs-var">man</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Operator KRaster
+</span><a href="#local-6989586621679128341"><span class="hs-identifier hs-var">ma</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128339"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-92"></span><span>            </span><span id="local-6989586621679128338"><span class="annot"><span class="annottext">go :: Three a -&gt; KRaster
+</span><a href="#local-6989586621679128338"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span id="local-6989586621679128335"><span class="annot"><span class="annottext">Three a
+</span><a href="#local-6989586621679128335"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span class="hs-glyph">|</span><span>
+</span><span id="line-93"></span><span>              </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128339"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="hs-special">[</span><span class="annot"><span class="annottext">a -&gt; Char
+forall a. CharRenderable a =&gt; a -&gt; Char
+</span><a href="Dep.Class.Renderable.html#charRenderItem"><span class="hs-identifier hs-var">charRenderItem</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Three a -&gt; a
+forall a. Three a -&gt; a
+</span><a href="Dep.Data.Three.html#leftmost"><span class="hs-identifier hs-var">leftmost</span></a></span><span> </span><span class="annot"><span class="annottext">Three a
+</span><a href="#local-6989586621679128335"><span class="hs-identifier hs-var">l</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span><span class="hs-special">]</span><span>  </span><span class="hs-comment">-- leftmost is used to prevent cases with multiple items</span><span>
+</span><span id="line-94"></span><span>            </span><span class="annot"><a href="#local-6989586621679128338"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span id="local-6989586621679128334"><span class="annot"><span class="annottext">l :: Three a
+</span><a href="#local-6989586621679128334"><span class="hs-identifier hs-var">l</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Three.html#Leaf"><span class="hs-identifier hs-type">Leaf</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679128333"><span class="annot"><span class="annottext">fnl :: KRaster
+</span><a href="#local-6989586621679128333"><span class="hs-identifier hs-var hs-var">fnl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Three a -&gt; KRaster
+</span><a href="#local-6989586621679128337"><span class="hs-identifier hs-var">fn</span></a></span><span> </span><span class="annot"><span class="annottext">Three a
+</span><a href="#local-6989586621679128334"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">Operator KRaster
+</span><a href="#local-6989586621679128336"><span class="hs-identifier hs-var">man</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">KRaster
+</span><a href="#local-6989586621679128333"><span class="hs-identifier hs-var">fnl</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">KRaster
+</span><a href="#local-6989586621679128333"><span class="hs-identifier hs-var">fnl</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-95"></span><span>            </span><span class="annot"><a href="#local-6989586621679128338"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Three.html#Link"><span class="hs-identifier hs-type">Link</span></a></span><span> </span><span id="local-6989586621679128332"><span class="annot"><span class="annottext">Three a
+</span><a href="#local-6989586621679128332"><span class="hs-identifier hs-var">l</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679128331"><span class="annot"><span class="annottext">fnl :: KRaster
+</span><a href="#local-6989586621679128331"><span class="hs-identifier hs-var hs-var">fnl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Three a -&gt; KRaster
+</span><a href="#local-6989586621679128337"><span class="hs-identifier hs-var">fn</span></a></span><span> </span><span class="annot"><span class="annottext">Three a
+</span><a href="#local-6989586621679128332"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">Operator KRaster
+</span><a href="#local-6989586621679128336"><span class="hs-identifier hs-var">man</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">KRaster
+</span><a href="#local-6989586621679128331"><span class="hs-identifier hs-var">fnl</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">KRaster
+</span><a href="#local-6989586621679128331"><span class="hs-identifier hs-var">fnl</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-96"></span><span>            </span><span class="annot"><a href="#local-6989586621679128338"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-glyph">~</span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Three.html#Split"><span class="hs-identifier hs-type">Split</span></a></span><span> </span><span id="local-6989586621679128330"><span class="annot"><span class="annottext">Three a
+</span><a href="#local-6989586621679128330"><span class="hs-identifier hs-var">la</span></a></span></span><span> </span><span id="local-6989586621679128329"><span class="annot"><span class="annottext">Three a
+</span><a href="#local-6989586621679128329"><span class="hs-identifier hs-var">lb</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Operator KRaster
+</span><a href="#local-6989586621679128336"><span class="hs-identifier hs-var">man</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Three a -&gt; KRaster
+</span><a href="#local-6989586621679128337"><span class="hs-identifier hs-var">fn</span></a></span><span> </span><span class="annot"><span class="annottext">Three a
+</span><a href="#local-6989586621679128330"><span class="hs-identifier hs-var">la</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Three a -&gt; KRaster
+</span><a href="#local-6989586621679128337"><span class="hs-identifier hs-var">fn</span></a></span><span> </span><span class="annot"><span class="annottext">Three a
+</span><a href="#local-6989586621679128329"><span class="hs-identifier hs-var">lb</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-97"></span><span>
+</span><span id="line-98"></span><span class="annot"><a href="Dep.Bricks.Karnaugh.html#_horizontalThin"><span class="hs-identifier hs-type">_horizontalThin</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
+</span><span id="line-99"></span><span id="_horizontalThin"><span class="annot"><span class="annottext">_horizontalThin :: String
+</span><a href="Dep.Bricks.Karnaugh.html#_horizontalThin"><span class="hs-identifier hs-var hs-var">_horizontalThin</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String -&gt; String
+forall a. [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">cycle</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\x2502\x253c&quot;</span></span><span>
+</span><span id="line-100"></span><span>
+</span><span id="line-101"></span><span class="annot"><a href="Dep.Bricks.Karnaugh.html#_horizontalThick"><span class="hs-identifier hs-type">_horizontalThick</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span class="hs-special">]</span><span>
+</span><span id="line-102"></span><span id="_horizontalThick"><span class="annot"><span class="annottext">_horizontalThick :: KRaster
+</span><a href="Dep.Bricks.Karnaugh.html#_horizontalThick"><span class="hs-identifier hs-var hs-var">_horizontalThick</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">KRaster -&gt; KRaster
+forall a. [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">cycle</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\x2503 \x2503&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\x2528 \x2520&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\x2503 \x2503&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\x2528 \x2520&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\x2503 \x2503&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\x2528 \x2520&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\x2503 \x2503&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\x251b \x2517&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;   &quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\x2513 \x250f&quot;</span></span><span class="hs-special">]</span><span>
+</span><span id="line-103"></span><span>
+</span><span id="line-104"></span><span class="annot"><a href="Dep.Bricks.Karnaugh.html#_verticalThin"><span class="hs-identifier hs-type">_verticalThin</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
+</span><span id="line-105"></span><span id="_verticalThin"><span class="annot"><span class="annottext">_verticalThin :: String
+</span><a href="Dep.Bricks.Karnaugh.html#_verticalThin"><span class="hs-identifier hs-var hs-var">_verticalThin</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String -&gt; String
+forall a. [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">cycle</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\x2500\x253c&quot;</span></span><span>
+</span><span id="line-106"></span><span>
+</span><span id="line-107"></span><span class="annot"><a href="Dep.Bricks.Karnaugh.html#_verticalThick"><span class="hs-identifier hs-type">_verticalThick</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span class="hs-special">]</span><span>
+</span><span id="line-108"></span><span id="_verticalThick"><span class="annot"><span class="annottext">_verticalThick :: KRaster
+</span><a href="Dep.Bricks.Karnaugh.html#_verticalThick"><span class="hs-identifier hs-var hs-var">_verticalThick</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">KRaster -&gt; KRaster
+forall a. [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">cycle</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\x2501 \x2501&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\x2537 \x252f&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\x2501 \x2501&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\x2537 \x252f&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\x2501 \x2501&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\x2537 \x252f&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\x2501 \x2501&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\x251b \x2513&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;   &quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;\x2517 \x250f&quot;</span></span><span class="hs-special">]</span><span>
+</span><span id="line-109"></span><span>
+</span><span id="line-110"></span><span class="hs-comment">-- | Render the given 'Three' as a /Karnaugh/ card, that can</span><span>
+</span><span id="line-111"></span><span class="hs-comment">-- also visualize the /sum-of-product/.</span><span>
+</span><span id="line-112"></span><span class="annot"><a href="Dep.Bricks.Karnaugh.html#renderKarnaugh%27"><span class="hs-identifier hs-type">renderKarnaugh'</span></a></span><span>
+</span><span id="line-113"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#Three"><span class="hs-identifier hs-type">Three</span></a></span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span><span>  </span><span class="hs-comment">-- ^ The given 'Three' to render as a /Karnaugh card/.</span><span>
+</span><span id="line-114"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span class="hs-special">]</span><span>  </span><span class="hs-comment">-- ^ The names of the variables that are rendered. If there are no sufficient variables, it will work with x&#8320;, x&#8321;, x&#8322;, etc.</span><span>
+</span><span id="line-115"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Attr</span></span><span>  </span><span class="hs-comment">-- ^ The base 'Attr'ibute to render the /Karnaugh card/.</span><span>
+</span><span id="line-116"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Image</span></span><span>  </span><span class="hs-comment">-- ^ The image that contains a rendered version of the /Karnaugh card/.</span><span>
+</span><span id="line-117"></span><span id="renderKarnaugh%27"><span class="annot"><span class="annottext">renderKarnaugh' :: Three ThreeValue -&gt; KRaster -&gt; Attr -&gt; Image
+</span><a href="Dep.Bricks.Karnaugh.html#renderKarnaugh%27"><span class="hs-identifier hs-var hs-var">renderKarnaugh'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Three ThreeValue -&gt; SumOfProducts -&gt; KRaster -&gt; Attr -&gt; Image
+forall a.
+CharRenderable a =&gt;
+Three a -&gt; SumOfProducts -&gt; KRaster -&gt; Attr -&gt; Image
+</span><a href="Dep.Bricks.Karnaugh.html#renderKarnaugh"><span class="hs-identifier hs-var">renderKarnaugh</span></a></span><span> </span><span class="annot"><span class="annottext">(Three ThreeValue -&gt; SumOfProducts -&gt; KRaster -&gt; Attr -&gt; Image)
+-&gt; (Three ThreeValue -&gt; SumOfProducts)
+-&gt; Three ThreeValue
+-&gt; KRaster
+-&gt; Attr
+-&gt; Image
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Three ThreeValue -&gt; SumOfProducts
+</span><a href="Dep.Algorithm.Synthesis.html#synthesis"><span class="hs-identifier hs-var">synthesis</span></a></span><span>
+</span><span id="line-118"></span><span>
+</span><span id="line-119"></span><span class="hs-comment">-- | Render the given 'Three' as a /Karnaugh/ card, that can</span><span>
+</span><span id="line-120"></span><span class="hs-comment">-- also visualize the /sum-of-product/.</span><span>
+</span><span id="line-121"></span><span id="local-6989586621679128423"><span class="annot"><a href="Dep.Bricks.Karnaugh.html#renderKarnaugh"><span class="hs-identifier hs-type">renderKarnaugh</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Dep.Class.Renderable.html#CharRenderable"><span class="hs-identifier hs-type">CharRenderable</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679128423"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-122"></span><span>  </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#Three"><span class="hs-identifier hs-type">Three</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679128423"><span class="hs-identifier hs-type">a</span></a></span><span>  </span><span class="hs-comment">-- ^ The given 'Three' to render as a /Karnaugh card/.</span><span>
+</span><span id="line-123"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Product.html#SumOfProducts"><span class="hs-identifier hs-type">SumOfProducts</span></a></span><span> </span><span class="hs-comment">-- ^ The sum of products that will be used to mark the /Karnaugh card/.</span><span>
+</span><span id="line-124"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span class="hs-special">]</span><span>  </span><span class="hs-comment">-- ^ The names of the variables that are rendered. If there are no sufficient variables, it will work with x&#8320;, x&#8321;, x&#8322;, etc.</span><span>
+</span><span id="line-125"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Attr</span></span><span>  </span><span class="hs-comment">-- ^ The base 'Attr'ibute to render the /Karnaugh card/.</span><span>
+</span><span id="line-126"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Image</span></span><span>  </span><span class="hs-comment">-- ^ The image that contains a rendered version of the /Karnaugh card/.</span></span><span>
+</span><span id="line-127"></span><span id="renderKarnaugh"><span class="annot"><span class="annottext">renderKarnaugh :: Three a -&gt; SumOfProducts -&gt; KRaster -&gt; Attr -&gt; Image
+</span><a href="Dep.Bricks.Karnaugh.html#renderKarnaugh"><span class="hs-identifier hs-var hs-var">renderKarnaugh</span></a></span></span><span> </span><span id="local-6989586621679128323"><span class="annot"><span class="annottext">Three a
+</span><a href="#local-6989586621679128323"><span class="hs-identifier hs-var">ts</span></a></span></span><span> </span><span class="annot"><span class="annottext">SumOfProducts
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">KRaster
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679128322"><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679128322"><span class="hs-identifier hs-var">atr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Attr -&gt; String -&gt; Image
+</span><span class="hs-identifier hs-var">string</span></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679128322"><span class="hs-identifier hs-var">atr</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; Int -&gt; Int -&gt; String
+</span><a href="Dep.Bricks.Karnaugh.html#hvar"><span class="hs-identifier hs-var">hvar</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;x\x2080&quot;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">10</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">7</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Image -&gt; Image -&gt; Image
+</span><span class="hs-operator hs-var">&lt;-&gt;</span></span><span> </span><span class="annot"><span class="annottext">Attr -&gt; String -&gt; Image
+</span><span class="hs-identifier hs-var">string</span></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679128322"><span class="hs-identifier hs-var">atr</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Char -&gt; Char -&gt; Char -&gt; Int -&gt; Int -&gt; String
+</span><a href="Dep.Bricks.Karnaugh.html#hmask"><span class="hs-identifier hs-var">hmask</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x251c'</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x2500'</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x2524'</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">10</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">7</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Image -&gt; Image -&gt; Image
+</span><span class="hs-operator hs-var">&lt;-&gt;</span></span><span> </span><span class="annot"><span class="annottext">Attr -&gt; String -&gt; Image
+</span><span class="hs-identifier hs-var">string</span></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679128322"><span class="hs-identifier hs-var">atr</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; Int -&gt; Int -&gt; String
+</span><a href="Dep.Bricks.Karnaugh.html#hvar"><span class="hs-identifier hs-var">hvar</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;x\x2081&quot;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">4</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">9</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Image -&gt; Image -&gt; Image
+</span><span class="hs-operator hs-var">&lt;-&gt;</span></span><span> </span><span class="annot"><span class="annottext">Attr -&gt; String -&gt; Image
+</span><span class="hs-identifier hs-var">string</span></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679128322"><span class="hs-identifier hs-var">atr</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Char -&gt; Char -&gt; Char -&gt; Int -&gt; Int -&gt; String
+</span><a href="Dep.Bricks.Karnaugh.html#hmask"><span class="hs-identifier hs-var">hmask</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x251c'</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x2500'</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x2524'</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">4</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">9</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Image -&gt; Image -&gt; Image
+</span><span class="hs-operator hs-var">&lt;-&gt;</span></span><span> </span><span class="annot"><span class="annottext">Attr -&gt; KRaster -&gt; Image
+</span><a href="Dep.Bricks.Utils.html#fromRaster"><span class="hs-identifier hs-var">fromRaster</span></a></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679128322"><span class="hs-identifier hs-var">atr</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">KRaster -&gt; KRaster
+</span><a href="Dep.Bricks.Utils.html#inRaster%27"><span class="hs-identifier hs-var">inRaster'</span></a></span><span> </span><span class="annot"><span class="annottext">KRaster
+</span><a href="#local-6989586621679128321"><span class="hs-identifier hs-var">recs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-128"></span><span class="hs-comment">-- renderKarnaugh ts _ _ atr = foldr ((&lt;-&gt;) . string atr) emptyImage (addBottomMark &quot;x\x2083&quot; (addTopMark &quot;x\x2081&quot; (addLeftMark &quot;x\x2082&quot; (addRightMark &quot;x\x2084&quot; (inRaster' recs)))))</span><span>
+</span><span id="line-129"></span><span>  </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679128320"><span class="annot"><span class="annottext">dpt :: Int
+</span><a href="#local-6989586621679128320"><span class="hs-identifier hs-var hs-var">dpt</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Three a -&gt; Int
+forall a. Three a -&gt; Int
+</span><a href="Dep.Data.Three.html#depth"><span class="hs-identifier hs-var">depth</span></a></span><span> </span><span class="annot"><span class="annottext">Three a
+</span><a href="#local-6989586621679128323"><span class="hs-identifier hs-var">ts</span></a></span><span>
+</span><span id="line-130"></span><span>        </span><span id="local-6989586621679128321"><span class="annot"><span class="annottext">recs :: KRaster
+</span><a href="#local-6989586621679128321"><span class="hs-identifier hs-var hs-var">recs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">((Int -&gt; Operator KRaster)
+ -&gt; (Int -&gt; Operator KRaster) -&gt; Int -&gt; Three a -&gt; KRaster)
+-&gt; (Int -&gt; Operator KRaster)
+-&gt; (Int -&gt; Operator KRaster)
+-&gt; Int
+-&gt; Three a
+-&gt; KRaster
+forall a. a -&gt; a
+</span><a href="#local-6989586621679128319"><span class="hs-identifier hs-var">swapit</span></a></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Operator KRaster)
+-&gt; (Int -&gt; Operator KRaster) -&gt; Int -&gt; Three a -&gt; KRaster
+forall a.
+CharRenderable a =&gt;
+(Int -&gt; Operator KRaster)
+-&gt; (Int -&gt; Operator KRaster) -&gt; Int -&gt; Three a -&gt; KRaster
+</span><a href="Dep.Bricks.Karnaugh.html#_recurse"><span class="hs-identifier hs-var">_recurse</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; KRaster -&gt; Int -&gt; Operator KRaster
+</span><a href="Dep.Bricks.Karnaugh.html#_mergeHorizontal"><span class="hs-identifier hs-var">_mergeHorizontal</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="Dep.Bricks.Karnaugh.html#_horizontalThin"><span class="hs-identifier hs-var">_horizontalThin</span></a></span><span> </span><span class="annot"><span class="annottext">KRaster
+</span><a href="Dep.Bricks.Karnaugh.html#_horizontalThick"><span class="hs-identifier hs-var">_horizontalThick</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; KRaster -&gt; Int -&gt; Operator KRaster
+</span><a href="Dep.Bricks.Karnaugh.html#_mergeVertical"><span class="hs-identifier hs-var">_mergeVertical</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="Dep.Bricks.Karnaugh.html#_verticalThin"><span class="hs-identifier hs-var">_verticalThin</span></a></span><span> </span><span class="annot"><span class="annottext">KRaster
+</span><a href="Dep.Bricks.Karnaugh.html#_verticalThick"><span class="hs-identifier hs-var">_verticalThick</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128320"><span class="hs-identifier hs-var">dpt</span></a></span><span> </span><span class="annot"><span class="annottext">Three a
+</span><a href="#local-6989586621679128323"><span class="hs-identifier hs-var">ts</span></a></span><span>
+</span><span id="line-131"></span><span>        </span><span id="local-6989586621679128319"><span class="annot"><span class="annottext">swapit :: a -&gt; a
+</span><a href="#local-6989586621679128319"><span class="hs-identifier hs-var hs-var">swapit</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Bool
+forall a. Integral a =&gt; a -&gt; Bool
+</span><span class="hs-identifier hs-var">even</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679128320"><span class="hs-identifier hs-var">dpt</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; a
+forall a. a -&gt; a
+</span><span class="hs-identifier hs-var">id</span></span><span>
+</span><span id="line-132"></span><span>               </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; a
+forall a. a -&gt; a
+</span><span class="hs-identifier hs-var">id</span></span><span>
+</span><span id="line-133"></span></pre></body></html>

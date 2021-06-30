@@ -1,0 +1,1069 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DeriveFunctor #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE MultiParamTypeClasses #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE TemplateHaskell #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE DeriveGeneric #-}</span><span>
+</span><span id="line-5"></span><span class="hs-pragma">{-# LANGUAGE DeriveAnyClass #-}</span><span>
+</span><span id="line-6"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Brick.BorderMap</span><span>
+</span><span id="line-7"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#BorderMap"><span class="hs-identifier">BorderMap</span></a></span><span>
+</span><span id="line-8"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier">Edges</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-9"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#eTopL"><span class="hs-identifier">eTopL</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#eBottomL"><span class="hs-identifier">eBottomL</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#eRightL"><span class="hs-identifier">eRightL</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#eLeftL"><span class="hs-identifier">eLeftL</span></a></span><span>
+</span><span id="line-10"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#empty"><span class="hs-identifier">empty</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#emptyCoordinates"><span class="hs-identifier">emptyCoordinates</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#singleton"><span class="hs-identifier">singleton</span></a></span><span>
+</span><span id="line-11"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#insertH"><span class="hs-identifier">insertH</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#insertV"><span class="hs-identifier">insertV</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#insert"><span class="hs-identifier">insert</span></a></span><span>
+</span><span id="line-12"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#unsafeUnion"><span class="hs-identifier">unsafeUnion</span></a></span><span>
+</span><span id="line-13"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#coordinates"><span class="hs-identifier">coordinates</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#bounds"><span class="hs-identifier">bounds</span></a></span><span>
+</span><span id="line-14"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#values"><span class="hs-identifier">values</span></a></span><span>
+</span><span id="line-15"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#lookupRow"><span class="hs-identifier">lookupRow</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#lookupCol"><span class="hs-identifier">lookupCol</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#lookupH"><span class="hs-identifier">lookupH</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#lookupV"><span class="hs-identifier">lookupV</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#lookup"><span class="hs-identifier">lookup</span></a></span><span>
+</span><span id="line-16"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#setCoordinates"><span class="hs-identifier">setCoordinates</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#crop"><span class="hs-identifier">crop</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#expand"><span class="hs-identifier">expand</span></a></span><span>
+</span><span id="line-17"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#translate"><span class="hs-identifier">translate</span></a></span><span>
+</span><span id="line-18"></span><span>    </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-19"></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Brick.Types.Common.html"><span class="hs-identifier">Brick.Types.Common</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier">Edges</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#Location"><span class="hs-identifier">Location</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#eTopL"><span class="hs-identifier">eTopL</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#eBottomL"><span class="hs-identifier">eBottomL</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#eRightL"><span class="hs-identifier">eRightL</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#eLeftL"><span class="hs-identifier">eLeftL</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#origin"><span class="hs-identifier">origin</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Applicative</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">liftA2</span></span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Data.IMap.html"><span class="hs-identifier">Data.IMap</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier">IMap</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.IMap.html#Run"><span class="hs-identifier">Run</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Data.IMap.html#Run"><span class="hs-identifier">Run</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">GHC.Generics</span></span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.DeepSeq</span></span><span>
+</span><span id="line-25"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Prelude</span></span><span> </span><span class="hs-keyword">hiding</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">lookup</span></span><span class="hs-special">)</span><span>
+</span><span id="line-26"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="Data.IMap.html"><span class="hs-identifier">Data.IMap</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">IM</span></span><span>
+</span><span id="line-27"></span><span>
+</span><span id="line-28"></span><span class="hs-comment">-- | Internal use only.</span><span>
+</span><span id="line-29"></span><span id="local-6989586621679370108"><span class="annot"><a href="Brick.BorderMap.html#neighbors"><span class="hs-identifier hs-type">neighbors</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier hs-type">Edges</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679370108"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier hs-type">Edges</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679370108"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679370108"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-30"></span><span id="neighbors"><span class="annot"><span class="annottext">neighbors :: Edges a -&gt; Edges (a, a)
+</span><a href="Brick.BorderMap.html#neighbors"><span class="hs-identifier hs-var hs-var">neighbors</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier hs-type">Edges</span></a></span><span> </span><span id="local-6989586621679370034"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679370034"><span class="hs-identifier hs-var">vt</span></a></span></span><span> </span><span id="local-6989586621679370033"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679370033"><span class="hs-identifier hs-var">vb</span></a></span></span><span> </span><span id="local-6989586621679370032"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679370032"><span class="hs-identifier hs-var">vl</span></a></span></span><span> </span><span id="local-6989586621679370031"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679370031"><span class="hs-identifier hs-var">vr</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(a, a) -&gt; (a, a) -&gt; (a, a) -&gt; (a, a) -&gt; Edges (a, a)
+forall a. a -&gt; a -&gt; a -&gt; a -&gt; Edges a
+</span><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier hs-var">Edges</span></a></span><span> </span><span class="annot"><span class="annottext">(a, a)
+</span><a href="#local-6989586621679370030"><span class="hs-identifier hs-var">horiz</span></a></span><span> </span><span class="annot"><span class="annottext">(a, a)
+</span><a href="#local-6989586621679370030"><span class="hs-identifier hs-var">horiz</span></a></span><span> </span><span class="annot"><span class="annottext">(a, a)
+</span><a href="#local-6989586621679370029"><span class="hs-identifier hs-var">vert</span></a></span><span> </span><span class="annot"><span class="annottext">(a, a)
+</span><a href="#local-6989586621679370029"><span class="hs-identifier hs-var">vert</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-31"></span><span>    </span><span id="local-6989586621679370030"><span class="annot"><span class="annottext">horiz :: (a, a)
+</span><a href="#local-6989586621679370030"><span class="hs-identifier hs-var hs-var">horiz</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679370032"><span class="hs-identifier hs-var">vl</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679370031"><span class="hs-identifier hs-var">vr</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-32"></span><span>    </span><span id="local-6989586621679370029"><span class="annot"><span class="annottext">vert :: (a, a)
+</span><a href="#local-6989586621679370029"><span class="hs-identifier hs-var hs-var">vert</span></a></span></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679370034"><span class="hs-identifier hs-var">vt</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679370033"><span class="hs-identifier hs-var">vb</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-33"></span><span>
+</span><span id="line-34"></span><span class="hs-comment">-- Invariant: corner values are present on all the edges incident on that</span><span>
+</span><span id="line-35"></span><span class="hs-comment">-- corner. Widthless or heightless rectangles replicate the IMaps exactly on</span><span>
+</span><span id="line-36"></span><span class="hs-comment">-- the two coincident edges.</span><span>
+</span><span id="line-37"></span><span class="hs-comment">--</span><span>
+</span><span id="line-38"></span><span class="hs-comment">-- Practically speaking, this means for lookup you can look on any edge that</span><span>
+</span><span id="line-39"></span><span class="hs-comment">-- could contain the key you care about, while for insertion you must insert on</span><span>
+</span><span id="line-40"></span><span class="hs-comment">-- every edge that could contain the keys being inserted.</span><span>
+</span><span id="line-41"></span><span>
+</span><span id="line-42"></span><span class="hs-comment">-- | A @BorderMap a@ is like a @Map Location a@, except that there is a</span><span>
+</span><span id="line-43"></span><span class="hs-comment">-- rectangle, and only 'Location's on the border of this rectangle are</span><span>
+</span><span id="line-44"></span><span class="hs-comment">-- retained. The 'BorderMap' can be queried for the position and size of the</span><span>
+</span><span id="line-45"></span><span class="hs-comment">-- rectangle. There are also efficient bulk query and bulk update operations</span><span>
+</span><span id="line-46"></span><span class="hs-comment">-- for adjacent positions on the border.</span><span>
+</span><span id="line-47"></span><span id="local-6989586621679370027"><span id="local-6989586621679370028"></span></span><span class="hs-keyword">data</span><span> </span><span id="BorderMap"><span class="annot"><a href="Brick.BorderMap.html#BorderMap"><span class="hs-identifier hs-var">BorderMap</span></a></span></span><span> </span><span id="local-6989586621679370127"><span class="annot"><a href="#local-6989586621679370127"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="BorderMap"><span class="annot"><a href="Brick.BorderMap.html#BorderMap"><span class="hs-identifier hs-var">BorderMap</span></a></span></span><span>
+</span><span id="line-48"></span><span>    </span><span class="hs-special">{</span><span> </span><span id="_coordinates"><span class="annot"><span class="annottext">BorderMap a -&gt; Edges Int
+</span><a href="Brick.BorderMap.html#_coordinates"><span class="hs-identifier hs-var hs-var">_coordinates</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier hs-type">Edges</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-49"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="_values"><span class="annot"><span class="annottext">BorderMap a -&gt; Edges (IMap a)
+</span><a href="Brick.BorderMap.html#_values"><span class="hs-identifier hs-var hs-var">_values</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier hs-type">Edges</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679370127"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-50"></span><span>    </span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679370020"><span id="local-6989586621679370022"><span class="annot"><span class="annottext">BorderMap a -&gt; BorderMap a -&gt; Bool
+(BorderMap a -&gt; BorderMap a -&gt; Bool)
+-&gt; (BorderMap a -&gt; BorderMap a -&gt; Bool) -&gt; Eq (BorderMap a)
+forall a. Eq a =&gt; BorderMap a -&gt; BorderMap a -&gt; Bool
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: BorderMap a -&gt; BorderMap a -&gt; Bool
+$c/= :: forall a. Eq a =&gt; BorderMap a -&gt; BorderMap a -&gt; Bool
+== :: BorderMap a -&gt; BorderMap a -&gt; Bool
+$c== :: forall a. Eq a =&gt; BorderMap a -&gt; BorderMap a -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679370004"><span id="local-6989586621679370006"><span id="local-6989586621679370008"><span id="local-6989586621679370010"><span id="local-6989586621679370012"><span id="local-6989586621679370014"><span id="local-6989586621679370016"><span class="annot"><span class="annottext">Eq (BorderMap a)
+Eq (BorderMap a)
+-&gt; (BorderMap a -&gt; BorderMap a -&gt; Ordering)
+-&gt; (BorderMap a -&gt; BorderMap a -&gt; Bool)
+-&gt; (BorderMap a -&gt; BorderMap a -&gt; Bool)
+-&gt; (BorderMap a -&gt; BorderMap a -&gt; Bool)
+-&gt; (BorderMap a -&gt; BorderMap a -&gt; Bool)
+-&gt; (BorderMap a -&gt; BorderMap a -&gt; BorderMap a)
+-&gt; (BorderMap a -&gt; BorderMap a -&gt; BorderMap a)
+-&gt; Ord (BorderMap a)
+BorderMap a -&gt; BorderMap a -&gt; Bool
+BorderMap a -&gt; BorderMap a -&gt; Ordering
+BorderMap a -&gt; BorderMap a -&gt; BorderMap a
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+forall a. Ord a =&gt; Eq (BorderMap a)
+forall a. Ord a =&gt; BorderMap a -&gt; BorderMap a -&gt; Bool
+forall a. Ord a =&gt; BorderMap a -&gt; BorderMap a -&gt; Ordering
+forall a. Ord a =&gt; BorderMap a -&gt; BorderMap a -&gt; BorderMap a
+min :: BorderMap a -&gt; BorderMap a -&gt; BorderMap a
+$cmin :: forall a. Ord a =&gt; BorderMap a -&gt; BorderMap a -&gt; BorderMap a
+max :: BorderMap a -&gt; BorderMap a -&gt; BorderMap a
+$cmax :: forall a. Ord a =&gt; BorderMap a -&gt; BorderMap a -&gt; BorderMap a
+&gt;= :: BorderMap a -&gt; BorderMap a -&gt; Bool
+$c&gt;= :: forall a. Ord a =&gt; BorderMap a -&gt; BorderMap a -&gt; Bool
+&gt; :: BorderMap a -&gt; BorderMap a -&gt; Bool
+$c&gt; :: forall a. Ord a =&gt; BorderMap a -&gt; BorderMap a -&gt; Bool
+&lt;= :: BorderMap a -&gt; BorderMap a -&gt; Bool
+$c&lt;= :: forall a. Ord a =&gt; BorderMap a -&gt; BorderMap a -&gt; Bool
+&lt; :: BorderMap a -&gt; BorderMap a -&gt; Bool
+$c&lt; :: forall a. Ord a =&gt; BorderMap a -&gt; BorderMap a -&gt; Bool
+compare :: BorderMap a -&gt; BorderMap a -&gt; Ordering
+$ccompare :: forall a. Ord a =&gt; BorderMap a -&gt; BorderMap a -&gt; Ordering
+$cp1Ord :: forall a. Ord a =&gt; Eq (BorderMap a)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679369997"><span id="local-6989586621679369999"><span id="local-6989586621679370001"><span class="annot"><span class="annottext">Int -&gt; BorderMap a -&gt; ShowS
+[BorderMap a] -&gt; ShowS
+BorderMap a -&gt; String
+(Int -&gt; BorderMap a -&gt; ShowS)
+-&gt; (BorderMap a -&gt; String)
+-&gt; ([BorderMap a] -&gt; ShowS)
+-&gt; Show (BorderMap a)
+forall a. Show a =&gt; Int -&gt; BorderMap a -&gt; ShowS
+forall a. Show a =&gt; [BorderMap a] -&gt; ShowS
+forall a. Show a =&gt; BorderMap a -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [BorderMap a] -&gt; ShowS
+$cshowList :: forall a. Show a =&gt; [BorderMap a] -&gt; ShowS
+show :: BorderMap a -&gt; String
+$cshow :: forall a. Show a =&gt; BorderMap a -&gt; String
+showsPrec :: Int -&gt; BorderMap a -&gt; ShowS
+$cshowsPrec :: forall a. Show a =&gt; Int -&gt; BorderMap a -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679369992"><span id="local-6989586621679369994"><span class="annot"><span class="annottext">a -&gt; BorderMap b -&gt; BorderMap a
+(a -&gt; b) -&gt; BorderMap a -&gt; BorderMap b
+(forall a b. (a -&gt; b) -&gt; BorderMap a -&gt; BorderMap b)
+-&gt; (forall a b. a -&gt; BorderMap b -&gt; BorderMap a)
+-&gt; Functor BorderMap
+forall a b. a -&gt; BorderMap b -&gt; BorderMap a
+forall a b. (a -&gt; b) -&gt; BorderMap a -&gt; BorderMap b
+forall (f :: * -&gt; *).
+(forall a b. (a -&gt; b) -&gt; f a -&gt; f b)
+-&gt; (forall a b. a -&gt; f b -&gt; f a) -&gt; Functor f
+&lt;$ :: a -&gt; BorderMap b -&gt; BorderMap a
+$c&lt;$ :: forall a b. a -&gt; BorderMap b -&gt; BorderMap a
+fmap :: (a -&gt; b) -&gt; BorderMap a -&gt; BorderMap b
+$cfmap :: forall a b. (a -&gt; b) -&gt; BorderMap a -&gt; BorderMap b
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Functor</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679369983"><span id="local-6989586621679369985"><span id="local-6989586621679369987"><span id="local-6989586621679369989"><span class="annot"><span class="annottext">ReadPrec [BorderMap a]
+ReadPrec (BorderMap a)
+Int -&gt; ReadS (BorderMap a)
+ReadS [BorderMap a]
+(Int -&gt; ReadS (BorderMap a))
+-&gt; ReadS [BorderMap a]
+-&gt; ReadPrec (BorderMap a)
+-&gt; ReadPrec [BorderMap a]
+-&gt; Read (BorderMap a)
+forall a. Read a =&gt; ReadPrec [BorderMap a]
+forall a. Read a =&gt; ReadPrec (BorderMap a)
+forall a. Read a =&gt; Int -&gt; ReadS (BorderMap a)
+forall a. Read a =&gt; ReadS [BorderMap a]
+forall a.
+(Int -&gt; ReadS a)
+-&gt; ReadS [a] -&gt; ReadPrec a -&gt; ReadPrec [a] -&gt; Read a
+readListPrec :: ReadPrec [BorderMap a]
+$creadListPrec :: forall a. Read a =&gt; ReadPrec [BorderMap a]
+readPrec :: ReadPrec (BorderMap a)
+$creadPrec :: forall a. Read a =&gt; ReadPrec (BorderMap a)
+readList :: ReadS [BorderMap a]
+$creadList :: forall a. Read a =&gt; ReadS [BorderMap a]
+readsPrec :: Int -&gt; ReadS (BorderMap a)
+$creadsPrec :: forall a. Read a =&gt; Int -&gt; ReadS (BorderMap a)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Read</span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(forall x. BorderMap a -&gt; Rep (BorderMap a) x)
+-&gt; (forall x. Rep (BorderMap a) x -&gt; BorderMap a)
+-&gt; Generic (BorderMap a)
+forall x. Rep (BorderMap a) x -&gt; BorderMap a
+forall x. BorderMap a -&gt; Rep (BorderMap a) x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+forall a x. Rep (BorderMap a) x -&gt; BorderMap a
+forall a x. BorderMap a -&gt; Rep (BorderMap a) x
+$cto :: forall a x. Rep (BorderMap a) x -&gt; BorderMap a
+$cfrom :: forall a x. BorderMap a -&gt; Rep (BorderMap a) x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679369977"><span class="annot"><span class="annottext">BorderMap a -&gt; ()
+(BorderMap a -&gt; ()) -&gt; NFData (BorderMap a)
+forall a. NFData a =&gt; BorderMap a -&gt; ()
+forall a. (a -&gt; ()) -&gt; NFData a
+rnf :: BorderMap a -&gt; ()
+$crnf :: forall a. NFData a =&gt; BorderMap a -&gt; ()
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">NFData</span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-51"></span><span>
+</span><span id="line-52"></span><span class="hs-comment">-- | Given a rectangle (specified as the coordinates of the top, left, bottom,</span><span>
+</span><span id="line-53"></span><span class="hs-comment">-- and right sides), initialize an empty 'BorderMap'.</span><span>
+</span><span id="line-54"></span><span id="local-6989586621679370122"><span class="annot"><a href="Brick.BorderMap.html#emptyCoordinates"><span class="hs-identifier hs-type">emptyCoordinates</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier hs-type">Edges</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#BorderMap"><span class="hs-identifier hs-type">BorderMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679370122"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-55"></span><span id="emptyCoordinates"><span class="annot"><span class="annottext">emptyCoordinates :: Edges Int -&gt; BorderMap a
+</span><a href="Brick.BorderMap.html#emptyCoordinates"><span class="hs-identifier hs-var hs-var">emptyCoordinates</span></a></span></span><span> </span><span id="local-6989586621679369975"><span class="annot"><span class="annottext">Edges Int
+</span><a href="#local-6989586621679369975"><span class="hs-identifier hs-var">cs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">BorderMap :: forall a. Edges Int -&gt; Edges (IMap a) -&gt; BorderMap a
+</span><a href="Brick.BorderMap.html#BorderMap"><span class="hs-identifier hs-type">BorderMap</span></a></span><span> </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">_coordinates :: Edges Int
+</span><a href="Brick.BorderMap.html#_coordinates"><span class="hs-identifier hs-var">_coordinates</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Edges Int
+</span><a href="#local-6989586621679369975"><span class="hs-identifier hs-var">cs</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">_values :: Edges (IMap a)
+</span><a href="Brick.BorderMap.html#_values"><span class="hs-identifier hs-var">_values</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IMap a -&gt; Edges (IMap a)
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">IMap a
+forall a. IMap a
+</span><a href="Data.IMap.html#empty"><span class="hs-identifier hs-var">IM.empty</span></a></span><span> </span><span class="hs-special">}</span><span>
+</span><span id="line-56"></span><span>
+</span><span id="line-57"></span><span class="hs-comment">-- | An empty 'BorderMap' that only tracks the point (0,0).</span><span>
+</span><span id="line-58"></span><span id="local-6989586621679370111"><span class="annot"><a href="Brick.BorderMap.html#empty"><span class="hs-identifier hs-type">empty</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#BorderMap"><span class="hs-identifier hs-type">BorderMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679370111"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-59"></span><span id="empty"><span class="annot"><span class="annottext">empty :: BorderMap a
+</span><a href="Brick.BorderMap.html#empty"><span class="hs-identifier hs-var hs-var">empty</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Edges Int -&gt; BorderMap a
+forall a. Edges Int -&gt; BorderMap a
+</span><a href="Brick.BorderMap.html#emptyCoordinates"><span class="hs-identifier hs-var">emptyCoordinates</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Edges Int
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span>
+</span><span id="line-60"></span><span>
+</span><span id="line-61"></span><span class="hs-comment">-- | A 'BorderMap' that tracks only the given the point (and initially maps it</span><span>
+</span><span id="line-62"></span><span class="hs-comment">-- to the given value).</span><span>
+</span><span id="line-63"></span><span id="local-6989586621679369973"><span class="annot"><a href="Brick.BorderMap.html#singleton"><span class="hs-identifier hs-type">singleton</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#Location"><span class="hs-identifier hs-type">Location</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679369973"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#BorderMap"><span class="hs-identifier hs-type">BorderMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369973"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-64"></span><span id="singleton"><span class="annot"><span class="annottext">singleton :: Location -&gt; a -&gt; BorderMap a
+</span><a href="Brick.BorderMap.html#singleton"><span class="hs-identifier hs-var hs-var">singleton</span></a></span></span><span> </span><span id="local-6989586621679369972"><span class="annot"><span class="annottext">Location
+</span><a href="#local-6989586621679369972"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span id="local-6989586621679369971"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679369971"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Location -&gt; BorderMap a -&gt; BorderMap a
+forall a. Location -&gt; BorderMap a -&gt; BorderMap a
+</span><a href="Brick.BorderMap.html#translate"><span class="hs-identifier hs-var">translate</span></a></span><span> </span><span class="annot"><span class="annottext">Location
+</span><a href="#local-6989586621679369972"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="annot"><span class="annottext">(BorderMap a -&gt; BorderMap a)
+-&gt; (BorderMap a -&gt; BorderMap a) -&gt; BorderMap a -&gt; BorderMap a
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Location -&gt; a -&gt; BorderMap a -&gt; BorderMap a
+forall a. Location -&gt; a -&gt; BorderMap a -&gt; BorderMap a
+</span><a href="Brick.BorderMap.html#insert"><span class="hs-identifier hs-var">insert</span></a></span><span> </span><span class="annot"><span class="annottext">Location
+</span><a href="Brick.Types.Common.html#origin"><span class="hs-identifier hs-var">origin</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679369971"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">(BorderMap a -&gt; BorderMap a) -&gt; BorderMap a -&gt; BorderMap a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">BorderMap a
+forall a. BorderMap a
+</span><a href="Brick.BorderMap.html#empty"><span class="hs-identifier hs-var">empty</span></a></span><span>
+</span><span id="line-65"></span><span>
+</span><span id="line-66"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#coordinates"><span class="hs-pragma hs-type">coordinates</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-67"></span><span class="hs-comment">-- | The positions of the edges of the rectangle whose border is retained in a</span><span>
+</span><span id="line-68"></span><span class="hs-comment">-- 'BorderMap'. For example, if @coordinates m = e@, then the top border</span><span>
+</span><span id="line-69"></span><span class="hs-comment">-- contains the 'Location's on row @eTop e@ and between columns @eLeft e@ to</span><span>
+</span><span id="line-70"></span><span class="hs-comment">-- @eRight e@ inclusive.</span><span>
+</span><span id="line-71"></span><span id="local-6989586621679369969"><span class="annot"><a href="Brick.BorderMap.html#coordinates"><span class="hs-identifier hs-type">coordinates</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#BorderMap"><span class="hs-identifier hs-type">BorderMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369969"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier hs-type">Edges</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span></span><span>
+</span><span id="line-72"></span><span id="coordinates"><span class="annot"><span class="annottext">coordinates :: BorderMap a -&gt; Edges Int
+</span><a href="Brick.BorderMap.html#coordinates"><span class="hs-identifier hs-var hs-var">coordinates</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">BorderMap a -&gt; Edges Int
+forall a. BorderMap a -&gt; Edges Int
+</span><a href="Brick.BorderMap.html#_coordinates"><span class="hs-identifier hs-var hs-var">_coordinates</span></a></span><span>
+</span><span id="line-73"></span><span>
+</span><span id="line-74"></span><span class="hs-comment">-- | A complementary way to query the edges of the rectangle whose border is</span><span>
+</span><span id="line-75"></span><span class="hs-comment">-- retained in a 'BorderMap'. For example, if @bounds m = b@, then a</span><span>
+</span><span id="line-76"></span><span class="hs-comment">-- 'Location'\'s column must be between @fst (eTop b)@ and @snd (eTop b)@ to be</span><span>
+</span><span id="line-77"></span><span class="hs-comment">-- retained. See also 'coordinates', which is in most cases a more natural</span><span>
+</span><span id="line-78"></span><span class="hs-comment">-- border query.</span><span>
+</span><span id="line-79"></span><span id="local-6989586621679370098"><span class="annot"><a href="Brick.BorderMap.html#bounds"><span class="hs-identifier hs-type">bounds</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#BorderMap"><span class="hs-identifier hs-type">BorderMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679370098"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier hs-type">Edges</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span></span><span>
+</span><span id="line-80"></span><span id="bounds"><span class="annot"><span class="annottext">bounds :: BorderMap a -&gt; Edges (Int, Int)
+</span><a href="Brick.BorderMap.html#bounds"><span class="hs-identifier hs-var hs-var">bounds</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Edges Int -&gt; Edges (Int, Int)
+forall a. Edges a -&gt; Edges (a, a)
+</span><a href="Brick.BorderMap.html#neighbors"><span class="hs-identifier hs-var">neighbors</span></a></span><span> </span><span class="annot"><span class="annottext">(Edges Int -&gt; Edges (Int, Int))
+-&gt; (BorderMap a -&gt; Edges Int) -&gt; BorderMap a -&gt; Edges (Int, Int)
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">BorderMap a -&gt; Edges Int
+forall a. BorderMap a -&gt; Edges Int
+</span><a href="Brick.BorderMap.html#coordinates"><span class="hs-identifier hs-var">coordinates</span></a></span><span>
+</span><span id="line-81"></span><span>
+</span><span id="line-82"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#values"><span class="hs-pragma hs-type">values</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-83"></span><span class="hs-comment">-- | Maps giving the values along each edge. Corner values are replicated in</span><span>
+</span><span id="line-84"></span><span class="hs-comment">-- all relevant edges.</span><span>
+</span><span id="line-85"></span><span id="local-6989586621679369968"><span class="annot"><a href="Brick.BorderMap.html#values"><span class="hs-identifier hs-type">values</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#BorderMap"><span class="hs-identifier hs-type">BorderMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369968"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier hs-type">Edges</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369968"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-86"></span><span id="values"><span class="annot"><span class="annottext">values :: BorderMap a -&gt; Edges (IMap a)
+</span><a href="Brick.BorderMap.html#values"><span class="hs-identifier hs-var hs-var">values</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">BorderMap a -&gt; Edges (IMap a)
+forall a. BorderMap a -&gt; Edges (IMap a)
+</span><a href="Brick.BorderMap.html#_values"><span class="hs-identifier hs-var hs-var">_values</span></a></span><span>
+</span><span id="line-87"></span><span>
+</span><span id="line-88"></span><span class="hs-comment">-- | Bulk insertion of horizontally-adjacent values. The 'Location' gives the</span><span>
+</span><span id="line-89"></span><span class="hs-comment">-- start point, and the 'Run' extends in the &quot;larger columns&quot; direction.</span><span>
+</span><span id="line-90"></span><span id="local-6989586621679369967"><span class="annot"><a href="Brick.BorderMap.html#insertH"><span class="hs-identifier hs-type">insertH</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#Location"><span class="hs-identifier hs-type">Location</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IMap.html#Run"><span class="hs-identifier hs-type">Run</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369967"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#BorderMap"><span class="hs-identifier hs-type">BorderMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369967"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#BorderMap"><span class="hs-identifier hs-type">BorderMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369967"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-91"></span><span id="insertH"><span class="annot"><span class="annottext">insertH :: Location -&gt; Run a -&gt; BorderMap a -&gt; BorderMap a
+</span><a href="Brick.BorderMap.html#insertH"><span class="hs-identifier hs-var hs-var">insertH</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Edges (Location -&gt; Run a -&gt; Int -&gt; (Int, Int) -&gt; IMap a -&gt; IMap a)
+-&gt; Location -&gt; Run a -&gt; BorderMap a -&gt; BorderMap a
+forall a.
+Edges (Location -&gt; Run a -&gt; Int -&gt; (Int, Int) -&gt; IMap a -&gt; IMap a)
+-&gt; Location -&gt; Run a -&gt; BorderMap a -&gt; BorderMap a
+</span><a href="Brick.BorderMap.html#insertDirAgnostic"><span class="hs-identifier hs-var">insertDirAgnostic</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Location -&gt; Run a -&gt; Int -&gt; (Int, Int) -&gt; IMap a -&gt; IMap a)
+-&gt; (Location -&gt; Run a -&gt; Int -&gt; (Int, Int) -&gt; IMap a -&gt; IMap a)
+-&gt; (Location -&gt; Run a -&gt; Int -&gt; (Int, Int) -&gt; IMap a -&gt; IMap a)
+-&gt; (Location -&gt; Run a -&gt; Int -&gt; (Int, Int) -&gt; IMap a -&gt; IMap a)
+-&gt; Edges
+     (Location -&gt; Run a -&gt; Int -&gt; (Int, Int) -&gt; IMap a -&gt; IMap a)
+forall a. a -&gt; a -&gt; a -&gt; a -&gt; Edges a
+</span><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier hs-var">Edges</span></a></span><span> </span><span class="annot"><span class="annottext">Location -&gt; Run a -&gt; Int -&gt; (Int, Int) -&gt; IMap a -&gt; IMap a
+forall a.
+Location -&gt; Run a -&gt; Int -&gt; (Int, Int) -&gt; IMap a -&gt; IMap a
+</span><a href="Brick.BorderMap.html#insertPar"><span class="hs-identifier hs-var">insertPar</span></a></span><span> </span><span class="annot"><span class="annottext">Location -&gt; Run a -&gt; Int -&gt; (Int, Int) -&gt; IMap a -&gt; IMap a
+forall a.
+Location -&gt; Run a -&gt; Int -&gt; (Int, Int) -&gt; IMap a -&gt; IMap a
+</span><a href="Brick.BorderMap.html#insertPar"><span class="hs-identifier hs-var">insertPar</span></a></span><span> </span><span class="annot"><span class="annottext">Location -&gt; Run a -&gt; Int -&gt; (Int, Int) -&gt; IMap a -&gt; IMap a
+forall a.
+Location -&gt; Run a -&gt; Int -&gt; (Int, Int) -&gt; IMap a -&gt; IMap a
+</span><a href="Brick.BorderMap.html#insertPerp"><span class="hs-identifier hs-var">insertPerp</span></a></span><span> </span><span class="annot"><span class="annottext">Location -&gt; Run a -&gt; Int -&gt; (Int, Int) -&gt; IMap a -&gt; IMap a
+forall a.
+Location -&gt; Run a -&gt; Int -&gt; (Int, Int) -&gt; IMap a -&gt; IMap a
+</span><a href="Brick.BorderMap.html#insertPerp"><span class="hs-identifier hs-var">insertPerp</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Location -&gt; Run a -&gt; BorderMap a -&gt; BorderMap a)
+-&gt; (Location -&gt; Location)
+-&gt; Location
+-&gt; Run a
+-&gt; BorderMap a
+-&gt; BorderMap a
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Location -&gt; Location
+</span><a href="#local-6989586621679369963"><span class="hs-identifier hs-var">swapLoc</span></a></span><span>
+</span><span id="line-92"></span><span>    </span><span class="hs-keyword">where</span><span>
+</span><span id="line-93"></span><span>    </span><span id="local-6989586621679369963"><span class="annot"><span class="annottext">swapLoc :: Location -&gt; Location
+</span><a href="#local-6989586621679369963"><span class="hs-identifier hs-var hs-var">swapLoc</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Brick.Types.Common.html#Location"><span class="hs-identifier hs-type">Location</span></a></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679369961"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369961"><span class="hs-identifier hs-var">col</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679369960"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369960"><span class="hs-identifier hs-var">row</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int, Int) -&gt; Location
+</span><a href="Brick.Types.Common.html#Location"><span class="hs-identifier hs-var">Location</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369960"><span class="hs-identifier hs-var">row</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369961"><span class="hs-identifier hs-var">col</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-94"></span><span>
+</span><span id="line-95"></span><span class="hs-comment">-- | Bulk insertion of vertically-adjacent values. The 'Location' gives the</span><span>
+</span><span id="line-96"></span><span class="hs-comment">-- start point, and the 'Run' extends in the &quot;larger rows&quot; direction.</span><span>
+</span><span id="line-97"></span><span id="local-6989586621679370090"><span class="annot"><a href="Brick.BorderMap.html#insertV"><span class="hs-identifier hs-type">insertV</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#Location"><span class="hs-identifier hs-type">Location</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IMap.html#Run"><span class="hs-identifier hs-type">Run</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679370090"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#BorderMap"><span class="hs-identifier hs-type">BorderMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679370090"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#BorderMap"><span class="hs-identifier hs-type">BorderMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679370090"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-98"></span><span id="insertV"><span class="annot"><span class="annottext">insertV :: Location -&gt; Run a -&gt; BorderMap a -&gt; BorderMap a
+</span><a href="Brick.BorderMap.html#insertV"><span class="hs-identifier hs-var hs-var">insertV</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Edges (Location -&gt; Run a -&gt; Int -&gt; (Int, Int) -&gt; IMap a -&gt; IMap a)
+-&gt; Location -&gt; Run a -&gt; BorderMap a -&gt; BorderMap a
+forall a.
+Edges (Location -&gt; Run a -&gt; Int -&gt; (Int, Int) -&gt; IMap a -&gt; IMap a)
+-&gt; Location -&gt; Run a -&gt; BorderMap a -&gt; BorderMap a
+</span><a href="Brick.BorderMap.html#insertDirAgnostic"><span class="hs-identifier hs-var">insertDirAgnostic</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Location -&gt; Run a -&gt; Int -&gt; (Int, Int) -&gt; IMap a -&gt; IMap a)
+-&gt; (Location -&gt; Run a -&gt; Int -&gt; (Int, Int) -&gt; IMap a -&gt; IMap a)
+-&gt; (Location -&gt; Run a -&gt; Int -&gt; (Int, Int) -&gt; IMap a -&gt; IMap a)
+-&gt; (Location -&gt; Run a -&gt; Int -&gt; (Int, Int) -&gt; IMap a -&gt; IMap a)
+-&gt; Edges
+     (Location -&gt; Run a -&gt; Int -&gt; (Int, Int) -&gt; IMap a -&gt; IMap a)
+forall a. a -&gt; a -&gt; a -&gt; a -&gt; Edges a
+</span><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier hs-var">Edges</span></a></span><span> </span><span class="annot"><span class="annottext">Location -&gt; Run a -&gt; Int -&gt; (Int, Int) -&gt; IMap a -&gt; IMap a
+forall a.
+Location -&gt; Run a -&gt; Int -&gt; (Int, Int) -&gt; IMap a -&gt; IMap a
+</span><a href="Brick.BorderMap.html#insertPerp"><span class="hs-identifier hs-var">insertPerp</span></a></span><span> </span><span class="annot"><span class="annottext">Location -&gt; Run a -&gt; Int -&gt; (Int, Int) -&gt; IMap a -&gt; IMap a
+forall a.
+Location -&gt; Run a -&gt; Int -&gt; (Int, Int) -&gt; IMap a -&gt; IMap a
+</span><a href="Brick.BorderMap.html#insertPerp"><span class="hs-identifier hs-var">insertPerp</span></a></span><span> </span><span class="annot"><span class="annottext">Location -&gt; Run a -&gt; Int -&gt; (Int, Int) -&gt; IMap a -&gt; IMap a
+forall a.
+Location -&gt; Run a -&gt; Int -&gt; (Int, Int) -&gt; IMap a -&gt; IMap a
+</span><a href="Brick.BorderMap.html#insertPar"><span class="hs-identifier hs-var">insertPar</span></a></span><span> </span><span class="annot"><span class="annottext">Location -&gt; Run a -&gt; Int -&gt; (Int, Int) -&gt; IMap a -&gt; IMap a
+forall a.
+Location -&gt; Run a -&gt; Int -&gt; (Int, Int) -&gt; IMap a -&gt; IMap a
+</span><a href="Brick.BorderMap.html#insertPar"><span class="hs-identifier hs-var">insertPar</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-99"></span><span>
+</span><span id="line-100"></span><span id="local-6989586621679370104"><span class="annot"><a href="Brick.BorderMap.html#insertDirAgnostic"><span class="hs-identifier hs-type">insertDirAgnostic</span></a></span><span>
+</span><span id="line-101"></span><span>    </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier hs-type">Edges</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Brick.Types.Common.html#Location"><span class="hs-identifier hs-type">Location</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IMap.html#Run"><span class="hs-identifier hs-type">Run</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679370104"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679370104"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679370104"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-102"></span><span>    </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#Location"><span class="hs-identifier hs-type">Location</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IMap.html#Run"><span class="hs-identifier hs-type">Run</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679370104"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#BorderMap"><span class="hs-identifier hs-type">BorderMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679370104"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#BorderMap"><span class="hs-identifier hs-type">BorderMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679370104"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-103"></span><span id="insertDirAgnostic"><span class="annot"><span class="annottext">insertDirAgnostic :: Edges (Location -&gt; Run a -&gt; Int -&gt; (Int, Int) -&gt; IMap a -&gt; IMap a)
+-&gt; Location -&gt; Run a -&gt; BorderMap a -&gt; BorderMap a
+</span><a href="Brick.BorderMap.html#insertDirAgnostic"><span class="hs-identifier hs-var hs-var">insertDirAgnostic</span></a></span></span><span> </span><span id="local-6989586621679369959"><span class="annot"><span class="annottext">Edges (Location -&gt; Run a -&gt; Int -&gt; (Int, Int) -&gt; IMap a -&gt; IMap a)
+</span><a href="#local-6989586621679369959"><span class="hs-identifier hs-var">insertions</span></a></span></span><span> </span><span id="local-6989586621679369958"><span class="annot"><span class="annottext">Location
+</span><a href="#local-6989586621679369958"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span id="local-6989586621679369957"><span class="annot"><span class="annottext">Run a
+</span><a href="#local-6989586621679369957"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span id="local-6989586621679369956"><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369956"><span class="hs-identifier hs-var">m</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-104"></span><span>    </span><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369956"><span class="hs-identifier hs-var">m</span></a></span><span> </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">_values :: Edges (IMap a)
+</span><a href="Brick.BorderMap.html#_values"><span class="hs-identifier hs-var">_values</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Edges (Location -&gt; Run a -&gt; Int -&gt; (Int, Int) -&gt; IMap a -&gt; IMap a)
+</span><a href="#local-6989586621679369959"><span class="hs-identifier hs-var">insertions</span></a></span><span> </span><span class="annot"><span class="annottext">Edges (Location -&gt; Run a -&gt; Int -&gt; (Int, Int) -&gt; IMap a -&gt; IMap a)
+-&gt; Edges Location
+-&gt; Edges (Run a -&gt; Int -&gt; (Int, Int) -&gt; IMap a -&gt; IMap a)
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Location -&gt; Edges Location
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">Location
+</span><a href="#local-6989586621679369958"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="annot"><span class="annottext">Edges (Run a -&gt; Int -&gt; (Int, Int) -&gt; IMap a -&gt; IMap a)
+-&gt; Edges (Run a) -&gt; Edges (Int -&gt; (Int, Int) -&gt; IMap a -&gt; IMap a)
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Run a -&gt; Edges (Run a)
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">Run a
+</span><a href="#local-6989586621679369957"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">Edges (Int -&gt; (Int, Int) -&gt; IMap a -&gt; IMap a)
+-&gt; Edges Int -&gt; Edges ((Int, Int) -&gt; IMap a -&gt; IMap a)
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">BorderMap a -&gt; Edges Int
+forall a. BorderMap a -&gt; Edges Int
+</span><a href="Brick.BorderMap.html#coordinates"><span class="hs-identifier hs-var">coordinates</span></a></span><span> </span><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369956"><span class="hs-identifier hs-var">m</span></a></span><span> </span><span class="annot"><span class="annottext">Edges ((Int, Int) -&gt; IMap a -&gt; IMap a)
+-&gt; Edges (Int, Int) -&gt; Edges (IMap a -&gt; IMap a)
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">BorderMap a -&gt; Edges (Int, Int)
+forall a. BorderMap a -&gt; Edges (Int, Int)
+</span><a href="Brick.BorderMap.html#bounds"><span class="hs-identifier hs-var">bounds</span></a></span><span> </span><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369956"><span class="hs-identifier hs-var">m</span></a></span><span> </span><span class="annot"><span class="annottext">Edges (IMap a -&gt; IMap a) -&gt; Edges (IMap a) -&gt; Edges (IMap a)
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">BorderMap a -&gt; Edges (IMap a)
+forall a. BorderMap a -&gt; Edges (IMap a)
+</span><a href="Brick.BorderMap.html#_values"><span class="hs-identifier hs-var hs-var">_values</span></a></span><span> </span><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369956"><span class="hs-identifier hs-var">m</span></a></span><span> </span><span class="hs-special">}</span><span>
+</span><span id="line-105"></span><span>
+</span><span id="line-106"></span><span id="local-6989586621679370103"><span class="annot"><a href="Brick.BorderMap.html#insertPar"><span class="hs-identifier hs-type">insertPar</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#insertPerp"><span class="hs-identifier hs-type">insertPerp</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#Location"><span class="hs-identifier hs-type">Location</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IMap.html#Run"><span class="hs-identifier hs-type">Run</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679370103"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679370103"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679370103"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-107"></span><span id="insertPar"><span class="annot"><span class="annottext">insertPar :: Location -&gt; Run a -&gt; Int -&gt; (Int, Int) -&gt; IMap a -&gt; IMap a
+</span><a href="Brick.BorderMap.html#insertPar"><span class="hs-identifier hs-var hs-var">insertPar</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Brick.Types.Common.html#Location"><span class="hs-identifier hs-type">Location</span></a></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679369955"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369955"><span class="hs-identifier hs-var">kPar</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679369954"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369954"><span class="hs-identifier hs-var">kPerp</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span id="local-6989586621679369953"><span class="annot"><span class="annottext">Run a
+</span><a href="#local-6989586621679369953"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span id="local-6989586621679369952"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369952"><span class="hs-identifier hs-var">herePar</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679369951"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369951"><span class="hs-identifier hs-var">loPerp</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679369950"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369950"><span class="hs-identifier hs-var">hiPerp</span></a></span></span><span class="hs-special">)</span><span>
+</span><span id="line-108"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369955"><span class="hs-identifier hs-var">kPar</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369952"><span class="hs-identifier hs-var">herePar</span></a></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369951"><span class="hs-identifier hs-var">loPerp</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369954"><span class="hs-identifier hs-var">kPerp</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Run a -&gt; Int
+forall a. Run a -&gt; Int
+</span><a href="Data.IMap.html#len"><span class="hs-identifier hs-var hs-var">IM.len</span></a></span><span> </span><span class="annot"><span class="annottext">Run a
+</span><a href="#local-6989586621679369953"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369954"><span class="hs-identifier hs-var">kPerp</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369950"><span class="hs-identifier hs-var">hiPerp</span></a></span><span>
+</span><span id="line-109"></span><span>        </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Run a -&gt; IMap a -&gt; IMap a
+forall a. Int -&gt; Run a -&gt; IMap a -&gt; IMap a
+</span><a href="Data.IMap.html#insert"><span class="hs-identifier hs-var">IM.insert</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369944"><span class="hs-identifier hs-var">beg</span></a></span><span> </span><span class="annot"><span class="annottext">Run a
+</span><a href="#local-6989586621679369953"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">len :: Int
+</span><a href="Data.IMap.html#len"><span class="hs-identifier hs-var">IM.len</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369943"><span class="hs-identifier hs-var">end</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369944"><span class="hs-identifier hs-var">beg</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span> </span><span class="hs-special">}</span><span>
+</span><span id="line-110"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IMap a -&gt; IMap a
+forall a. a -&gt; a
+</span><span class="hs-identifier hs-var">id</span></span><span>
+</span><span id="line-111"></span><span>    </span><span class="hs-keyword">where</span><span>
+</span><span id="line-112"></span><span>    </span><span id="local-6989586621679369944"><span class="annot"><span class="annottext">beg :: Int
+</span><a href="#local-6989586621679369944"><span class="hs-identifier hs-var hs-var">beg</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">max</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369954"><span class="hs-identifier hs-var">kPerp</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369951"><span class="hs-identifier hs-var">loPerp</span></a></span><span>
+</span><span id="line-113"></span><span>    </span><span id="local-6989586621679369943"><span class="annot"><span class="annottext">end :: Int
+</span><a href="#local-6989586621679369943"><span class="hs-identifier hs-var hs-var">end</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">min</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369954"><span class="hs-identifier hs-var">kPerp</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Run a -&gt; Int
+forall a. Run a -&gt; Int
+</span><a href="Data.IMap.html#len"><span class="hs-identifier hs-var hs-var">IM.len</span></a></span><span> </span><span class="annot"><span class="annottext">Run a
+</span><a href="#local-6989586621679369953"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369950"><span class="hs-identifier hs-var">hiPerp</span></a></span><span>
+</span><span id="line-114"></span><span id="insertPerp"><span class="annot"><span class="annottext">insertPerp :: Location -&gt; Run a -&gt; Int -&gt; (Int, Int) -&gt; IMap a -&gt; IMap a
+</span><a href="Brick.BorderMap.html#insertPerp"><span class="hs-identifier hs-var hs-var">insertPerp</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Brick.Types.Common.html#Location"><span class="hs-identifier hs-type">Location</span></a></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679369939"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369939"><span class="hs-identifier hs-var">kPar</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679369938"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369938"><span class="hs-identifier hs-var">kPerp</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span id="local-6989586621679369937"><span class="annot"><span class="annottext">Run a
+</span><a href="#local-6989586621679369937"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span id="local-6989586621679369936"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369936"><span class="hs-identifier hs-var">herePerp</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679369935"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369935"><span class="hs-identifier hs-var">loPar</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679369934"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369934"><span class="hs-identifier hs-var">hiPar</span></a></span></span><span class="hs-special">)</span><span>
+</span><span id="line-115"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369935"><span class="hs-identifier hs-var">loPar</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369939"><span class="hs-identifier hs-var">kPar</span></a></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369939"><span class="hs-identifier hs-var">kPar</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369934"><span class="hs-identifier hs-var">hiPar</span></a></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369938"><span class="hs-identifier hs-var">kPerp</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369936"><span class="hs-identifier hs-var">herePerp</span></a></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369936"><span class="hs-identifier hs-var">herePerp</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369938"><span class="hs-identifier hs-var">kPerp</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Run a -&gt; Int
+forall a. Run a -&gt; Int
+</span><a href="Data.IMap.html#len"><span class="hs-identifier hs-var hs-var">IM.len</span></a></span><span> </span><span class="annot"><span class="annottext">Run a
+</span><a href="#local-6989586621679369937"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span>
+</span><span id="line-116"></span><span>        </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Run a -&gt; IMap a -&gt; IMap a
+forall a. Int -&gt; Run a -&gt; IMap a -&gt; IMap a
+</span><a href="Data.IMap.html#insert"><span class="hs-identifier hs-var">IM.insert</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369939"><span class="hs-identifier hs-var">kPar</span></a></span><span> </span><span class="annot"><span class="annottext">Run a
+</span><a href="#local-6989586621679369937"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">len :: Int
+</span><a href="Data.IMap.html#len"><span class="hs-identifier hs-var">IM.len</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span> </span><span class="hs-special">}</span><span>
+</span><span id="line-117"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IMap a -&gt; IMap a
+forall a. a -&gt; a
+</span><span class="hs-identifier hs-var">id</span></span><span>
+</span><span id="line-118"></span><span>
+</span><span id="line-119"></span><span class="hs-comment">-- | Insert a single value at the given location.</span><span>
+</span><span id="line-120"></span><span id="local-6989586621679370115"><span class="annot"><a href="Brick.BorderMap.html#insert"><span class="hs-identifier hs-type">insert</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#Location"><span class="hs-identifier hs-type">Location</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679370115"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#BorderMap"><span class="hs-identifier hs-type">BorderMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679370115"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#BorderMap"><span class="hs-identifier hs-type">BorderMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679370115"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-121"></span><span id="insert"><span class="annot"><span class="annottext">insert :: Location -&gt; a -&gt; BorderMap a -&gt; BorderMap a
+</span><a href="Brick.BorderMap.html#insert"><span class="hs-identifier hs-var hs-var">insert</span></a></span></span><span> </span><span id="local-6989586621679369933"><span class="annot"><span class="annottext">Location
+</span><a href="#local-6989586621679369933"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Location -&gt; Run a -&gt; BorderMap a -&gt; BorderMap a
+forall a. Location -&gt; Run a -&gt; BorderMap a -&gt; BorderMap a
+</span><a href="Brick.BorderMap.html#insertV"><span class="hs-identifier hs-var">insertV</span></a></span><span> </span><span class="annot"><span class="annottext">Location
+</span><a href="#local-6989586621679369933"><span class="hs-identifier hs-var">l</span></a></span><span> </span><span class="annot"><span class="annottext">(Run a -&gt; BorderMap a -&gt; BorderMap a)
+-&gt; (a -&gt; Run a) -&gt; a -&gt; BorderMap a -&gt; BorderMap a
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; a -&gt; Run a
+forall a. Int -&gt; a -&gt; Run a
+</span><a href="Data.IMap.html#Run"><span class="hs-identifier hs-var">Run</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span>
+</span><span id="line-122"></span><span>
+</span><span id="line-123"></span><span class="hs-comment">-- | Look up all values on a given row. The 'IMap' returned maps columns to</span><span>
+</span><span id="line-124"></span><span class="hs-comment">-- values.</span><span>
+</span><span id="line-125"></span><span id="local-6989586621679370080"><span class="annot"><a href="Brick.BorderMap.html#lookupRow"><span class="hs-identifier hs-type">lookupRow</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#BorderMap"><span class="hs-identifier hs-type">BorderMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679370080"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679370080"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-126"></span><span id="lookupRow"><span class="annot"><span class="annottext">lookupRow :: Int -&gt; BorderMap a -&gt; IMap a
+</span><a href="Brick.BorderMap.html#lookupRow"><span class="hs-identifier hs-var hs-var">lookupRow</span></a></span></span><span> </span><span id="local-6989586621679369932"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369932"><span class="hs-identifier hs-var">row</span></a></span></span><span> </span><span id="local-6989586621679369931"><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369931"><span class="hs-identifier hs-var">m</span></a></span></span><span>
+</span><span id="line-127"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369932"><span class="hs-identifier hs-var">row</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Edges Int -&gt; Int
+forall a. Edges a -&gt; a
+</span><a href="Brick.Types.Common.html#eTop"><span class="hs-identifier hs-var hs-var">eTop</span></a></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BorderMap a -&gt; Edges Int
+forall a. BorderMap a -&gt; Edges Int
+</span><a href="Brick.BorderMap.html#coordinates"><span class="hs-identifier hs-var">coordinates</span></a></span><span> </span><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369931"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Edges (IMap a) -&gt; IMap a
+forall a. Edges a -&gt; a
+</span><a href="Brick.Types.Common.html#eTop"><span class="hs-identifier hs-var hs-var">eTop</span></a></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BorderMap a -&gt; Edges (IMap a)
+forall a. BorderMap a -&gt; Edges (IMap a)
+</span><a href="Brick.BorderMap.html#_values"><span class="hs-identifier hs-var hs-var">_values</span></a></span><span> </span><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369931"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-128"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369932"><span class="hs-identifier hs-var">row</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Edges Int -&gt; Int
+forall a. Edges a -&gt; a
+</span><a href="Brick.Types.Common.html#eBottom"><span class="hs-identifier hs-var hs-var">eBottom</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BorderMap a -&gt; Edges Int
+forall a. BorderMap a -&gt; Edges Int
+</span><a href="Brick.BorderMap.html#coordinates"><span class="hs-identifier hs-var">coordinates</span></a></span><span> </span><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369931"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Edges (IMap a) -&gt; IMap a
+forall a. Edges a -&gt; a
+</span><a href="Brick.Types.Common.html#eBottom"><span class="hs-identifier hs-var hs-var">eBottom</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BorderMap a -&gt; Edges (IMap a)
+forall a. BorderMap a -&gt; Edges (IMap a)
+</span><a href="Brick.BorderMap.html#_values"><span class="hs-identifier hs-var hs-var">_values</span></a></span><span> </span><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369931"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-129"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(Int, Run a)] -&gt; IMap a
+forall a. [(Int, Run a)] -&gt; IMap a
+</span><a href="Data.IMap.html#fromList"><span class="hs-identifier hs-var">IM.fromList</span></a></span><span>
+</span><span id="line-130"></span><span>        </span><span class="annot"><span class="annottext">([(Int, Run a)] -&gt; IMap a) -&gt; [(Int, Run a)] -&gt; IMap a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>  </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="annottext">Edges Int -&gt; Int
+forall a. Edges a -&gt; a
+</span><a href="Brick.Types.Common.html#eLeft"><span class="hs-identifier hs-var hs-var">eLeft</span></a></span><span>   </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BorderMap a -&gt; Edges Int
+forall a. BorderMap a -&gt; Edges Int
+</span><a href="Brick.BorderMap.html#coordinates"><span class="hs-identifier hs-var">coordinates</span></a></span><span> </span><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369931"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int -&gt; a -&gt; Run a
+forall a. Int -&gt; a -&gt; Run a
+</span><a href="Data.IMap.html#Run"><span class="hs-identifier hs-var">Run</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679369926"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679369926"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679369926"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Int -&gt; IMap a -&gt; Maybe a
+forall a. Int -&gt; IMap a -&gt; Maybe a
+</span><a href="Data.IMap.html#lookup"><span class="hs-identifier hs-var">IM.lookup</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369932"><span class="hs-identifier hs-var">row</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Edges (IMap a) -&gt; IMap a
+forall a. Edges a -&gt; a
+</span><a href="Brick.Types.Common.html#eLeft"><span class="hs-identifier hs-var hs-var">eLeft</span></a></span><span>   </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BorderMap a -&gt; Edges (IMap a)
+forall a. BorderMap a -&gt; Edges (IMap a)
+</span><a href="Brick.BorderMap.html#_values"><span class="hs-identifier hs-var hs-var">_values</span></a></span><span> </span><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369931"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">]</span><span class="hs-special">]</span><span>
+</span><span id="line-131"></span><span>        </span><span class="annot"><span class="annottext">[(Int, Run a)] -&gt; [(Int, Run a)] -&gt; [(Int, Run a)]
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="annottext">Edges Int -&gt; Int
+forall a. Edges a -&gt; a
+</span><a href="Brick.Types.Common.html#eRight"><span class="hs-identifier hs-var hs-var">eRight</span></a></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BorderMap a -&gt; Edges Int
+forall a. BorderMap a -&gt; Edges Int
+</span><a href="Brick.BorderMap.html#coordinates"><span class="hs-identifier hs-var">coordinates</span></a></span><span> </span><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369931"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int -&gt; a -&gt; Run a
+forall a. Int -&gt; a -&gt; Run a
+</span><a href="Data.IMap.html#Run"><span class="hs-identifier hs-var">Run</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679369923"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679369923"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679369923"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Int -&gt; IMap a -&gt; Maybe a
+forall a. Int -&gt; IMap a -&gt; Maybe a
+</span><a href="Data.IMap.html#lookup"><span class="hs-identifier hs-var">IM.lookup</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369932"><span class="hs-identifier hs-var">row</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Edges (IMap a) -&gt; IMap a
+forall a. Edges a -&gt; a
+</span><a href="Brick.Types.Common.html#eRight"><span class="hs-identifier hs-var hs-var">eRight</span></a></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BorderMap a -&gt; Edges (IMap a)
+forall a. BorderMap a -&gt; Edges (IMap a)
+</span><a href="Brick.BorderMap.html#_values"><span class="hs-identifier hs-var hs-var">_values</span></a></span><span> </span><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369931"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">]</span><span class="hs-special">]</span><span>
+</span><span id="line-132"></span><span>
+</span><span id="line-133"></span><span class="hs-comment">-- | Look up all values on a given column. The 'IMap' returned maps rows to</span><span>
+</span><span id="line-134"></span><span class="hs-comment">-- values.</span><span>
+</span><span id="line-135"></span><span id="local-6989586621679369922"><span class="annot"><a href="Brick.BorderMap.html#lookupCol"><span class="hs-identifier hs-type">lookupCol</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#BorderMap"><span class="hs-identifier hs-type">BorderMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369922"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369922"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-136"></span><span id="lookupCol"><span class="annot"><span class="annottext">lookupCol :: Int -&gt; BorderMap a -&gt; IMap a
+</span><a href="Brick.BorderMap.html#lookupCol"><span class="hs-identifier hs-var hs-var">lookupCol</span></a></span></span><span> </span><span id="local-6989586621679369921"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369921"><span class="hs-identifier hs-var">col</span></a></span></span><span> </span><span id="local-6989586621679369920"><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369920"><span class="hs-identifier hs-var">m</span></a></span></span><span>
+</span><span id="line-137"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369921"><span class="hs-identifier hs-var">col</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Edges Int -&gt; Int
+forall a. Edges a -&gt; a
+</span><a href="Brick.Types.Common.html#eLeft"><span class="hs-identifier hs-var hs-var">eLeft</span></a></span><span>   </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BorderMap a -&gt; Edges Int
+forall a. BorderMap a -&gt; Edges Int
+</span><a href="Brick.BorderMap.html#coordinates"><span class="hs-identifier hs-var">coordinates</span></a></span><span> </span><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369920"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Edges (IMap a) -&gt; IMap a
+forall a. Edges a -&gt; a
+</span><a href="Brick.Types.Common.html#eLeft"><span class="hs-identifier hs-var hs-var">eLeft</span></a></span><span>   </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BorderMap a -&gt; Edges (IMap a)
+forall a. BorderMap a -&gt; Edges (IMap a)
+</span><a href="Brick.BorderMap.html#_values"><span class="hs-identifier hs-var hs-var">_values</span></a></span><span> </span><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369920"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-138"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369921"><span class="hs-identifier hs-var">col</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Edges Int -&gt; Int
+forall a. Edges a -&gt; a
+</span><a href="Brick.Types.Common.html#eRight"><span class="hs-identifier hs-var hs-var">eRight</span></a></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BorderMap a -&gt; Edges Int
+forall a. BorderMap a -&gt; Edges Int
+</span><a href="Brick.BorderMap.html#coordinates"><span class="hs-identifier hs-var">coordinates</span></a></span><span> </span><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369920"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Edges (IMap a) -&gt; IMap a
+forall a. Edges a -&gt; a
+</span><a href="Brick.Types.Common.html#eRight"><span class="hs-identifier hs-var hs-var">eRight</span></a></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BorderMap a -&gt; Edges (IMap a)
+forall a. BorderMap a -&gt; Edges (IMap a)
+</span><a href="Brick.BorderMap.html#_values"><span class="hs-identifier hs-var hs-var">_values</span></a></span><span> </span><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369920"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-139"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(Int, Run a)] -&gt; IMap a
+forall a. [(Int, Run a)] -&gt; IMap a
+</span><a href="Data.IMap.html#fromList"><span class="hs-identifier hs-var">IM.fromList</span></a></span><span>
+</span><span id="line-140"></span><span>        </span><span class="annot"><span class="annottext">([(Int, Run a)] -&gt; IMap a) -&gt; [(Int, Run a)] -&gt; IMap a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>  </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="annottext">Edges Int -&gt; Int
+forall a. Edges a -&gt; a
+</span><a href="Brick.Types.Common.html#eTop"><span class="hs-identifier hs-var hs-var">eTop</span></a></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BorderMap a -&gt; Edges Int
+forall a. BorderMap a -&gt; Edges Int
+</span><a href="Brick.BorderMap.html#coordinates"><span class="hs-identifier hs-var">coordinates</span></a></span><span> </span><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369920"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int -&gt; a -&gt; Run a
+forall a. Int -&gt; a -&gt; Run a
+</span><a href="Data.IMap.html#Run"><span class="hs-identifier hs-var">Run</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679369919"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679369919"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679369919"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Int -&gt; IMap a -&gt; Maybe a
+forall a. Int -&gt; IMap a -&gt; Maybe a
+</span><a href="Data.IMap.html#lookup"><span class="hs-identifier hs-var">IM.lookup</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369921"><span class="hs-identifier hs-var">col</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Edges (IMap a) -&gt; IMap a
+forall a. Edges a -&gt; a
+</span><a href="Brick.Types.Common.html#eTop"><span class="hs-identifier hs-var hs-var">eTop</span></a></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BorderMap a -&gt; Edges (IMap a)
+forall a. BorderMap a -&gt; Edges (IMap a)
+</span><a href="Brick.BorderMap.html#_values"><span class="hs-identifier hs-var hs-var">_values</span></a></span><span> </span><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369920"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">]</span><span class="hs-special">]</span><span>
+</span><span id="line-141"></span><span>        </span><span class="annot"><span class="annottext">[(Int, Run a)] -&gt; [(Int, Run a)] -&gt; [(Int, Run a)]
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="annottext">Edges Int -&gt; Int
+forall a. Edges a -&gt; a
+</span><a href="Brick.Types.Common.html#eBottom"><span class="hs-identifier hs-var hs-var">eBottom</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BorderMap a -&gt; Edges Int
+forall a. BorderMap a -&gt; Edges Int
+</span><a href="Brick.BorderMap.html#coordinates"><span class="hs-identifier hs-var">coordinates</span></a></span><span> </span><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369920"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int -&gt; a -&gt; Run a
+forall a. Int -&gt; a -&gt; Run a
+</span><a href="Data.IMap.html#Run"><span class="hs-identifier hs-var">Run</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679369918"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679369918"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679369918"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Int -&gt; IMap a -&gt; Maybe a
+forall a. Int -&gt; IMap a -&gt; Maybe a
+</span><a href="Data.IMap.html#lookup"><span class="hs-identifier hs-var">IM.lookup</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369921"><span class="hs-identifier hs-var">col</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Edges (IMap a) -&gt; IMap a
+forall a. Edges a -&gt; a
+</span><a href="Brick.Types.Common.html#eBottom"><span class="hs-identifier hs-var hs-var">eBottom</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BorderMap a -&gt; Edges (IMap a)
+forall a. BorderMap a -&gt; Edges (IMap a)
+</span><a href="Brick.BorderMap.html#_values"><span class="hs-identifier hs-var hs-var">_values</span></a></span><span> </span><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369920"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">]</span><span class="hs-special">]</span><span>
+</span><span id="line-142"></span><span>
+</span><span id="line-143"></span><span class="hs-comment">-- | Bulk lookup of horizontally-adjacent values. The 'Location' gives the</span><span>
+</span><span id="line-144"></span><span class="hs-comment">-- starting point, and the 'Run' extends in the &quot;larger columns&quot; direction. The</span><span>
+</span><span id="line-145"></span><span class="hs-comment">-- 'IMap' returned maps columns to values.</span><span>
+</span><span id="line-146"></span><span id="local-6989586621679369916"><span id="local-6989586621679369917"><span class="annot"><a href="Brick.BorderMap.html#lookupH"><span class="hs-identifier hs-type">lookupH</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#Location"><span class="hs-identifier hs-type">Location</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IMap.html#Run"><span class="hs-identifier hs-type">Run</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369917"><span class="hs-identifier hs-type">ignored</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#BorderMap"><span class="hs-identifier hs-type">BorderMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369916"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369916"><span class="hs-identifier hs-type">a</span></a></span></span></span><span>
+</span><span id="line-147"></span><span id="lookupH"><span class="annot"><span class="annottext">lookupH :: Location -&gt; Run ignored -&gt; BorderMap a -&gt; IMap a
+</span><a href="Brick.BorderMap.html#lookupH"><span class="hs-identifier hs-var hs-var">lookupH</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Brick.Types.Common.html#Location"><span class="hs-identifier hs-type">Location</span></a></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679369915"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369915"><span class="hs-identifier hs-var">col</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679369914"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369914"><span class="hs-identifier hs-var">row</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span id="local-6989586621679369913"><span class="annot"><span class="annottext">Run ignored
+</span><a href="#local-6989586621679369913"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Run ignored -&gt; IMap a -&gt; IMap a
+forall ignored a. Int -&gt; Run ignored -&gt; IMap a -&gt; IMap a
+</span><a href="Data.IMap.html#restrict"><span class="hs-identifier hs-var">IM.restrict</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369915"><span class="hs-identifier hs-var">col</span></a></span><span> </span><span class="annot"><span class="annottext">Run ignored
+</span><a href="#local-6989586621679369913"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">(IMap a -&gt; IMap a)
+-&gt; (BorderMap a -&gt; IMap a) -&gt; BorderMap a -&gt; IMap a
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; BorderMap a -&gt; IMap a
+forall a. Int -&gt; BorderMap a -&gt; IMap a
+</span><a href="Brick.BorderMap.html#lookupRow"><span class="hs-identifier hs-var">lookupRow</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369914"><span class="hs-identifier hs-var">row</span></a></span><span>
+</span><span id="line-148"></span><span>
+</span><span id="line-149"></span><span class="hs-comment">-- | Bulk lookup of vertically-adjacent values. The 'Location' gives the</span><span>
+</span><span id="line-150"></span><span class="hs-comment">-- starting point, and the 'Run' extends in the &quot;larger rows&quot; direction. The</span><span>
+</span><span id="line-151"></span><span class="hs-comment">-- 'IMap' returned maps rows to values.</span><span>
+</span><span id="line-152"></span><span id="local-6989586621679369910"><span id="local-6989586621679369911"><span class="annot"><a href="Brick.BorderMap.html#lookupV"><span class="hs-identifier hs-type">lookupV</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#Location"><span class="hs-identifier hs-type">Location</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IMap.html#Run"><span class="hs-identifier hs-type">Run</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369911"><span class="hs-identifier hs-type">ignored</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#BorderMap"><span class="hs-identifier hs-type">BorderMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369910"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369910"><span class="hs-identifier hs-type">a</span></a></span></span></span><span>
+</span><span id="line-153"></span><span id="lookupV"><span class="annot"><span class="annottext">lookupV :: Location -&gt; Run ignored -&gt; BorderMap a -&gt; IMap a
+</span><a href="Brick.BorderMap.html#lookupV"><span class="hs-identifier hs-var hs-var">lookupV</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Brick.Types.Common.html#Location"><span class="hs-identifier hs-type">Location</span></a></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679369909"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369909"><span class="hs-identifier hs-var">col</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679369908"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369908"><span class="hs-identifier hs-var">row</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span id="local-6989586621679369907"><span class="annot"><span class="annottext">Run ignored
+</span><a href="#local-6989586621679369907"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Run ignored -&gt; IMap a -&gt; IMap a
+forall ignored a. Int -&gt; Run ignored -&gt; IMap a -&gt; IMap a
+</span><a href="Data.IMap.html#restrict"><span class="hs-identifier hs-var">IM.restrict</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369908"><span class="hs-identifier hs-var">row</span></a></span><span> </span><span class="annot"><span class="annottext">Run ignored
+</span><a href="#local-6989586621679369907"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">(IMap a -&gt; IMap a)
+-&gt; (BorderMap a -&gt; IMap a) -&gt; BorderMap a -&gt; IMap a
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; BorderMap a -&gt; IMap a
+forall a. Int -&gt; BorderMap a -&gt; IMap a
+</span><a href="Brick.BorderMap.html#lookupCol"><span class="hs-identifier hs-var">lookupCol</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369909"><span class="hs-identifier hs-var">col</span></a></span><span>
+</span><span id="line-154"></span><span>
+</span><span id="line-155"></span><span class="hs-comment">-- | Look up a single position.</span><span>
+</span><span id="line-156"></span><span id="local-6989586621679369906"><span class="annot"><a href="Brick.BorderMap.html#lookup"><span class="hs-identifier hs-type">lookup</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#Location"><span class="hs-identifier hs-type">Location</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#BorderMap"><span class="hs-identifier hs-type">BorderMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369906"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679369906"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-157"></span><span id="lookup"><span class="annot"><span class="annottext">lookup :: Location -&gt; BorderMap a -&gt; Maybe a
+</span><a href="Brick.BorderMap.html#lookup"><span class="hs-identifier hs-var hs-var">lookup</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Brick.Types.Common.html#Location"><span class="hs-identifier hs-type">Location</span></a></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679369905"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369905"><span class="hs-identifier hs-var">col</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679369904"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369904"><span class="hs-identifier hs-var">row</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; IMap a -&gt; Maybe a
+forall a. Int -&gt; IMap a -&gt; Maybe a
+</span><a href="Data.IMap.html#lookup"><span class="hs-identifier hs-var">IM.lookup</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369904"><span class="hs-identifier hs-var">row</span></a></span><span> </span><span class="annot"><span class="annottext">(IMap a -&gt; Maybe a)
+-&gt; (BorderMap a -&gt; IMap a) -&gt; BorderMap a -&gt; Maybe a
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; BorderMap a -&gt; IMap a
+forall a. Int -&gt; BorderMap a -&gt; IMap a
+</span><a href="Brick.BorderMap.html#lookupCol"><span class="hs-identifier hs-var">lookupCol</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369905"><span class="hs-identifier hs-var">col</span></a></span><span>
+</span><span id="line-158"></span><span>
+</span><span id="line-159"></span><span class="hs-comment">-- | Set the rectangle being tracked by this 'BorderMap', throwing away any</span><span>
+</span><span id="line-160"></span><span class="hs-comment">-- values that do not lie on this new rectangle.</span><span>
+</span><span id="line-161"></span><span id="local-6989586621679370072"><span class="annot"><a href="Brick.BorderMap.html#setCoordinates"><span class="hs-identifier hs-type">setCoordinates</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier hs-type">Edges</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#BorderMap"><span class="hs-identifier hs-type">BorderMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679370072"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#BorderMap"><span class="hs-identifier hs-type">BorderMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679370072"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-162"></span><span id="setCoordinates"><span class="annot"><span class="annottext">setCoordinates :: Edges Int -&gt; BorderMap a -&gt; BorderMap a
+</span><a href="Brick.BorderMap.html#setCoordinates"><span class="hs-identifier hs-var hs-var">setCoordinates</span></a></span></span><span> </span><span id="local-6989586621679369903"><span class="annot"><span class="annottext">Edges Int
+</span><a href="#local-6989586621679369903"><span class="hs-identifier hs-var">coordinates'</span></a></span></span><span> </span><span id="local-6989586621679369902"><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369902"><span class="hs-identifier hs-var">m</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">BorderMap :: forall a. Edges Int -&gt; Edges (IMap a) -&gt; BorderMap a
+</span><a href="Brick.BorderMap.html#BorderMap"><span class="hs-identifier hs-type">BorderMap</span></a></span><span>
+</span><span id="line-163"></span><span>    </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">_values :: Edges (IMap a)
+</span><a href="Brick.BorderMap.html#_values"><span class="hs-identifier hs-var">_values</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Edges (IMap a)
+</span><a href="#local-6989586621679369901"><span class="hs-identifier hs-var">values'</span></a></span><span>
+</span><span id="line-164"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">_coordinates :: Edges Int
+</span><a href="Brick.BorderMap.html#_coordinates"><span class="hs-identifier hs-var">_coordinates</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Edges Int
+</span><a href="#local-6989586621679369903"><span class="hs-identifier hs-var">coordinates'</span></a></span><span>
+</span><span id="line-165"></span><span>    </span><span class="hs-special">}</span><span>
+</span><span id="line-166"></span><span>    </span><span class="hs-keyword">where</span><span>
+</span><span id="line-167"></span><span>    </span><span id="local-6989586621679369900"><span class="annot"><span class="annottext">bounds' :: Edges (Int, Int)
+</span><a href="#local-6989586621679369900"><span class="hs-identifier hs-var hs-var">bounds'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Edges Int -&gt; Edges (Int, Int)
+forall a. Edges a -&gt; Edges (a, a)
+</span><a href="Brick.BorderMap.html#neighbors"><span class="hs-identifier hs-var">neighbors</span></a></span><span> </span><span class="annot"><span class="annottext">Edges Int
+</span><a href="#local-6989586621679369903"><span class="hs-identifier hs-var">coordinates'</span></a></span><span>
+</span><span id="line-168"></span><span>    </span><span id="local-6989586621679369901"><span class="annot"><span class="annottext">values' :: Edges (IMap a)
+</span><a href="#local-6989586621679369901"><span class="hs-identifier hs-var hs-var">values'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int
+ -&gt; Int
+ -&gt; (Int, Int)
+ -&gt; IMap a
+ -&gt; (Int -&gt; BorderMap a -&gt; IMap a)
+ -&gt; IMap a)
+-&gt; Edges
+     (Int
+      -&gt; Int
+      -&gt; (Int, Int)
+      -&gt; IMap a
+      -&gt; (Int -&gt; BorderMap a -&gt; IMap a)
+      -&gt; IMap a)
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">Int
+-&gt; Int
+-&gt; (Int, Int)
+-&gt; IMap a
+-&gt; (Int -&gt; BorderMap a -&gt; IMap a)
+-&gt; IMap a
+forall t a.
+Eq t =&gt;
+t
+-&gt; t
+-&gt; (Int, Int)
+-&gt; IMap a
+-&gt; (t -&gt; BorderMap a -&gt; IMap a)
+-&gt; IMap a
+</span><a href="#local-6989586621679369899"><span class="hs-identifier hs-var">gc</span></a></span><span>
+</span><span id="line-169"></span><span>        </span><span class="annot"><span class="annottext">Edges
+  (Int
+   -&gt; Int
+   -&gt; (Int, Int)
+   -&gt; IMap a
+   -&gt; (Int -&gt; BorderMap a -&gt; IMap a)
+   -&gt; IMap a)
+-&gt; Edges Int
+-&gt; Edges
+     (Int
+      -&gt; (Int, Int)
+      -&gt; IMap a
+      -&gt; (Int -&gt; BorderMap a -&gt; IMap a)
+      -&gt; IMap a)
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">BorderMap a -&gt; Edges Int
+forall a. BorderMap a -&gt; Edges Int
+</span><a href="Brick.BorderMap.html#_coordinates"><span class="hs-identifier hs-var hs-var">_coordinates</span></a></span><span> </span><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369902"><span class="hs-identifier hs-var">m</span></a></span><span>
+</span><span id="line-170"></span><span>        </span><span class="annot"><span class="annottext">Edges
+  (Int
+   -&gt; (Int, Int)
+   -&gt; IMap a
+   -&gt; (Int -&gt; BorderMap a -&gt; IMap a)
+   -&gt; IMap a)
+-&gt; Edges Int
+-&gt; Edges
+     ((Int, Int) -&gt; IMap a -&gt; (Int -&gt; BorderMap a -&gt; IMap a) -&gt; IMap a)
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Edges Int
+</span><a href="#local-6989586621679369903"><span class="hs-identifier hs-var">coordinates'</span></a></span><span>
+</span><span id="line-171"></span><span>        </span><span class="annot"><span class="annottext">Edges
+  ((Int, Int) -&gt; IMap a -&gt; (Int -&gt; BorderMap a -&gt; IMap a) -&gt; IMap a)
+-&gt; Edges (Int, Int)
+-&gt; Edges (IMap a -&gt; (Int -&gt; BorderMap a -&gt; IMap a) -&gt; IMap a)
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Edges (Int, Int)
+</span><a href="#local-6989586621679369900"><span class="hs-identifier hs-var">bounds'</span></a></span><span>
+</span><span id="line-172"></span><span>        </span><span class="annot"><span class="annottext">Edges (IMap a -&gt; (Int -&gt; BorderMap a -&gt; IMap a) -&gt; IMap a)
+-&gt; Edges (IMap a)
+-&gt; Edges ((Int -&gt; BorderMap a -&gt; IMap a) -&gt; IMap a)
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">BorderMap a -&gt; Edges (IMap a)
+forall a. BorderMap a -&gt; Edges (IMap a)
+</span><a href="Brick.BorderMap.html#_values"><span class="hs-identifier hs-var hs-var">_values</span></a></span><span> </span><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369902"><span class="hs-identifier hs-var">m</span></a></span><span>
+</span><span id="line-173"></span><span>        </span><span class="annot"><span class="annottext">Edges ((Int -&gt; BorderMap a -&gt; IMap a) -&gt; IMap a)
+-&gt; Edges (Int -&gt; BorderMap a -&gt; IMap a) -&gt; Edges (IMap a)
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Edges :: forall a. a -&gt; a -&gt; a -&gt; a -&gt; Edges a
+</span><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier hs-type">Edges</span></a></span><span> </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">eTop :: Int -&gt; BorderMap a -&gt; IMap a
+</span><a href="Brick.Types.Common.html#eTop"><span class="hs-identifier hs-var">eTop</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; BorderMap a -&gt; IMap a
+forall a. Int -&gt; BorderMap a -&gt; IMap a
+</span><a href="Brick.BorderMap.html#lookupRow"><span class="hs-identifier hs-var">lookupRow</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">eBottom :: Int -&gt; BorderMap a -&gt; IMap a
+</span><a href="Brick.Types.Common.html#eBottom"><span class="hs-identifier hs-var">eBottom</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; BorderMap a -&gt; IMap a
+forall a. Int -&gt; BorderMap a -&gt; IMap a
+</span><a href="Brick.BorderMap.html#lookupRow"><span class="hs-identifier hs-var">lookupRow</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">eLeft :: Int -&gt; BorderMap a -&gt; IMap a
+</span><a href="Brick.Types.Common.html#eLeft"><span class="hs-identifier hs-var">eLeft</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; BorderMap a -&gt; IMap a
+forall a. Int -&gt; BorderMap a -&gt; IMap a
+</span><a href="Brick.BorderMap.html#lookupCol"><span class="hs-identifier hs-var">lookupCol</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">eRight :: Int -&gt; BorderMap a -&gt; IMap a
+</span><a href="Brick.Types.Common.html#eRight"><span class="hs-identifier hs-var">eRight</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; BorderMap a -&gt; IMap a
+forall a. Int -&gt; BorderMap a -&gt; IMap a
+</span><a href="Brick.BorderMap.html#lookupCol"><span class="hs-identifier hs-var">lookupCol</span></a></span><span> </span><span class="hs-special">}</span><span>
+</span><span id="line-174"></span><span>    </span><span id="local-6989586621679369899"><span class="annot"><span class="annottext">gc :: t
+-&gt; t
+-&gt; (Int, Int)
+-&gt; IMap a
+-&gt; (t -&gt; BorderMap a -&gt; IMap a)
+-&gt; IMap a
+</span><a href="#local-6989586621679369899"><span class="hs-identifier hs-var hs-var">gc</span></a></span></span><span> </span><span id="local-6989586621679369898"><span class="annot"><span class="annottext">t
+</span><a href="#local-6989586621679369898"><span class="hs-identifier hs-var">oldPar</span></a></span></span><span> </span><span id="local-6989586621679369897"><span class="annot"><span class="annottext">t
+</span><a href="#local-6989586621679369897"><span class="hs-identifier hs-var">newPar</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679369896"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369896"><span class="hs-identifier hs-var">loPerp</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679369895"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369895"><span class="hs-identifier hs-var">hiPerp</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679369894"><span class="annot"><span class="annottext">IMap a
+</span><a href="#local-6989586621679369894"><span class="hs-identifier hs-var">imPar</span></a></span></span><span> </span><span id="local-6989586621679369893"><span class="annot"><span class="annottext">t -&gt; BorderMap a -&gt; IMap a
+</span><a href="#local-6989586621679369893"><span class="hs-identifier hs-var">lookupPerp</span></a></span></span><span>
+</span><span id="line-175"></span><span>        </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">t
+</span><a href="#local-6989586621679369898"><span class="hs-identifier hs-var">oldPar</span></a></span><span> </span><span class="annot"><span class="annottext">t -&gt; t -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">t
+</span><a href="#local-6989586621679369897"><span class="hs-identifier hs-var">newPar</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Run () -&gt; IMap a -&gt; IMap a
+forall ignored a. Int -&gt; Run ignored -&gt; IMap a -&gt; IMap a
+</span><a href="Data.IMap.html#restrict"><span class="hs-identifier hs-var">IM.restrict</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369896"><span class="hs-identifier hs-var">loPerp</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; () -&gt; Run ()
+forall a. Int -&gt; a -&gt; Run a
+</span><a href="Data.IMap.html#Run"><span class="hs-identifier hs-var">Run</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369895"><span class="hs-identifier hs-var">hiPerp</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369896"><span class="hs-identifier hs-var">loPerp</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">IMap a
+</span><a href="#local-6989586621679369894"><span class="hs-identifier hs-var">imPar</span></a></span><span>
+</span><span id="line-176"></span><span>        </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">t -&gt; BorderMap a -&gt; IMap a
+</span><a href="#local-6989586621679369893"><span class="hs-identifier hs-var">lookupPerp</span></a></span><span> </span><span class="annot"><span class="annottext">t
+</span><a href="#local-6989586621679369897"><span class="hs-identifier hs-var">newPar</span></a></span><span> </span><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369902"><span class="hs-identifier hs-var">m</span></a></span><span>
+</span><span id="line-177"></span><span>
+</span><span id="line-178"></span><span class="hs-comment">-- | Ensure that the rectangle being tracked by this 'BorderMap' extends no</span><span>
+</span><span id="line-179"></span><span class="hs-comment">-- farther than the given one.</span><span>
+</span><span id="line-180"></span><span id="local-6989586621679369892"><span class="annot"><a href="Brick.BorderMap.html#crop"><span class="hs-identifier hs-type">crop</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier hs-type">Edges</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#BorderMap"><span class="hs-identifier hs-type">BorderMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369892"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#BorderMap"><span class="hs-identifier hs-type">BorderMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369892"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-181"></span><span id="crop"><span class="annot"><span class="annottext">crop :: Edges Int -&gt; BorderMap a -&gt; BorderMap a
+</span><a href="Brick.BorderMap.html#crop"><span class="hs-identifier hs-var hs-var">crop</span></a></span></span><span> </span><span id="local-6989586621679369891"><span class="annot"><span class="annottext">Edges Int
+</span><a href="#local-6989586621679369891"><span class="hs-identifier hs-var">cs</span></a></span></span><span> </span><span id="local-6989586621679369890"><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369890"><span class="hs-identifier hs-var">m</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Edges Int -&gt; BorderMap a -&gt; BorderMap a
+forall a. Edges Int -&gt; BorderMap a -&gt; BorderMap a
+</span><a href="Brick.BorderMap.html#setCoordinates"><span class="hs-identifier hs-var">setCoordinates</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Edges (Int -&gt; Int -&gt; Int)
+</span><a href="#local-6989586621679369889"><span class="hs-identifier hs-var">shrink</span></a></span><span> </span><span class="annot"><span class="annottext">Edges (Int -&gt; Int -&gt; Int) -&gt; Edges Int -&gt; Edges (Int -&gt; Int)
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Edges Int
+</span><a href="#local-6989586621679369891"><span class="hs-identifier hs-var">cs</span></a></span><span> </span><span class="annot"><span class="annottext">Edges (Int -&gt; Int) -&gt; Edges Int -&gt; Edges Int
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">BorderMap a -&gt; Edges Int
+forall a. BorderMap a -&gt; Edges Int
+</span><a href="Brick.BorderMap.html#coordinates"><span class="hs-identifier hs-var">coordinates</span></a></span><span> </span><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369890"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369890"><span class="hs-identifier hs-var">m</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-182"></span><span>    </span><span id="local-6989586621679369889"><span class="annot"><span class="annottext">shrink :: Edges (Int -&gt; Int -&gt; Int)
+</span><a href="#local-6989586621679369889"><span class="hs-identifier hs-var hs-var">shrink</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Edges :: forall a. a -&gt; a -&gt; a -&gt; a -&gt; Edges a
+</span><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier hs-type">Edges</span></a></span><span>
+</span><span id="line-183"></span><span>        </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">eTop :: Int -&gt; Int -&gt; Int
+</span><a href="Brick.Types.Common.html#eTop"><span class="hs-identifier hs-var">eTop</span></a></span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">max</span></span><span>
+</span><span id="line-184"></span><span>        </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">eBottom :: Int -&gt; Int -&gt; Int
+</span><a href="Brick.Types.Common.html#eBottom"><span class="hs-identifier hs-var">eBottom</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">min</span></span><span>
+</span><span id="line-185"></span><span>        </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">eLeft :: Int -&gt; Int -&gt; Int
+</span><a href="Brick.Types.Common.html#eLeft"><span class="hs-identifier hs-var">eLeft</span></a></span><span>   </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">max</span></span><span>
+</span><span id="line-186"></span><span>        </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">eRight :: Int -&gt; Int -&gt; Int
+</span><a href="Brick.Types.Common.html#eRight"><span class="hs-identifier hs-var">eRight</span></a></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">min</span></span><span>
+</span><span id="line-187"></span><span>        </span><span class="hs-special">}</span><span>
+</span><span id="line-188"></span><span>
+</span><span id="line-189"></span><span class="hs-comment">-- | Ensure that the rectangle being tracked by this 'BorderMap' extends at</span><span>
+</span><span id="line-190"></span><span class="hs-comment">-- least as far as the given one.</span><span>
+</span><span id="line-191"></span><span id="local-6989586621679369888"><span class="annot"><a href="Brick.BorderMap.html#expand"><span class="hs-identifier hs-type">expand</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier hs-type">Edges</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#BorderMap"><span class="hs-identifier hs-type">BorderMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369888"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#BorderMap"><span class="hs-identifier hs-type">BorderMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369888"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-192"></span><span id="expand"><span class="annot"><span class="annottext">expand :: Edges Int -&gt; BorderMap a -&gt; BorderMap a
+</span><a href="Brick.BorderMap.html#expand"><span class="hs-identifier hs-var hs-var">expand</span></a></span></span><span> </span><span id="local-6989586621679369887"><span class="annot"><span class="annottext">Edges Int
+</span><a href="#local-6989586621679369887"><span class="hs-identifier hs-var">cs</span></a></span></span><span> </span><span id="local-6989586621679369886"><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369886"><span class="hs-identifier hs-var">m</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Edges Int -&gt; BorderMap a -&gt; BorderMap a
+forall a. Edges Int -&gt; BorderMap a -&gt; BorderMap a
+</span><a href="Brick.BorderMap.html#setCoordinates"><span class="hs-identifier hs-var">setCoordinates</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Edges (Int -&gt; Int -&gt; Int)
+</span><a href="#local-6989586621679369885"><span class="hs-identifier hs-var">grow</span></a></span><span> </span><span class="annot"><span class="annottext">Edges (Int -&gt; Int -&gt; Int) -&gt; Edges Int -&gt; Edges (Int -&gt; Int)
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Edges Int
+</span><a href="#local-6989586621679369887"><span class="hs-identifier hs-var">cs</span></a></span><span> </span><span class="annot"><span class="annottext">Edges (Int -&gt; Int) -&gt; Edges Int -&gt; Edges Int
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">BorderMap a -&gt; Edges Int
+forall a. BorderMap a -&gt; Edges Int
+</span><a href="Brick.BorderMap.html#coordinates"><span class="hs-identifier hs-var">coordinates</span></a></span><span> </span><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369886"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369886"><span class="hs-identifier hs-var">m</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-193"></span><span>    </span><span id="local-6989586621679369885"><span class="annot"><span class="annottext">grow :: Edges (Int -&gt; Int -&gt; Int)
+</span><a href="#local-6989586621679369885"><span class="hs-identifier hs-var hs-var">grow</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Edges :: forall a. a -&gt; a -&gt; a -&gt; a -&gt; Edges a
+</span><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier hs-type">Edges</span></a></span><span>
+</span><span id="line-194"></span><span>        </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">eTop :: Int -&gt; Int -&gt; Int
+</span><a href="Brick.Types.Common.html#eTop"><span class="hs-identifier hs-var">eTop</span></a></span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">min</span></span><span>
+</span><span id="line-195"></span><span>        </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">eBottom :: Int -&gt; Int -&gt; Int
+</span><a href="Brick.Types.Common.html#eBottom"><span class="hs-identifier hs-var">eBottom</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">max</span></span><span>
+</span><span id="line-196"></span><span>        </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">eLeft :: Int -&gt; Int -&gt; Int
+</span><a href="Brick.Types.Common.html#eLeft"><span class="hs-identifier hs-var">eLeft</span></a></span><span>   </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">min</span></span><span>
+</span><span id="line-197"></span><span>        </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">eRight :: Int -&gt; Int -&gt; Int
+</span><a href="Brick.Types.Common.html#eRight"><span class="hs-identifier hs-var">eRight</span></a></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">max</span></span><span>
+</span><span id="line-198"></span><span>        </span><span class="hs-special">}</span><span>
+</span><span id="line-199"></span><span>
+</span><span id="line-200"></span><span class="hs-comment">-- | Move a 'BorderMap' by adding the given 'Location' to all keys in the map.</span><span>
+</span><span id="line-201"></span><span id="local-6989586621679370119"><span class="annot"><a href="Brick.BorderMap.html#translate"><span class="hs-identifier hs-type">translate</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Types.Common.html#Location"><span class="hs-identifier hs-type">Location</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#BorderMap"><span class="hs-identifier hs-type">BorderMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679370119"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#BorderMap"><span class="hs-identifier hs-type">BorderMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679370119"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-202"></span><span class="hs-comment">-- fast path: do nothing for (0,0)</span><span>
+</span><span id="line-203"></span><span id="translate"><span class="annot"><span class="annottext">translate :: Location -&gt; BorderMap a -&gt; BorderMap a
+</span><a href="Brick.BorderMap.html#translate"><span class="hs-identifier hs-var hs-var">translate</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Brick.Types.Common.html#Location"><span class="hs-identifier hs-type">Location</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span id="local-6989586621679369884"><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369884"><span class="hs-identifier hs-var">m</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369884"><span class="hs-identifier hs-var">m</span></a></span><span>
+</span><span id="line-204"></span><span class="annot"><a href="Brick.BorderMap.html#translate"><span class="hs-identifier hs-var">translate</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Brick.Types.Common.html#Location"><span class="hs-identifier hs-type">Location</span></a></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679369883"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369883"><span class="hs-identifier hs-var">c</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679369882"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369882"><span class="hs-identifier hs-var">r</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span id="local-6989586621679369881"><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369881"><span class="hs-identifier hs-var">m</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">BorderMap :: forall a. Edges Int -&gt; Edges (IMap a) -&gt; BorderMap a
+</span><a href="Brick.BorderMap.html#BorderMap"><span class="hs-identifier hs-type">BorderMap</span></a></span><span>
+</span><span id="line-205"></span><span>    </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">_coordinates :: Edges Int
+</span><a href="Brick.BorderMap.html#_coordinates"><span class="hs-identifier hs-var">_coordinates</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Int -&gt; Int) -&gt; Edges Int -&gt; Edges Int -&gt; Edges Int
+forall (f :: * -&gt; *) a b c.
+Applicative f =&gt;
+(a -&gt; b -&gt; c) -&gt; f a -&gt; f b -&gt; f c
+</span><span class="hs-identifier hs-var">liftA2</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">(+)</span></span><span>          </span><span class="annot"><span class="annottext">Edges Int
+</span><a href="#local-6989586621679369880"><span class="hs-identifier hs-var">cOffsets</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BorderMap a -&gt; Edges Int
+forall a. BorderMap a -&gt; Edges Int
+</span><a href="Brick.BorderMap.html#_coordinates"><span class="hs-identifier hs-var hs-var">_coordinates</span></a></span><span> </span><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369881"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-206"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">_values :: Edges (IMap a)
+</span><a href="Brick.BorderMap.html#_values"><span class="hs-identifier hs-var">_values</span></a></span><span>      </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; IMap a -&gt; IMap a)
+-&gt; Edges Int -&gt; Edges (IMap a) -&gt; Edges (IMap a)
+forall (f :: * -&gt; *) a b c.
+Applicative f =&gt;
+(a -&gt; b -&gt; c) -&gt; f a -&gt; f b -&gt; f c
+</span><span class="hs-identifier hs-var">liftA2</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; IMap a -&gt; IMap a
+forall a. Int -&gt; IMap a -&gt; IMap a
+</span><a href="Data.IMap.html#addToKeys"><span class="hs-identifier hs-var">IM.addToKeys</span></a></span><span> </span><span class="annot"><span class="annottext">Edges Int
+</span><a href="#local-6989586621679369878"><span class="hs-identifier hs-var">vOffsets</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BorderMap a -&gt; Edges (IMap a)
+forall a. BorderMap a -&gt; Edges (IMap a)
+</span><a href="Brick.BorderMap.html#_values"><span class="hs-identifier hs-var hs-var">_values</span></a></span><span>      </span><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369881"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-207"></span><span>    </span><span class="hs-special">}</span><span>
+</span><span id="line-208"></span><span>    </span><span class="hs-keyword">where</span><span>
+</span><span id="line-209"></span><span>    </span><span id="local-6989586621679369880"><span class="annot"><span class="annottext">cOffsets :: Edges Int
+</span><a href="#local-6989586621679369880"><span class="hs-identifier hs-var hs-var">cOffsets</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Edges :: forall a. a -&gt; a -&gt; a -&gt; a -&gt; Edges a
+</span><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier hs-type">Edges</span></a></span><span> </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">eTop :: Int
+</span><a href="Brick.Types.Common.html#eTop"><span class="hs-identifier hs-var">eTop</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369882"><span class="hs-identifier hs-var">r</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">eBottom :: Int
+</span><a href="Brick.Types.Common.html#eBottom"><span class="hs-identifier hs-var">eBottom</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369882"><span class="hs-identifier hs-var">r</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">eLeft :: Int
+</span><a href="Brick.Types.Common.html#eLeft"><span class="hs-identifier hs-var">eLeft</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369883"><span class="hs-identifier hs-var">c</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">eRight :: Int
+</span><a href="Brick.Types.Common.html#eRight"><span class="hs-identifier hs-var">eRight</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369883"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="hs-special">}</span><span>
+</span><span id="line-210"></span><span>    </span><span id="local-6989586621679369878"><span class="annot"><span class="annottext">vOffsets :: Edges Int
+</span><a href="#local-6989586621679369878"><span class="hs-identifier hs-var hs-var">vOffsets</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Edges :: forall a. a -&gt; a -&gt; a -&gt; a -&gt; Edges a
+</span><a href="Brick.Types.Common.html#Edges"><span class="hs-identifier hs-type">Edges</span></a></span><span> </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">eTop :: Int
+</span><a href="Brick.Types.Common.html#eTop"><span class="hs-identifier hs-var">eTop</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369883"><span class="hs-identifier hs-var">c</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">eBottom :: Int
+</span><a href="Brick.Types.Common.html#eBottom"><span class="hs-identifier hs-var">eBottom</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369883"><span class="hs-identifier hs-var">c</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">eLeft :: Int
+</span><a href="Brick.Types.Common.html#eLeft"><span class="hs-identifier hs-var">eLeft</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369882"><span class="hs-identifier hs-var">r</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">eRight :: Int
+</span><a href="Brick.Types.Common.html#eRight"><span class="hs-identifier hs-var">eRight</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369882"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="hs-special">}</span><span>
+</span><span id="line-211"></span><span>
+</span><span id="line-212"></span><span class="hs-comment">-- | Assumes the two 'BorderMap's are tracking the same rectangles, but have</span><span>
+</span><span id="line-213"></span><span class="hs-comment">-- disjoint keys. This property is not checked.</span><span>
+</span><span id="line-214"></span><span id="local-6989586621679369877"><span class="annot"><a href="Brick.BorderMap.html#unsafeUnion"><span class="hs-identifier hs-type">unsafeUnion</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#BorderMap"><span class="hs-identifier hs-type">BorderMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369877"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#BorderMap"><span class="hs-identifier hs-type">BorderMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369877"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.BorderMap.html#BorderMap"><span class="hs-identifier hs-type">BorderMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369877"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-215"></span><span id="unsafeUnion"><span class="annot"><span class="annottext">unsafeUnion :: BorderMap a -&gt; BorderMap a -&gt; BorderMap a
+</span><a href="Brick.BorderMap.html#unsafeUnion"><span class="hs-identifier hs-var hs-var">unsafeUnion</span></a></span></span><span> </span><span id="local-6989586621679369876"><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369876"><span class="hs-identifier hs-var">m</span></a></span></span><span> </span><span id="local-6989586621679369875"><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369875"><span class="hs-identifier hs-var">m'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369876"><span class="hs-identifier hs-var">m</span></a></span><span> </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">_values :: Edges (IMap a)
+</span><a href="Brick.BorderMap.html#_values"><span class="hs-identifier hs-var">_values</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(IMap a -&gt; IMap a -&gt; IMap a)
+-&gt; Edges (IMap a) -&gt; Edges (IMap a) -&gt; Edges (IMap a)
+forall (f :: * -&gt; *) a b c.
+Applicative f =&gt;
+(a -&gt; b -&gt; c) -&gt; f a -&gt; f b -&gt; f c
+</span><span class="hs-identifier hs-var">liftA2</span></span><span> </span><span class="annot"><span class="annottext">IMap a -&gt; IMap a -&gt; IMap a
+forall a. IMap a -&gt; IMap a -&gt; IMap a
+</span><a href="Data.IMap.html#unsafeUnion"><span class="hs-identifier hs-var">IM.unsafeUnion</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BorderMap a -&gt; Edges (IMap a)
+forall a. BorderMap a -&gt; Edges (IMap a)
+</span><a href="Brick.BorderMap.html#_values"><span class="hs-identifier hs-var hs-var">_values</span></a></span><span> </span><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369876"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">BorderMap a -&gt; Edges (IMap a)
+forall a. BorderMap a -&gt; Edges (IMap a)
+</span><a href="Brick.BorderMap.html#_values"><span class="hs-identifier hs-var hs-var">_values</span></a></span><span> </span><span class="annot"><span class="annottext">BorderMap a
+</span><a href="#local-6989586621679369875"><span class="hs-identifier hs-var">m'</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">}</span><span>
+</span><span id="line-216"></span></pre></body></html>

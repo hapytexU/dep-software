@@ -1,0 +1,556 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE CPP #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE StandaloneDeriving #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE GADTs #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE RankNTypes #-}</span><span>
+</span><span id="line-5"></span><span class="hs-pragma">{-# LANGUAGE DeriveGeneric #-}</span><span>
+</span><span id="line-6"></span><span class="hs-pragma">{-# LANGUAGE DeriveAnyClass #-}</span><span>
+</span><span id="line-7"></span><span>
+</span><span id="line-8"></span><span class="hs-comment">-- | Display attributes</span><span>
+</span><span id="line-9"></span><span class="hs-comment">--</span><span>
+</span><span id="line-10"></span><span class="hs-comment">-- Attributes have three components: a foreground color, a background</span><span>
+</span><span id="line-11"></span><span class="hs-comment">-- color, and a style mask. The simplest attribute is the default</span><span>
+</span><span id="line-12"></span><span class="hs-comment">-- attribute, or 'defAttr'. Attributes can be modified with</span><span>
+</span><span id="line-13"></span><span class="hs-comment">-- 'withForeColor', 'withBackColor', and 'withStyle', e.g.,</span><span>
+</span><span id="line-14"></span><span class="hs-comment">--</span><span>
+</span><span id="line-15"></span><span class="hs-comment">-- @</span><span>
+</span><span id="line-16"></span><span class="hs-comment">--     defAttr \`withForeColor\` red</span><span>
+</span><span id="line-17"></span><span class="hs-comment">-- @</span><span>
+</span><span id="line-18"></span><span class="hs-comment">--</span><span>
+</span><span id="line-19"></span><span class="hs-comment">-- 'Image' constructors often require an 'Attr' to indicate the</span><span>
+</span><span id="line-20"></span><span class="hs-comment">-- attributes used in the image, e.g.,</span><span>
+</span><span id="line-21"></span><span class="hs-comment">--</span><span>
+</span><span id="line-22"></span><span class="hs-comment">-- @</span><span>
+</span><span id="line-23"></span><span class="hs-comment">--     string (defAttr \`withForeColor\` red) &quot;this text will be red&quot;</span><span>
+</span><span id="line-24"></span><span class="hs-comment">-- @</span><span>
+</span><span id="line-25"></span><span class="hs-comment">--</span><span>
+</span><span id="line-26"></span><span class="hs-comment">-- The appearance of 'Image's using 'defAttr' is determined by the The</span><span>
+</span><span id="line-27"></span><span class="hs-comment">-- terminal, so this is not something VTY can control. The user is free</span><span>
+</span><span id="line-28"></span><span class="hs-comment">-- to The define the color scheme of the terminal as they see fit.</span><span>
+</span><span id="line-29"></span><span class="hs-comment">--</span><span>
+</span><span id="line-30"></span><span class="hs-comment">-- The value 'currentAttr' will keep the attributes of whatever was</span><span>
+</span><span id="line-31"></span><span class="hs-comment">-- output previously.</span><span>
+</span><span id="line-32"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Graphics.Vty.Attributes</span><span>
+</span><span id="line-33"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="hs-keyword">module</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html"><span class="hs-identifier">Graphics.Vty.Attributes.Color</span></a></span><span>
+</span><span id="line-34"></span><span>
+</span><span id="line-35"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#Attr"><span class="hs-identifier">Attr</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-36"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#FixedAttr"><span class="hs-identifier">FixedAttr</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-37"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#MaybeDefault"><span class="hs-identifier">MaybeDefault</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-38"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#defAttr"><span class="hs-identifier">defAttr</span></a></span><span>
+</span><span id="line-39"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#currentAttr"><span class="hs-identifier">currentAttr</span></a></span><span>
+</span><span id="line-40"></span><span>
+</span><span id="line-41"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Styles</span></span><span>
+</span><span id="line-42"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#Style"><span class="hs-identifier">Style</span></a></span><span>
+</span><span id="line-43"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#withStyle"><span class="hs-identifier">withStyle</span></a></span><span>
+</span><span id="line-44"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#standout"><span class="hs-identifier">standout</span></a></span><span>
+</span><span id="line-45"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#italic"><span class="hs-identifier">italic</span></a></span><span>
+</span><span id="line-46"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#strikethrough"><span class="hs-identifier">strikethrough</span></a></span><span>
+</span><span id="line-47"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#underline"><span class="hs-identifier">underline</span></a></span><span>
+</span><span id="line-48"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#reverseVideo"><span class="hs-identifier">reverseVideo</span></a></span><span>
+</span><span id="line-49"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#blink"><span class="hs-identifier">blink</span></a></span><span>
+</span><span id="line-50"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#dim"><span class="hs-identifier">dim</span></a></span><span>
+</span><span id="line-51"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#bold"><span class="hs-identifier">bold</span></a></span><span>
+</span><span id="line-52"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#defaultStyleMask"><span class="hs-identifier">defaultStyleMask</span></a></span><span>
+</span><span id="line-53"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#styleMask"><span class="hs-identifier">styleMask</span></a></span><span>
+</span><span id="line-54"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#hasStyle"><span class="hs-identifier">hasStyle</span></a></span><span>
+</span><span id="line-55"></span><span>
+</span><span id="line-56"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Setting attribute colors</span></span><span>
+</span><span id="line-57"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#withForeColor"><span class="hs-identifier">withForeColor</span></a></span><span>
+</span><span id="line-58"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#withBackColor"><span class="hs-identifier">withBackColor</span></a></span><span>
+</span><span id="line-59"></span><span>
+</span><span id="line-60"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Setting hyperlinks</span></span><span>
+</span><span id="line-61"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#withURL"><span class="hs-identifier">withURL</span></a></span><span>
+</span><span id="line-62"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-63"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-64"></span><span>
+</span><span id="line-65"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.DeepSeq</span></span><span>
+</span><span id="line-66"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Bits</span></span><span class="hs-cpp">
+#if !(MIN_VERSION_base(4,11,0))
+</span><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Data.Semigroup</span><span class="hs-cpp">
+#endif
+</span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Text</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Text</span></span><span class="hs-special">)</span><span>
+</span><span id="line-71"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Word</span></span><span>
+</span><span id="line-72"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">GHC.Generics</span></span><span>
+</span><span id="line-73"></span><span>
+</span><span id="line-74"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html"><span class="hs-identifier">Graphics.Vty.Attributes.Color</span></a></span><span>
+</span><span id="line-75"></span><span>
+</span><span id="line-76"></span><span class="hs-comment">-- | A display attribute defines the Color and Style of all the</span><span>
+</span><span id="line-77"></span><span class="hs-comment">-- characters rendered after the attribute is applied.</span><span>
+</span><span id="line-78"></span><span class="hs-comment">--</span><span>
+</span><span id="line-79"></span><span class="hs-comment">-- At most 256 colors, picked from a 240 and 16 color palette, are</span><span>
+</span><span id="line-80"></span><span class="hs-comment">-- possible for the background and foreground. The 240 colors and</span><span>
+</span><span id="line-81"></span><span class="hs-comment">-- 16 colors are points in different palettes. See Color for more</span><span>
+</span><span id="line-82"></span><span class="hs-comment">-- information.</span><span>
+</span><span id="line-83"></span><span id="local-6989586621679364950"><span id="local-6989586621679364951"></span></span><span class="hs-keyword">data</span><span> </span><span id="Attr"><span class="annot"><a href="Graphics.Vty.Attributes.html#Attr"><span class="hs-identifier hs-var">Attr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="Attr"><span class="annot"><a href="Graphics.Vty.Attributes.html#Attr"><span class="hs-identifier hs-var">Attr</span></a></span></span><span>
+</span><span id="line-84"></span><span>    </span><span class="hs-special">{</span><span> </span><span id="attrStyle"><span class="annot"><span class="annottext">Attr -&gt; MaybeDefault Style
+</span><a href="Graphics.Vty.Attributes.html#attrStyle"><span class="hs-identifier hs-var hs-var">attrStyle</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><span class="annot"><a href="Graphics.Vty.Attributes.html#MaybeDefault"><span class="hs-identifier hs-type">MaybeDefault</span></a></span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#Style"><span class="hs-identifier hs-type">Style</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-85"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="attrForeColor"><span class="annot"><span class="annottext">Attr -&gt; MaybeDefault Color
+</span><a href="Graphics.Vty.Attributes.html#attrForeColor"><span class="hs-identifier hs-var hs-var">attrForeColor</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><span class="annot"><a href="Graphics.Vty.Attributes.html#MaybeDefault"><span class="hs-identifier hs-type">MaybeDefault</span></a></span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#Color"><span class="hs-identifier hs-type">Color</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-86"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="attrBackColor"><span class="annot"><span class="annottext">Attr -&gt; MaybeDefault Color
+</span><a href="Graphics.Vty.Attributes.html#attrBackColor"><span class="hs-identifier hs-var hs-var">attrBackColor</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><span class="annot"><a href="Graphics.Vty.Attributes.html#MaybeDefault"><span class="hs-identifier hs-type">MaybeDefault</span></a></span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#Color"><span class="hs-identifier hs-type">Color</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-87"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="attrURL"><span class="annot"><span class="annottext">Attr -&gt; MaybeDefault Text
+</span><a href="Graphics.Vty.Attributes.html#attrURL"><span class="hs-identifier hs-var hs-var">attrURL</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><span class="annot"><a href="Graphics.Vty.Attributes.html#MaybeDefault"><span class="hs-identifier hs-type">MaybeDefault</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span class="hs-special">)</span><span>
+</span><span id="line-88"></span><span>    </span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span> </span><span id="local-6989586621679364941"><span id="local-6989586621679364943"><span class="annot"><span class="annottext">Attr -&gt; Attr -&gt; Bool
+(Attr -&gt; Attr -&gt; Bool) -&gt; (Attr -&gt; Attr -&gt; Bool) -&gt; Eq Attr
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: Attr -&gt; Attr -&gt; Bool
+$c/= :: Attr -&gt; Attr -&gt; Bool
+== :: Attr -&gt; Attr -&gt; Bool
+$c== :: Attr -&gt; Attr -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679364934"><span id="local-6989586621679364936"><span id="local-6989586621679364938"><span class="annot"><span class="annottext">Int -&gt; Attr -&gt; ShowS
+[Attr] -&gt; ShowS
+Attr -&gt; String
+(Int -&gt; Attr -&gt; ShowS)
+-&gt; (Attr -&gt; String) -&gt; ([Attr] -&gt; ShowS) -&gt; Show Attr
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [Attr] -&gt; ShowS
+$cshowList :: [Attr] -&gt; ShowS
+show :: Attr -&gt; String
+$cshow :: Attr -&gt; String
+showsPrec :: Int -&gt; Attr -&gt; ShowS
+$cshowsPrec :: Int -&gt; Attr -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679364925"><span id="local-6989586621679364927"><span id="local-6989586621679364929"><span id="local-6989586621679364931"><span class="annot"><span class="annottext">ReadPrec [Attr]
+ReadPrec Attr
+Int -&gt; ReadS Attr
+ReadS [Attr]
+(Int -&gt; ReadS Attr)
+-&gt; ReadS [Attr] -&gt; ReadPrec Attr -&gt; ReadPrec [Attr] -&gt; Read Attr
+forall a.
+(Int -&gt; ReadS a)
+-&gt; ReadS [a] -&gt; ReadPrec a -&gt; ReadPrec [a] -&gt; Read a
+readListPrec :: ReadPrec [Attr]
+$creadListPrec :: ReadPrec [Attr]
+readPrec :: ReadPrec Attr
+$creadPrec :: ReadPrec Attr
+readList :: ReadS [Attr]
+$creadList :: ReadS [Attr]
+readsPrec :: Int -&gt; ReadS Attr
+$creadsPrec :: Int -&gt; ReadS Attr
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Read</span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(forall x. Attr -&gt; Rep Attr x)
+-&gt; (forall x. Rep Attr x -&gt; Attr) -&gt; Generic Attr
+forall x. Rep Attr x -&gt; Attr
+forall x. Attr -&gt; Rep Attr x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+$cto :: forall x. Rep Attr x -&gt; Attr
+$cfrom :: forall x. Attr -&gt; Rep Attr x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679364919"><span class="annot"><span class="annottext">Attr -&gt; ()
+(Attr -&gt; ()) -&gt; NFData Attr
+forall a. (a -&gt; ()) -&gt; NFData a
+rnf :: Attr -&gt; ()
+$crnf :: Attr -&gt; ()
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">NFData</span></span></span><span> </span><span class="hs-special">)</span><span>
+</span><span id="line-89"></span><span>
+</span><span id="line-90"></span><span class="hs-comment">-- This could be encoded into a single 32 bit word. The 32 bit word is</span><span>
+</span><span id="line-91"></span><span class="hs-comment">-- first divided into 4 groups of 8 bits where: The first group codes</span><span>
+</span><span id="line-92"></span><span class="hs-comment">-- what action should be taken with regards to the other groups.</span><span>
+</span><span id="line-93"></span><span class="hs-comment">--      XXYYZZ__</span><span>
+</span><span id="line-94"></span><span class="hs-comment">--      XX - style action</span><span>
+</span><span id="line-95"></span><span class="hs-comment">--          00 =&gt; reset to default</span><span>
+</span><span id="line-96"></span><span class="hs-comment">--          01 =&gt; unchanged</span><span>
+</span><span id="line-97"></span><span class="hs-comment">--          10 =&gt; set</span><span>
+</span><span id="line-98"></span><span class="hs-comment">--      YY - foreground color action</span><span>
+</span><span id="line-99"></span><span class="hs-comment">--          00 =&gt; reset to default</span><span>
+</span><span id="line-100"></span><span class="hs-comment">--          01 =&gt; unchanged</span><span>
+</span><span id="line-101"></span><span class="hs-comment">--          10 =&gt; set</span><span>
+</span><span id="line-102"></span><span class="hs-comment">--      ZZ - background color action</span><span>
+</span><span id="line-103"></span><span class="hs-comment">--          00 =&gt; reset to default</span><span>
+</span><span id="line-104"></span><span class="hs-comment">--          01 =&gt; unchanged</span><span>
+</span><span id="line-105"></span><span class="hs-comment">--          10 =&gt; set</span><span>
+</span><span id="line-106"></span><span class="hs-comment">--      __ - unused</span><span>
+</span><span id="line-107"></span><span class="hs-comment">--</span><span>
+</span><span id="line-108"></span><span class="hs-comment">--  Next is the style flags</span><span>
+</span><span id="line-109"></span><span class="hs-comment">--      SURBDOI_</span><span>
+</span><span id="line-110"></span><span class="hs-comment">--      S - standout</span><span>
+</span><span id="line-111"></span><span class="hs-comment">--      U - underline</span><span>
+</span><span id="line-112"></span><span class="hs-comment">--      R - reverse video</span><span>
+</span><span id="line-113"></span><span class="hs-comment">--      B - blink</span><span>
+</span><span id="line-114"></span><span class="hs-comment">--      D - dim</span><span>
+</span><span id="line-115"></span><span class="hs-comment">--      O - bold</span><span>
+</span><span id="line-116"></span><span class="hs-comment">--      I - italic</span><span>
+</span><span id="line-117"></span><span class="hs-comment">--      _ - unused</span><span>
+</span><span id="line-118"></span><span class="hs-comment">--</span><span>
+</span><span id="line-119"></span><span class="hs-comment">--  Then the foreground color encoded into 8 bits.</span><span>
+</span><span id="line-120"></span><span class="hs-comment">--  Then the background color encoded into 8 bits.</span><span>
+</span><span id="line-121"></span><span>
+</span><span id="line-122"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679364913"><span id="local-6989586621679364915"><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#Attr"><span class="hs-identifier hs-type">Attr</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-123"></span><span>    </span><span id="local-6989586621679364911"><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679364911"><span class="hs-identifier hs-var">attr0</span></a></span></span><span> </span><span id="local-6989586621679364910"><span class="annot"><span class="annottext">&lt;&gt; :: Attr -&gt; Attr -&gt; Attr
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">&lt;&gt;</span></span></span><span> </span><span id="local-6989586621679364909"><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679364909"><span class="hs-identifier hs-var">attr1</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-124"></span><span>        </span><span class="annot"><span class="annottext">MaybeDefault Style
+-&gt; MaybeDefault Color
+-&gt; MaybeDefault Color
+-&gt; MaybeDefault Text
+-&gt; Attr
+</span><a href="Graphics.Vty.Attributes.html#Attr"><span class="hs-identifier hs-var">Attr</span></a></span><span> </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">Attr -&gt; MaybeDefault Style
+</span><a href="Graphics.Vty.Attributes.html#attrStyle"><span class="hs-identifier hs-var hs-var">attrStyle</span></a></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679364911"><span class="hs-identifier hs-var">attr0</span></a></span><span>     </span><span class="annot"><span class="annottext">MaybeDefault Style -&gt; MaybeDefault Style -&gt; MaybeDefault Style
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Attr -&gt; MaybeDefault Style
+</span><a href="Graphics.Vty.Attributes.html#attrStyle"><span class="hs-identifier hs-var hs-var">attrStyle</span></a></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679364909"><span class="hs-identifier hs-var">attr1</span></a></span><span> </span><span class="hs-special">)</span><span>
+</span><span id="line-125"></span><span>             </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">Attr -&gt; MaybeDefault Color
+</span><a href="Graphics.Vty.Attributes.html#attrForeColor"><span class="hs-identifier hs-var hs-var">attrForeColor</span></a></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679364911"><span class="hs-identifier hs-var">attr0</span></a></span><span> </span><span class="annot"><span class="annottext">MaybeDefault Color -&gt; MaybeDefault Color -&gt; MaybeDefault Color
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Attr -&gt; MaybeDefault Color
+</span><a href="Graphics.Vty.Attributes.html#attrForeColor"><span class="hs-identifier hs-var hs-var">attrForeColor</span></a></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679364909"><span class="hs-identifier hs-var">attr1</span></a></span><span> </span><span class="hs-special">)</span><span>
+</span><span id="line-126"></span><span>             </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">Attr -&gt; MaybeDefault Color
+</span><a href="Graphics.Vty.Attributes.html#attrBackColor"><span class="hs-identifier hs-var hs-var">attrBackColor</span></a></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679364911"><span class="hs-identifier hs-var">attr0</span></a></span><span> </span><span class="annot"><span class="annottext">MaybeDefault Color -&gt; MaybeDefault Color -&gt; MaybeDefault Color
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Attr -&gt; MaybeDefault Color
+</span><a href="Graphics.Vty.Attributes.html#attrBackColor"><span class="hs-identifier hs-var hs-var">attrBackColor</span></a></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679364909"><span class="hs-identifier hs-var">attr1</span></a></span><span> </span><span class="hs-special">)</span><span>
+</span><span id="line-127"></span><span>             </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">Attr -&gt; MaybeDefault Text
+</span><a href="Graphics.Vty.Attributes.html#attrURL"><span class="hs-identifier hs-var hs-var">attrURL</span></a></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679364911"><span class="hs-identifier hs-var">attr0</span></a></span><span>       </span><span class="annot"><span class="annottext">MaybeDefault Text -&gt; MaybeDefault Text -&gt; MaybeDefault Text
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Attr -&gt; MaybeDefault Text
+</span><a href="Graphics.Vty.Attributes.html#attrURL"><span class="hs-identifier hs-var hs-var">attrURL</span></a></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679364909"><span class="hs-identifier hs-var">attr1</span></a></span><span> </span><span class="hs-special">)</span><span>
+</span><span id="line-128"></span><span>
+</span><span id="line-129"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679364903"><span id="local-6989586621679364905"><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#Attr"><span class="hs-identifier hs-type">Attr</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-130"></span><span>    </span><span id="local-6989586621679364901"><span class="annot"><span class="annottext">mempty :: Attr
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">mempty</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MaybeDefault Style
+-&gt; MaybeDefault Color
+-&gt; MaybeDefault Color
+-&gt; MaybeDefault Text
+-&gt; Attr
+</span><a href="Graphics.Vty.Attributes.html#Attr"><span class="hs-identifier hs-var">Attr</span></a></span><span> </span><span class="annot"><span class="annottext">MaybeDefault Style
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span> </span><span class="annot"><span class="annottext">MaybeDefault Color
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span> </span><span class="annot"><span class="annottext">MaybeDefault Color
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span> </span><span class="annot"><span class="annottext">MaybeDefault Text
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span class="hs-cpp">
+#if !(MIN_VERSION_base(4,11,0))
+</span><span>    </span><span class="hs-identifier">mappend</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="hs-operator">&lt;&gt;</span><span class="hs-special">)</span><span class="hs-cpp">
+#endif
+</span><span>
+</span><span id="line-135"></span><span class="hs-comment">-- | Specifies the display attributes such that the final style and</span><span>
+</span><span id="line-136"></span><span class="hs-comment">-- color values do not depend on the previously applied display</span><span>
+</span><span id="line-137"></span><span class="hs-comment">-- attribute. The display attributes can still depend on the terminal's</span><span>
+</span><span id="line-138"></span><span class="hs-comment">-- default colors (unfortunately).</span><span>
+</span><span id="line-139"></span><span class="hs-keyword">data</span><span> </span><span id="FixedAttr"><span class="annot"><a href="Graphics.Vty.Attributes.html#FixedAttr"><span class="hs-identifier hs-var">FixedAttr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="FixedAttr"><span class="annot"><a href="Graphics.Vty.Attributes.html#FixedAttr"><span class="hs-identifier hs-var">FixedAttr</span></a></span></span><span>
+</span><span id="line-140"></span><span>    </span><span class="hs-special">{</span><span> </span><span id="fixedStyle"><span class="annot"><span class="annottext">FixedAttr -&gt; Style
+</span><a href="Graphics.Vty.Attributes.html#fixedStyle"><span class="hs-identifier hs-var hs-var">fixedStyle</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="annot"><a href="Graphics.Vty.Attributes.html#Style"><span class="hs-identifier hs-type">Style</span></a></span><span>
+</span><span id="line-141"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="fixedForeColor"><span class="annot"><span class="annottext">FixedAttr -&gt; Maybe Color
+</span><a href="Graphics.Vty.Attributes.html#fixedForeColor"><span class="hs-identifier hs-var hs-var">fixedForeColor</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#Color"><span class="hs-identifier hs-type">Color</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-142"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="fixedBackColor"><span class="annot"><span class="annottext">FixedAttr -&gt; Maybe Color
+</span><a href="Graphics.Vty.Attributes.html#fixedBackColor"><span class="hs-identifier hs-var hs-var">fixedBackColor</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#Color"><span class="hs-identifier hs-type">Color</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-143"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="fixedURL"><span class="annot"><span class="annottext">FixedAttr -&gt; Maybe Text
+</span><a href="Graphics.Vty.Attributes.html#fixedURL"><span class="hs-identifier hs-var hs-var">fixedURL</span></a></span></span><span>       </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span class="hs-special">)</span><span>
+</span><span id="line-144"></span><span>    </span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span> </span><span id="local-6989586621679364892"><span id="local-6989586621679364894"><span class="annot"><span class="annottext">FixedAttr -&gt; FixedAttr -&gt; Bool
+(FixedAttr -&gt; FixedAttr -&gt; Bool)
+-&gt; (FixedAttr -&gt; FixedAttr -&gt; Bool) -&gt; Eq FixedAttr
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: FixedAttr -&gt; FixedAttr -&gt; Bool
+$c/= :: FixedAttr -&gt; FixedAttr -&gt; Bool
+== :: FixedAttr -&gt; FixedAttr -&gt; Bool
+$c== :: FixedAttr -&gt; FixedAttr -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679364886"><span id="local-6989586621679364888"><span id="local-6989586621679364890"><span class="annot"><span class="annottext">Int -&gt; FixedAttr -&gt; ShowS
+[FixedAttr] -&gt; ShowS
+FixedAttr -&gt; String
+(Int -&gt; FixedAttr -&gt; ShowS)
+-&gt; (FixedAttr -&gt; String)
+-&gt; ([FixedAttr] -&gt; ShowS)
+-&gt; Show FixedAttr
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [FixedAttr] -&gt; ShowS
+$cshowList :: [FixedAttr] -&gt; ShowS
+show :: FixedAttr -&gt; String
+$cshow :: FixedAttr -&gt; String
+showsPrec :: Int -&gt; FixedAttr -&gt; ShowS
+$cshowsPrec :: Int -&gt; FixedAttr -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span> </span><span class="hs-special">)</span><span>
+</span><span id="line-145"></span><span>
+</span><span id="line-146"></span><span class="hs-comment">-- | The style and color attributes can either be the terminal defaults.</span><span>
+</span><span id="line-147"></span><span class="hs-comment">-- Or be equivalent to the previously applied style. Or be a specific</span><span>
+</span><span id="line-148"></span><span class="hs-comment">-- value.</span><span>
+</span><span id="line-149"></span><span class="hs-keyword">data</span><span> </span><span id="MaybeDefault"><span class="annot"><a href="Graphics.Vty.Attributes.html#MaybeDefault"><span class="hs-identifier hs-var">MaybeDefault</span></a></span></span><span> </span><span id="local-6989586621679364885"><span class="annot"><a href="#local-6989586621679364885"><span class="hs-identifier hs-type">v</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-150"></span><span>    </span><span id="local-6989586621679364976"><span id="Default"><span class="annot"><a href="Graphics.Vty.Attributes.html#Default"><span class="hs-identifier hs-var">Default</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#MaybeDefault"><span class="hs-identifier hs-type">MaybeDefault</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679364976"><span class="hs-identifier hs-type">v</span></a></span></span><span>
+</span><span id="line-151"></span><span>    </span><span id="local-6989586621679364883"><span id="KeepCurrent"><span class="annot"><a href="Graphics.Vty.Attributes.html#KeepCurrent"><span class="hs-identifier hs-var">KeepCurrent</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#MaybeDefault"><span class="hs-identifier hs-type">MaybeDefault</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679364883"><span class="hs-identifier hs-type">v</span></a></span></span><span>
+</span><span id="line-152"></span><span>    </span><span id="SetTo"><span class="annot"><a href="Graphics.Vty.Attributes.html#SetTo"><span class="hs-identifier hs-var">SetTo</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679364975"><span class="annot"><a href="#local-6989586621679364975"><span class="hs-identifier hs-type">v</span></a></span></span><span> </span><span class="hs-operator">.</span><span> </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="#local-6989586621679364975"><span class="hs-identifier hs-type">v</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="annot"><a href="#local-6989586621679364975"><span class="hs-identifier hs-type">v</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Read</span></span><span> </span><span class="annot"><a href="#local-6989586621679364975"><span class="hs-identifier hs-type">v</span></a></span><span> </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-glyph">!</span><span class="annot"><a href="#local-6989586621679364975"><span class="hs-identifier hs-type">v</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#MaybeDefault"><span class="hs-identifier hs-type">MaybeDefault</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679364975"><span class="hs-identifier hs-type">v</span></a></span><span>
+</span><span id="line-153"></span><span>
+</span><span id="line-154"></span><span id="local-6989586621679364880"><span class="hs-keyword">instance</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">NFData</span></span><span> </span><span class="annot"><a href="#local-6989586621679364880"><span class="hs-identifier hs-type">v</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NFData</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Graphics.Vty.Attributes.html#MaybeDefault"><span class="hs-identifier hs-type">MaybeDefault</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679364880"><span class="hs-identifier hs-type">v</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-155"></span><span>    </span><span id="local-6989586621679364878"><span class="annot"><span class="annottext">rnf :: MaybeDefault v -&gt; ()
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">rnf</span></span></span><span> </span><span class="annot"><span class="annottext">MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#Default"><span class="hs-identifier hs-var">Default</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-156"></span><span>    </span><span class="annot"><span class="hs-identifier hs-var">rnf</span></span><span> </span><span class="annot"><span class="annottext">MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#KeepCurrent"><span class="hs-identifier hs-var">KeepCurrent</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-157"></span><span>    </span><span class="annot"><span class="hs-identifier hs-var">rnf</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Graphics.Vty.Attributes.html#SetTo"><span class="hs-identifier hs-type">SetTo</span></a></span><span> </span><span id="local-6989586621679364876"><span class="annot"><span class="annottext">v
+</span><a href="#local-6989586621679364876"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">v -&gt; ()
+forall a. NFData a =&gt; a -&gt; ()
+</span><span class="hs-identifier hs-var">rnf</span></span><span> </span><span class="annot"><span class="annottext">v
+</span><a href="#local-6989586621679364876"><span class="hs-identifier hs-var">v</span></a></span></span><span>
+</span><span id="line-158"></span><span>
+</span><span id="line-159"></span><span id="local-6989586621679364871"><span id="local-6989586621679364873"><span id="local-6989586621679364875"><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="#local-6989586621679364875"><span class="hs-identifier hs-type">v</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Graphics.Vty.Attributes.html#MaybeDefault"><span class="hs-identifier hs-type">MaybeDefault</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679364875"><span class="hs-identifier hs-type">v</span></a></span><span class="hs-special">)</span></span></span></span><span>
+</span><span id="line-160"></span><span id="local-6989586621679364864"><span id="local-6989586621679364866"><span id="local-6989586621679364868"><span id="local-6989586621679364870"><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="#local-6989586621679364870"><span class="hs-identifier hs-type">v</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Graphics.Vty.Attributes.html#MaybeDefault"><span class="hs-identifier hs-type">MaybeDefault</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679364870"><span class="hs-identifier hs-type">v</span></a></span><span class="hs-special">)</span></span></span></span></span><span>
+</span><span id="line-161"></span><span id="local-6989586621679364855"><span id="local-6989586621679364857"><span id="local-6989586621679364859"><span id="local-6989586621679364861"><span id="local-6989586621679364863"><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">instance</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="#local-6989586621679364863"><span class="hs-identifier hs-type">v</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="annot"><a href="#local-6989586621679364863"><span class="hs-identifier hs-type">v</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Read</span></span><span> </span><span class="annot"><a href="#local-6989586621679364863"><span class="hs-identifier hs-type">v</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Read</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Graphics.Vty.Attributes.html#MaybeDefault"><span class="hs-identifier hs-type">MaybeDefault</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679364863"><span class="hs-identifier hs-type">v</span></a></span><span class="hs-special">)</span></span></span></span></span></span><span>
+</span><span id="line-162"></span><span>
+</span><span id="line-163"></span><span id="local-6989586621679364854"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679364849"><span id="local-6989586621679364851"><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="#local-6989586621679364854"><span class="hs-identifier hs-type">v</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Graphics.Vty.Attributes.html#MaybeDefault"><span class="hs-identifier hs-type">MaybeDefault</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679364854"><span class="hs-identifier hs-type">v</span></a></span><span class="hs-special">)</span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-164"></span><span>    </span><span class="annot"><span class="annottext">MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#Default"><span class="hs-identifier hs-var">Default</span></a></span><span>     </span><span id="local-6989586621679364848"><span class="annot"><span class="annottext">&lt;&gt; :: MaybeDefault v -&gt; MaybeDefault v -&gt; MaybeDefault v
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">&lt;&gt;</span></span></span><span> </span><span class="annot"><span class="annottext">MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#Default"><span class="hs-identifier hs-var">Default</span></a></span><span>     </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MaybeDefault v
+forall v. MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#Default"><span class="hs-identifier hs-var">Default</span></a></span><span>
+</span><span id="line-165"></span><span>    </span><span class="annot"><span class="annottext">MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#Default"><span class="hs-identifier hs-var">Default</span></a></span><span>     </span><span class="annot"><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#KeepCurrent"><span class="hs-identifier hs-var">KeepCurrent</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MaybeDefault v
+forall v. MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#Default"><span class="hs-identifier hs-var">Default</span></a></span><span>
+</span><span id="line-166"></span><span>    </span><span class="annot"><span class="annottext">MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#Default"><span class="hs-identifier hs-var">Default</span></a></span><span>     </span><span class="annot"><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#SetTo"><span class="hs-identifier hs-type">SetTo</span></a></span><span> </span><span id="local-6989586621679364847"><span class="annot"><span class="annottext">v
+</span><a href="#local-6989586621679364847"><span class="hs-identifier hs-var">v</span></a></span></span><span>     </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">v -&gt; MaybeDefault v
+forall v. (Eq v, Show v, Read v) =&gt; v -&gt; MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#SetTo"><span class="hs-identifier hs-var">SetTo</span></a></span><span> </span><span class="annot"><span class="annottext">v
+</span><a href="#local-6989586621679364847"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-167"></span><span>    </span><span class="annot"><span class="annottext">MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#KeepCurrent"><span class="hs-identifier hs-var">KeepCurrent</span></a></span><span> </span><span class="annot"><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#Default"><span class="hs-identifier hs-var">Default</span></a></span><span>     </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MaybeDefault v
+forall v. MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#Default"><span class="hs-identifier hs-var">Default</span></a></span><span>
+</span><span id="line-168"></span><span>    </span><span class="annot"><span class="annottext">MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#KeepCurrent"><span class="hs-identifier hs-var">KeepCurrent</span></a></span><span> </span><span class="annot"><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#KeepCurrent"><span class="hs-identifier hs-var">KeepCurrent</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MaybeDefault v
+forall v. MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#KeepCurrent"><span class="hs-identifier hs-var">KeepCurrent</span></a></span><span>
+</span><span id="line-169"></span><span>    </span><span class="annot"><span class="annottext">MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#KeepCurrent"><span class="hs-identifier hs-var">KeepCurrent</span></a></span><span> </span><span class="annot"><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#SetTo"><span class="hs-identifier hs-type">SetTo</span></a></span><span> </span><span id="local-6989586621679364846"><span class="annot"><span class="annottext">v
+</span><a href="#local-6989586621679364846"><span class="hs-identifier hs-var">v</span></a></span></span><span>     </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">v -&gt; MaybeDefault v
+forall v. (Eq v, Show v, Read v) =&gt; v -&gt; MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#SetTo"><span class="hs-identifier hs-var">SetTo</span></a></span><span> </span><span class="annot"><span class="annottext">v
+</span><a href="#local-6989586621679364846"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-170"></span><span>    </span><span class="annot"><a href="Graphics.Vty.Attributes.html#SetTo"><span class="hs-identifier hs-type">SetTo</span></a></span><span> </span><span id="local-6989586621679364845"><span class="annot"><span class="annottext">v
+</span><a href="#local-6989586621679364845"><span class="hs-identifier hs-var">_v</span></a></span></span><span>    </span><span class="annot"><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#Default"><span class="hs-identifier hs-var">Default</span></a></span><span>     </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MaybeDefault v
+forall v. MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#Default"><span class="hs-identifier hs-var">Default</span></a></span><span>
+</span><span id="line-171"></span><span>    </span><span class="annot"><a href="Graphics.Vty.Attributes.html#SetTo"><span class="hs-identifier hs-type">SetTo</span></a></span><span> </span><span id="local-6989586621679364844"><span class="annot"><span class="annottext">v
+</span><a href="#local-6989586621679364844"><span class="hs-identifier hs-var">v</span></a></span></span><span>     </span><span class="annot"><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#KeepCurrent"><span class="hs-identifier hs-var">KeepCurrent</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">v -&gt; MaybeDefault v
+forall v. (Eq v, Show v, Read v) =&gt; v -&gt; MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#SetTo"><span class="hs-identifier hs-var">SetTo</span></a></span><span> </span><span class="annot"><span class="annottext">v
+</span><a href="#local-6989586621679364844"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-172"></span><span>    </span><span class="annot"><a href="Graphics.Vty.Attributes.html#SetTo"><span class="hs-identifier hs-type">SetTo</span></a></span><span> </span><span class="annot"><span class="annottext">v
+</span><span class="hs-identifier">_</span></span><span>     </span><span class="annot"><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#SetTo"><span class="hs-identifier hs-type">SetTo</span></a></span><span> </span><span id="local-6989586621679364843"><span class="annot"><span class="annottext">v
+</span><a href="#local-6989586621679364843"><span class="hs-identifier hs-var">v</span></a></span></span><span>     </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">v -&gt; MaybeDefault v
+forall v. (Eq v, Show v, Read v) =&gt; v -&gt; MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#SetTo"><span class="hs-identifier hs-var">SetTo</span></a></span><span> </span><span class="annot"><span class="annottext">v
+</span><a href="#local-6989586621679364843"><span class="hs-identifier hs-var">v</span></a></span></span><span>
+</span><span id="line-173"></span><span>
+</span><span id="line-174"></span><span id="local-6989586621679364842"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679364836"><span id="local-6989586621679364838"><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="#local-6989586621679364842"><span class="hs-identifier hs-type">v</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#MaybeDefault"><span class="hs-identifier hs-type">MaybeDefault</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679364842"><span class="hs-identifier hs-type">v</span></a></span><span> </span><span class="hs-special">)</span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-175"></span><span>    </span><span id="local-6989586621679364835"><span class="annot"><span class="annottext">mempty :: MaybeDefault v
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">mempty</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MaybeDefault v
+forall v. MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#KeepCurrent"><span class="hs-identifier hs-var">KeepCurrent</span></a></span></span><span class="hs-cpp">
+#if !(MIN_VERSION_base(4,11,0))
+</span><span>    </span><span class="hs-identifier">mappend</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="hs-operator">&lt;&gt;</span><span class="hs-special">)</span><span class="hs-cpp">
+#endif
+</span><span>
+</span><span id="line-180"></span><span class="hs-comment">-- | Styles are represented as an 8 bit word. Each bit in the word is 1</span><span>
+</span><span id="line-181"></span><span class="hs-comment">-- if the style attribute assigned to that bit should be applied and 0</span><span>
+</span><span id="line-182"></span><span class="hs-comment">-- if the style attribute should not be applied.</span><span>
+</span><span id="line-183"></span><span class="hs-keyword">type</span><span> </span><span id="Style"><span class="annot"><a href="Graphics.Vty.Attributes.html#Style"><span class="hs-identifier hs-var">Style</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word8</span></span><span>
+</span><span id="line-184"></span><span>
+</span><span id="line-185"></span><span class="hs-comment">-- | Valid style attributes include:</span><span>
+</span><span id="line-186"></span><span class="hs-comment">--</span><span>
+</span><span id="line-187"></span><span class="hs-comment">--      * standout</span><span>
+</span><span id="line-188"></span><span class="hs-comment">--</span><span>
+</span><span id="line-189"></span><span class="hs-comment">--      * underline</span><span>
+</span><span id="line-190"></span><span class="hs-comment">--</span><span>
+</span><span id="line-191"></span><span class="hs-comment">--      * reverseVideo</span><span>
+</span><span id="line-192"></span><span class="hs-comment">--</span><span>
+</span><span id="line-193"></span><span class="hs-comment">--      * blink</span><span>
+</span><span id="line-194"></span><span class="hs-comment">--</span><span>
+</span><span id="line-195"></span><span class="hs-comment">--      * dim</span><span>
+</span><span id="line-196"></span><span class="hs-comment">--</span><span>
+</span><span id="line-197"></span><span class="hs-comment">--      * bold/bright</span><span>
+</span><span id="line-198"></span><span class="hs-comment">--</span><span>
+</span><span id="line-199"></span><span class="hs-comment">--      * italic</span><span>
+</span><span id="line-200"></span><span class="hs-comment">--</span><span>
+</span><span id="line-201"></span><span class="hs-comment">--      * strikethrough (via the smxx/rmxx terminfo capabilities)</span><span>
+</span><span id="line-202"></span><span class="hs-comment">--</span><span>
+</span><span id="line-203"></span><span class="hs-comment">--  (The invisible, protect, and altcharset display attributes some</span><span>
+</span><span id="line-204"></span><span class="hs-comment">--  terminals support are not supported via VTY.)</span><span>
+</span><span id="line-205"></span><span class="annot"><a href="Graphics.Vty.Attributes.html#standout"><span class="hs-identifier hs-type">standout</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#underline"><span class="hs-identifier hs-type">underline</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#reverseVideo"><span class="hs-identifier hs-type">reverseVideo</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#blink"><span class="hs-identifier hs-type">blink</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#dim"><span class="hs-identifier hs-type">dim</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#bold"><span class="hs-identifier hs-type">bold</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#italic"><span class="hs-identifier hs-type">italic</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#strikethrough"><span class="hs-identifier hs-type">strikethrough</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#Style"><span class="hs-identifier hs-type">Style</span></a></span><span>
+</span><span id="line-206"></span><span id="standout"><span class="annot"><span class="annottext">standout :: Style
+</span><a href="Graphics.Vty.Attributes.html#standout"><span class="hs-identifier hs-var hs-var">standout</span></a></span></span><span>        </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Style
+</span><span class="hs-number">0x01</span></span><span>
+</span><span id="line-207"></span><span id="underline"><span class="annot"><span class="annottext">underline :: Style
+</span><a href="Graphics.Vty.Attributes.html#underline"><span class="hs-identifier hs-var hs-var">underline</span></a></span></span><span>       </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Style
+</span><span class="hs-number">0x02</span></span><span>
+</span><span id="line-208"></span><span id="reverseVideo"><span class="annot"><span class="annottext">reverseVideo :: Style
+</span><a href="Graphics.Vty.Attributes.html#reverseVideo"><span class="hs-identifier hs-var hs-var">reverseVideo</span></a></span></span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Style
+</span><span class="hs-number">0x04</span></span><span>
+</span><span id="line-209"></span><span id="blink"><span class="annot"><span class="annottext">blink :: Style
+</span><a href="Graphics.Vty.Attributes.html#blink"><span class="hs-identifier hs-var hs-var">blink</span></a></span></span><span>           </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Style
+</span><span class="hs-number">0x08</span></span><span>
+</span><span id="line-210"></span><span id="dim"><span class="annot"><span class="annottext">dim :: Style
+</span><a href="Graphics.Vty.Attributes.html#dim"><span class="hs-identifier hs-var hs-var">dim</span></a></span></span><span>             </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Style
+</span><span class="hs-number">0x10</span></span><span>
+</span><span id="line-211"></span><span id="bold"><span class="annot"><span class="annottext">bold :: Style
+</span><a href="Graphics.Vty.Attributes.html#bold"><span class="hs-identifier hs-var hs-var">bold</span></a></span></span><span>            </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Style
+</span><span class="hs-number">0x20</span></span><span>
+</span><span id="line-212"></span><span id="italic"><span class="annot"><span class="annottext">italic :: Style
+</span><a href="Graphics.Vty.Attributes.html#italic"><span class="hs-identifier hs-var hs-var">italic</span></a></span></span><span>          </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Style
+</span><span class="hs-number">0x40</span></span><span>
+</span><span id="line-213"></span><span id="strikethrough"><span class="annot"><span class="annottext">strikethrough :: Style
+</span><a href="Graphics.Vty.Attributes.html#strikethrough"><span class="hs-identifier hs-var hs-var">strikethrough</span></a></span></span><span>   </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Style
+</span><span class="hs-number">0x80</span></span><span>
+</span><span id="line-214"></span><span>
+</span><span id="line-215"></span><span class="annot"><a href="Graphics.Vty.Attributes.html#defaultStyleMask"><span class="hs-identifier hs-type">defaultStyleMask</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#Style"><span class="hs-identifier hs-type">Style</span></a></span><span>
+</span><span id="line-216"></span><span id="defaultStyleMask"><span class="annot"><span class="annottext">defaultStyleMask :: Style
+</span><a href="Graphics.Vty.Attributes.html#defaultStyleMask"><span class="hs-identifier hs-var hs-var">defaultStyleMask</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Style
+</span><span class="hs-number">0x00</span></span><span>
+</span><span id="line-217"></span><span>
+</span><span id="line-218"></span><span class="annot"><a href="Graphics.Vty.Attributes.html#styleMask"><span class="hs-identifier hs-type">styleMask</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#Attr"><span class="hs-identifier hs-type">Attr</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word8</span></span><span>
+</span><span id="line-219"></span><span id="styleMask"><span class="annot"><span class="annottext">styleMask :: Attr -&gt; Style
+</span><a href="Graphics.Vty.Attributes.html#styleMask"><span class="hs-identifier hs-var hs-var">styleMask</span></a></span></span><span> </span><span id="local-6989586621679364834"><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679364834"><span class="hs-identifier hs-var">attr</span></a></span></span><span>
+</span><span id="line-220"></span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Attr -&gt; MaybeDefault Style
+</span><a href="Graphics.Vty.Attributes.html#attrStyle"><span class="hs-identifier hs-var hs-var">attrStyle</span></a></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679364834"><span class="hs-identifier hs-var">attr</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-221"></span><span>        </span><span class="annot"><span class="annottext">MaybeDefault Style
+</span><a href="Graphics.Vty.Attributes.html#Default"><span class="hs-identifier hs-var">Default</span></a></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Style
+</span><span class="hs-number">0</span></span><span>
+</span><span id="line-222"></span><span>        </span><span class="annot"><span class="annottext">MaybeDefault Style
+</span><a href="Graphics.Vty.Attributes.html#KeepCurrent"><span class="hs-identifier hs-var">KeepCurrent</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Style
+</span><span class="hs-number">0</span></span><span>
+</span><span id="line-223"></span><span>        </span><span class="annot"><a href="Graphics.Vty.Attributes.html#SetTo"><span class="hs-identifier hs-type">SetTo</span></a></span><span> </span><span id="local-6989586621679364833"><span class="annot"><span class="annottext">Style
+</span><a href="#local-6989586621679364833"><span class="hs-identifier hs-var">v</span></a></span></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Style
+</span><a href="#local-6989586621679364833"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-224"></span><span>
+</span><span id="line-225"></span><span class="hs-comment">-- | true if the given Style value has the specified Style set.</span><span>
+</span><span id="line-226"></span><span class="annot"><a href="Graphics.Vty.Attributes.html#hasStyle"><span class="hs-identifier hs-type">hasStyle</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#Style"><span class="hs-identifier hs-type">Style</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#Style"><span class="hs-identifier hs-type">Style</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-227"></span><span id="hasStyle"><span class="annot"><span class="annottext">hasStyle :: Style -&gt; Style -&gt; Bool
+</span><a href="Graphics.Vty.Attributes.html#hasStyle"><span class="hs-identifier hs-var hs-var">hasStyle</span></a></span></span><span> </span><span id="local-6989586621679364832"><span class="annot"><span class="annottext">Style
+</span><a href="#local-6989586621679364832"><span class="hs-identifier hs-var">s</span></a></span></span><span> </span><span id="local-6989586621679364831"><span class="annot"><span class="annottext">Style
+</span><a href="#local-6989586621679364831"><span class="hs-identifier hs-var">bitMask</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">Style
+</span><a href="#local-6989586621679364832"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="annot"><span class="annottext">Style -&gt; Style -&gt; Style
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.&amp;.</span></span><span> </span><span class="annot"><span class="annottext">Style
+</span><a href="#local-6989586621679364831"><span class="hs-identifier hs-var">bitMask</span></a></span><span> </span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Style -&gt; Style -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">/=</span></span><span> </span><span class="annot"><span class="annottext">Style
+</span><span class="hs-number">0</span></span><span>
+</span><span id="line-228"></span><span>
+</span><span id="line-229"></span><span class="hs-comment">-- | Set the foreground color of an `Attr'.</span><span>
+</span><span id="line-230"></span><span class="annot"><a href="Graphics.Vty.Attributes.html#withForeColor"><span class="hs-identifier hs-type">withForeColor</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#Attr"><span class="hs-identifier hs-type">Attr</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#Color"><span class="hs-identifier hs-type">Color</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#Attr"><span class="hs-identifier hs-type">Attr</span></a></span><span>
+</span><span id="line-231"></span><span id="withForeColor"><span class="annot"><span class="annottext">withForeColor :: Attr -&gt; Color -&gt; Attr
+</span><a href="Graphics.Vty.Attributes.html#withForeColor"><span class="hs-identifier hs-var hs-var">withForeColor</span></a></span></span><span> </span><span id="local-6989586621679364828"><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679364828"><span class="hs-identifier hs-var">attr</span></a></span></span><span> </span><span id="local-6989586621679364827"><span class="annot"><span class="annottext">Color
+</span><a href="#local-6989586621679364827"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679364828"><span class="hs-identifier hs-var">attr</span></a></span><span> </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">attrForeColor :: MaybeDefault Color
+</span><a href="Graphics.Vty.Attributes.html#attrForeColor"><span class="hs-identifier hs-var">attrForeColor</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Color -&gt; MaybeDefault Color
+forall v. (Eq v, Show v, Read v) =&gt; v -&gt; MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#SetTo"><span class="hs-identifier hs-var">SetTo</span></a></span><span> </span><span class="annot"><span class="annottext">Color
+</span><a href="#local-6989586621679364827"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="hs-special">}</span><span>
+</span><span id="line-232"></span><span>
+</span><span id="line-233"></span><span class="hs-comment">-- | Set the background color of an `Attr'.</span><span>
+</span><span id="line-234"></span><span class="annot"><a href="Graphics.Vty.Attributes.html#withBackColor"><span class="hs-identifier hs-type">withBackColor</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#Attr"><span class="hs-identifier hs-type">Attr</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#Color"><span class="hs-identifier hs-type">Color</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#Attr"><span class="hs-identifier hs-type">Attr</span></a></span><span>
+</span><span id="line-235"></span><span id="withBackColor"><span class="annot"><span class="annottext">withBackColor :: Attr -&gt; Color -&gt; Attr
+</span><a href="Graphics.Vty.Attributes.html#withBackColor"><span class="hs-identifier hs-var hs-var">withBackColor</span></a></span></span><span> </span><span id="local-6989586621679364826"><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679364826"><span class="hs-identifier hs-var">attr</span></a></span></span><span> </span><span id="local-6989586621679364825"><span class="annot"><span class="annottext">Color
+</span><a href="#local-6989586621679364825"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679364826"><span class="hs-identifier hs-var">attr</span></a></span><span> </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">attrBackColor :: MaybeDefault Color
+</span><a href="Graphics.Vty.Attributes.html#attrBackColor"><span class="hs-identifier hs-var">attrBackColor</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Color -&gt; MaybeDefault Color
+forall v. (Eq v, Show v, Read v) =&gt; v -&gt; MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#SetTo"><span class="hs-identifier hs-var">SetTo</span></a></span><span> </span><span class="annot"><span class="annottext">Color
+</span><a href="#local-6989586621679364825"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="hs-special">}</span><span>
+</span><span id="line-236"></span><span>
+</span><span id="line-237"></span><span class="hs-comment">-- | Add the given style attribute</span><span>
+</span><span id="line-238"></span><span class="annot"><a href="Graphics.Vty.Attributes.html#withStyle"><span class="hs-identifier hs-type">withStyle</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#Attr"><span class="hs-identifier hs-type">Attr</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#Style"><span class="hs-identifier hs-type">Style</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#Attr"><span class="hs-identifier hs-type">Attr</span></a></span><span>
+</span><span id="line-239"></span><span id="withStyle"><span class="annot"><span class="annottext">withStyle :: Attr -&gt; Style -&gt; Attr
+</span><a href="Graphics.Vty.Attributes.html#withStyle"><span class="hs-identifier hs-var hs-var">withStyle</span></a></span></span><span> </span><span id="local-6989586621679364824"><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679364824"><span class="hs-identifier hs-var">attr</span></a></span></span><span> </span><span class="annot"><span class="annottext">Style
+</span><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679364824"><span class="hs-identifier hs-var">attr</span></a></span><span>
+</span><span id="line-240"></span><span class="annot"><a href="Graphics.Vty.Attributes.html#withStyle"><span class="hs-identifier hs-var">withStyle</span></a></span><span> </span><span id="local-6989586621679364823"><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679364823"><span class="hs-identifier hs-var">attr</span></a></span></span><span> </span><span id="local-6989586621679364822"><span class="annot"><span class="annottext">Style
+</span><a href="#local-6989586621679364822"><span class="hs-identifier hs-var">styleFlag</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679364823"><span class="hs-identifier hs-var">attr</span></a></span><span> </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">attrStyle :: MaybeDefault Style
+</span><a href="Graphics.Vty.Attributes.html#attrStyle"><span class="hs-identifier hs-var">attrStyle</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Style -&gt; MaybeDefault Style
+forall v. (Eq v, Show v, Read v) =&gt; v -&gt; MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#SetTo"><span class="hs-identifier hs-var">SetTo</span></a></span><span> </span><span class="annot"><span class="annottext">(Style -&gt; MaybeDefault Style) -&gt; Style -&gt; MaybeDefault Style
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Attr -&gt; Style
+</span><a href="Graphics.Vty.Attributes.html#styleMask"><span class="hs-identifier hs-var">styleMask</span></a></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679364823"><span class="hs-identifier hs-var">attr</span></a></span><span> </span><span class="annot"><span class="annottext">Style -&gt; Style -&gt; Style
+forall a. Bits a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">.|.</span></span><span> </span><span class="annot"><span class="annottext">Style
+</span><a href="#local-6989586621679364822"><span class="hs-identifier hs-var">styleFlag</span></a></span><span> </span><span class="hs-special">}</span><span>
+</span><span id="line-241"></span><span>
+</span><span id="line-242"></span><span class="hs-comment">-- | Add a hyperlinked URL using the proposed [escape sequences for</span><span>
+</span><span id="line-243"></span><span class="hs-comment">-- hyperlinked</span><span>
+</span><span id="line-244"></span><span class="hs-comment">-- URLs](https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda).</span><span>
+</span><span id="line-245"></span><span class="hs-comment">-- These escape sequences are comparatively new and aren't widely</span><span>
+</span><span id="line-246"></span><span class="hs-comment">-- supported in terminal emulators yet, but most terminal emulators</span><span>
+</span><span id="line-247"></span><span class="hs-comment">-- that don't know about these sequences will ignore these sequences,</span><span>
+</span><span id="line-248"></span><span class="hs-comment">-- and therefore this should fall back sensibly. In some cases they</span><span>
+</span><span id="line-249"></span><span class="hs-comment">-- won't and this will result in garbage, so this is why hyperlinking is</span><span>
+</span><span id="line-250"></span><span class="hs-comment">-- disabled by default, in which case this combinator has no observable</span><span>
+</span><span id="line-251"></span><span class="hs-comment">-- effect. To enable it, enable 'Hyperlink' mode on your Vty output</span><span>
+</span><span id="line-252"></span><span class="hs-comment">-- interface.</span><span>
+</span><span id="line-253"></span><span class="annot"><a href="Graphics.Vty.Attributes.html#withURL"><span class="hs-identifier hs-type">withURL</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#Attr"><span class="hs-identifier hs-type">Attr</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#Attr"><span class="hs-identifier hs-type">Attr</span></a></span><span>
+</span><span id="line-254"></span><span id="withURL"><span class="annot"><span class="annottext">withURL :: Attr -&gt; Text -&gt; Attr
+</span><a href="Graphics.Vty.Attributes.html#withURL"><span class="hs-identifier hs-var hs-var">withURL</span></a></span></span><span> </span><span id="local-6989586621679364820"><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679364820"><span class="hs-identifier hs-var">attr</span></a></span></span><span> </span><span id="local-6989586621679364819"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679364819"><span class="hs-identifier hs-var">url</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679364820"><span class="hs-identifier hs-var">attr</span></a></span><span> </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">attrURL :: MaybeDefault Text
+</span><a href="Graphics.Vty.Attributes.html#attrURL"><span class="hs-identifier hs-var">attrURL</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; MaybeDefault Text
+forall v. (Eq v, Show v, Read v) =&gt; v -&gt; MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#SetTo"><span class="hs-identifier hs-var">SetTo</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679364819"><span class="hs-identifier hs-var">url</span></a></span><span> </span><span class="hs-special">}</span><span>
+</span><span id="line-255"></span><span>
+</span><span id="line-256"></span><span class="hs-comment">-- | Sets the style, background color and foreground color to the</span><span>
+</span><span id="line-257"></span><span class="hs-comment">-- default values for the terminal. There is no easy way to determine</span><span>
+</span><span id="line-258"></span><span class="hs-comment">-- what the default background and foreground colors are.</span><span>
+</span><span id="line-259"></span><span class="annot"><a href="Graphics.Vty.Attributes.html#defAttr"><span class="hs-identifier hs-type">defAttr</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#Attr"><span class="hs-identifier hs-type">Attr</span></a></span><span>
+</span><span id="line-260"></span><span id="defAttr"><span class="annot"><span class="annottext">defAttr :: Attr
+</span><a href="Graphics.Vty.Attributes.html#defAttr"><span class="hs-identifier hs-var hs-var">defAttr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MaybeDefault Style
+-&gt; MaybeDefault Color
+-&gt; MaybeDefault Color
+-&gt; MaybeDefault Text
+-&gt; Attr
+</span><a href="Graphics.Vty.Attributes.html#Attr"><span class="hs-identifier hs-var">Attr</span></a></span><span> </span><span class="annot"><span class="annottext">MaybeDefault Style
+forall v. MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#Default"><span class="hs-identifier hs-var">Default</span></a></span><span> </span><span class="annot"><span class="annottext">MaybeDefault Color
+forall v. MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#Default"><span class="hs-identifier hs-var">Default</span></a></span><span> </span><span class="annot"><span class="annottext">MaybeDefault Color
+forall v. MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#Default"><span class="hs-identifier hs-var">Default</span></a></span><span> </span><span class="annot"><span class="annottext">MaybeDefault Text
+forall v. MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#Default"><span class="hs-identifier hs-var">Default</span></a></span><span>
+</span><span id="line-261"></span><span>
+</span><span id="line-262"></span><span class="hs-comment">-- | Keeps the style, background color and foreground color that was</span><span>
+</span><span id="line-263"></span><span class="hs-comment">-- previously set. Used to override some part of the previous style.</span><span>
+</span><span id="line-264"></span><span class="hs-comment">--</span><span>
+</span><span id="line-265"></span><span class="hs-comment">-- EG: current_style `withForeColor` brightMagenta</span><span>
+</span><span id="line-266"></span><span class="hs-comment">--</span><span>
+</span><span id="line-267"></span><span class="hs-comment">-- Would be the currently applied style (be it underline, bold, etc) but</span><span>
+</span><span id="line-268"></span><span class="hs-comment">-- with the foreground color set to brightMagenta.</span><span>
+</span><span id="line-269"></span><span class="annot"><a href="Graphics.Vty.Attributes.html#currentAttr"><span class="hs-identifier hs-type">currentAttr</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#Attr"><span class="hs-identifier hs-type">Attr</span></a></span><span>
+</span><span id="line-270"></span><span id="currentAttr"><span class="annot"><span class="annottext">currentAttr :: Attr
+</span><a href="Graphics.Vty.Attributes.html#currentAttr"><span class="hs-identifier hs-var hs-var">currentAttr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MaybeDefault Style
+-&gt; MaybeDefault Color
+-&gt; MaybeDefault Color
+-&gt; MaybeDefault Text
+-&gt; Attr
+</span><a href="Graphics.Vty.Attributes.html#Attr"><span class="hs-identifier hs-var">Attr</span></a></span><span> </span><span class="annot"><span class="annottext">MaybeDefault Style
+forall v. MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#KeepCurrent"><span class="hs-identifier hs-var">KeepCurrent</span></a></span><span> </span><span class="annot"><span class="annottext">MaybeDefault Color
+forall v. MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#KeepCurrent"><span class="hs-identifier hs-var">KeepCurrent</span></a></span><span> </span><span class="annot"><span class="annottext">MaybeDefault Color
+forall v. MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#KeepCurrent"><span class="hs-identifier hs-var">KeepCurrent</span></a></span><span> </span><span class="annot"><span class="annottext">MaybeDefault Text
+forall v. MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#KeepCurrent"><span class="hs-identifier hs-var">KeepCurrent</span></a></span><span>
+</span><span id="line-271"></span></pre></body></html>

@@ -1,0 +1,959 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- Copyright Corey O'Connor</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE BangPatterns #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE RankNTypes #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE ExistentialQuantification #-}</span><span>
+</span><span id="line-5"></span><span class="hs-pragma">{-# LANGUAGE GADTs #-}</span><span>
+</span><span id="line-6"></span><span class="hs-pragma">{-# LANGUAGE FlexibleContexts #-}</span><span>
+</span><span id="line-7"></span><span class="hs-comment">-- | This module provides an abstract interface for performing terminal</span><span>
+</span><span id="line-8"></span><span class="hs-comment">-- output. The only user-facing part of this API is 'Output'.</span><span>
+</span><span id="line-9"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Graphics.Vty.Output.Interface</span><span>
+</span><span id="line-10"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Graphics.Vty.Output.Interface.html#Output"><span class="hs-identifier">Output</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Output.Interface.html#AssumedState"><span class="hs-identifier">AssumedState</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-12"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Output.Interface.html#DisplayContext"><span class="hs-identifier">DisplayContext</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Output.Interface.html#Mode"><span class="hs-identifier">Mode</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-14"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Output.Interface.html#displayContext"><span class="hs-identifier">displayContext</span></a></span><span>
+</span><span id="line-15"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Output.Interface.html#outputPicture"><span class="hs-identifier">outputPicture</span></a></span><span>
+</span><span id="line-16"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Output.Interface.html#initialAssumedState"><span class="hs-identifier">initialAssumedState</span></a></span><span>
+</span><span id="line-17"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Output.Interface.html#limitAttrForDisplay"><span class="hs-identifier">limitAttrForDisplay</span></a></span><span>
+</span><span id="line-18"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-19"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-20"></span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html"><span class="hs-identifier">Graphics.Vty.Attributes</span></a></span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html"><span class="hs-identifier">Graphics.Vty.Image</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Graphics.Vty.Image.html#DisplayRegion"><span class="hs-identifier">DisplayRegion</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html#regionHeight"><span class="hs-identifier">regionHeight</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Graphics.Vty.Picture.html"><span class="hs-identifier">Graphics.Vty.Picture</span></a></span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Graphics.Vty.PictureToSpans.html"><span class="hs-identifier">Graphics.Vty.PictureToSpans</span></a></span><span>
+</span><span id="line-25"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Graphics.Vty.Span.html"><span class="hs-identifier">Graphics.Vty.Span</span></a></span><span>
+</span><span id="line-26"></span><span>
+</span><span id="line-27"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html"><span class="hs-identifier">Graphics.Vty.DisplayAttributes</span></a></span><span>
+</span><span id="line-28"></span><span>
+</span><span id="line-29"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Blaze.ByteString.Builder</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Write</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">writeToByteString</span></span><span class="hs-special">)</span><span>
+</span><span id="line-30"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Blaze.ByteString.Builder.ByteString</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">writeByteString</span></span><span class="hs-special">)</span><span>
+</span><span id="line-31"></span><span>
+</span><span id="line-32"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.ByteString</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">BS</span></span><span>
+</span><span id="line-33"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.IORef</span></span><span>
+</span><span id="line-34"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Text.Encoding</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">T</span></span><span>
+</span><span id="line-35"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Text.Lazy</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">TL</span></span><span>
+</span><span id="line-36"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Vector</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Vector</span></span><span>
+</span><span id="line-37"></span><span>
+</span><span id="line-38"></span><span class="hs-comment">-- | Modal terminal features that can be enabled and disabled.</span><span>
+</span><span id="line-39"></span><span class="hs-keyword">data</span><span> </span><span id="Mode"><span class="annot"><a href="Graphics.Vty.Output.Interface.html#Mode"><span class="hs-identifier hs-var">Mode</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="Mouse"><span class="annot"><a href="Graphics.Vty.Output.Interface.html#Mouse"><span class="hs-identifier hs-var">Mouse</span></a></span></span><span>
+</span><span id="line-40"></span><span>          </span><span class="hs-comment">-- ^ Mouse mode (whether the terminal is configured to provide</span><span>
+</span><span id="line-41"></span><span>          </span><span class="hs-comment">-- mouse input events)</span><span>
+</span><span id="line-42"></span><span>          </span><span class="hs-glyph">|</span><span> </span><span id="BracketedPaste"><span class="annot"><a href="Graphics.Vty.Output.Interface.html#BracketedPaste"><span class="hs-identifier hs-var">BracketedPaste</span></a></span></span><span>
+</span><span id="line-43"></span><span>          </span><span class="hs-comment">-- ^ Paste mode (whether the terminal is configured to provide</span><span>
+</span><span id="line-44"></span><span>          </span><span class="hs-comment">-- events on OS pastes)</span><span>
+</span><span id="line-45"></span><span>          </span><span class="hs-glyph">|</span><span> </span><span id="Focus"><span class="annot"><a href="Graphics.Vty.Output.Interface.html#Focus"><span class="hs-identifier hs-var">Focus</span></a></span></span><span>
+</span><span id="line-46"></span><span>          </span><span class="hs-comment">-- ^ Focus-in/focus-out events (whether the terminal is</span><span>
+</span><span id="line-47"></span><span>          </span><span class="hs-comment">-- configured to provide events on focus change)</span><span>
+</span><span id="line-48"></span><span>          </span><span class="hs-glyph">|</span><span> </span><span id="Hyperlink"><span class="annot"><a href="Graphics.Vty.Output.Interface.html#Hyperlink"><span class="hs-identifier hs-var">Hyperlink</span></a></span></span><span>
+</span><span id="line-49"></span><span>          </span><span class="hs-comment">-- ^ Hyperlink mode via the 'withURL' attribute modifier (see</span><span>
+</span><span id="line-50"></span><span>          </span><span class="hs-comment">-- https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda).</span><span>
+</span><span id="line-51"></span><span>          </span><span class="hs-comment">-- Note that this may not work gracefully in all terminal</span><span>
+</span><span id="line-52"></span><span>          </span><span class="hs-comment">-- emulators so be sure to test this mode with the terminals</span><span>
+</span><span id="line-53"></span><span>          </span><span class="hs-comment">-- you intend to support. It is off by default.</span><span>
+</span><span id="line-54"></span><span>          </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679368212"><span id="local-6989586621679368214"><span class="annot"><span class="annottext">Mode -&gt; Mode -&gt; Bool
+(Mode -&gt; Mode -&gt; Bool) -&gt; (Mode -&gt; Mode -&gt; Bool) -&gt; Eq Mode
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: Mode -&gt; Mode -&gt; Bool
+$c/= :: Mode -&gt; Mode -&gt; Bool
+== :: Mode -&gt; Mode -&gt; Bool
+$c== :: Mode -&gt; Mode -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679368203"><span id="local-6989586621679368205"><span id="local-6989586621679368207"><span id="local-6989586621679368209"><span class="annot"><span class="annottext">ReadPrec [Mode]
+ReadPrec Mode
+Int -&gt; ReadS Mode
+ReadS [Mode]
+(Int -&gt; ReadS Mode)
+-&gt; ReadS [Mode] -&gt; ReadPrec Mode -&gt; ReadPrec [Mode] -&gt; Read Mode
+forall a.
+(Int -&gt; ReadS a)
+-&gt; ReadS [a] -&gt; ReadPrec a -&gt; ReadPrec [a] -&gt; Read a
+readListPrec :: ReadPrec [Mode]
+$creadListPrec :: ReadPrec [Mode]
+readPrec :: ReadPrec Mode
+$creadPrec :: ReadPrec Mode
+readList :: ReadS [Mode]
+$creadList :: ReadS [Mode]
+readsPrec :: Int -&gt; ReadS Mode
+$creadsPrec :: Int -&gt; ReadS Mode
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Read</span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679368196"><span id="local-6989586621679368198"><span id="local-6989586621679368200"><span class="annot"><span class="annottext">Int -&gt; Mode -&gt; ShowS
+[Mode] -&gt; ShowS
+Mode -&gt; String
+(Int -&gt; Mode -&gt; ShowS)
+-&gt; (Mode -&gt; String) -&gt; ([Mode] -&gt; ShowS) -&gt; Show Mode
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [Mode] -&gt; ShowS
+$cshowList :: [Mode] -&gt; ShowS
+show :: Mode -&gt; String
+$cshow :: Mode -&gt; String
+showsPrec :: Int -&gt; Mode -&gt; ShowS
+$cshowsPrec :: Int -&gt; Mode -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-55"></span><span>
+</span><span id="line-56"></span><span class="hs-comment">-- | The Vty terminal output interface.</span><span>
+</span><span id="line-57"></span><span class="hs-keyword">data</span><span> </span><span id="Output"><span class="annot"><a href="Graphics.Vty.Output.Interface.html#Output"><span class="hs-identifier hs-var">Output</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="Output"><span class="annot"><a href="Graphics.Vty.Output.Interface.html#Output"><span class="hs-identifier hs-var">Output</span></a></span></span><span>
+</span><span id="line-58"></span><span>    </span><span class="hs-special">{</span><span> </span><span class="hs-comment">-- | Text identifier for the output device. Used for debugging.</span><span>
+</span><span id="line-59"></span><span>      </span><span id="terminalID"><span class="annot"><span class="annottext">Output -&gt; String
+</span><a href="Graphics.Vty.Output.Interface.html#terminalID"><span class="hs-identifier hs-var hs-var">terminalID</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
+</span><span id="line-60"></span><span>      </span><span class="hs-comment">-- | Release the terminal just prior to application exit and reset</span><span>
+</span><span id="line-61"></span><span>      </span><span class="hs-comment">-- it to its state prior to application startup.</span><span>
+</span><span id="line-62"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="releaseTerminal"><span class="annot"><span class="annottext">Output -&gt; IO ()
+</span><a href="Graphics.Vty.Output.Interface.html#releaseTerminal"><span class="hs-identifier hs-var hs-var">releaseTerminal</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-63"></span><span>      </span><span class="hs-comment">-- | Clear the display and initialize the terminal to some initial</span><span>
+</span><span id="line-64"></span><span>      </span><span class="hs-comment">-- display state.</span><span>
+</span><span id="line-65"></span><span>      </span><span class="hs-comment">--</span><span>
+</span><span id="line-66"></span><span>      </span><span class="hs-comment">-- The expectation of a program is that the display starts in some</span><span>
+</span><span id="line-67"></span><span>      </span><span class="hs-comment">-- The initial state. initial state would consist of fixed values:</span><span>
+</span><span id="line-68"></span><span>      </span><span class="hs-comment">--</span><span>
+</span><span id="line-69"></span><span>      </span><span class="hs-comment">--  - cursor at top left</span><span>
+</span><span id="line-70"></span><span>      </span><span class="hs-comment">--  - UTF-8 character encoding</span><span>
+</span><span id="line-71"></span><span>      </span><span class="hs-comment">--  - drawing characteristics are the default</span><span>
+</span><span id="line-72"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="reserveDisplay"><span class="annot"><span class="annottext">Output -&gt; IO ()
+</span><a href="Graphics.Vty.Output.Interface.html#reserveDisplay"><span class="hs-identifier hs-var hs-var">reserveDisplay</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-73"></span><span>      </span><span class="hs-comment">-- | Return the display to the state before `reserveDisplay` If no</span><span>
+</span><span id="line-74"></span><span>      </span><span class="hs-comment">-- previous state then set the display state to the initial state.</span><span>
+</span><span id="line-75"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="releaseDisplay"><span class="annot"><span class="annottext">Output -&gt; IO ()
+</span><a href="Graphics.Vty.Output.Interface.html#releaseDisplay"><span class="hs-identifier hs-var hs-var">releaseDisplay</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-76"></span><span>      </span><span class="hs-comment">-- | Sets the current display bounds (width, height).</span><span>
+</span><span id="line-77"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="setDisplayBounds"><span class="annot"><span class="annottext">Output -&gt; (Int, Int) -&gt; IO ()
+</span><a href="Graphics.Vty.Output.Interface.html#setDisplayBounds"><span class="hs-identifier hs-var hs-var">setDisplayBounds</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-78"></span><span>      </span><span class="hs-comment">-- | Returns the current display bounds.</span><span>
+</span><span id="line-79"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="displayBounds"><span class="annot"><span class="annottext">Output -&gt; IO (Int, Int)
+</span><a href="Graphics.Vty.Output.Interface.html#displayBounds"><span class="hs-identifier hs-var hs-var">displayBounds</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html#DisplayRegion"><span class="hs-identifier hs-type">DisplayRegion</span></a></span><span>
+</span><span id="line-80"></span><span>      </span><span class="hs-comment">-- | Output the bytestring to the terminal device.</span><span>
+</span><span id="line-81"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="outputByteBuffer"><span class="annot"><span class="annottext">Output -&gt; ByteString -&gt; IO ()
+</span><a href="Graphics.Vty.Output.Interface.html#outputByteBuffer"><span class="hs-identifier hs-var hs-var">outputByteBuffer</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">BS.ByteString</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-82"></span><span>      </span><span class="hs-comment">-- | Specifies the maximum number of colors supported by the</span><span>
+</span><span id="line-83"></span><span>      </span><span class="hs-comment">-- context.</span><span>
+</span><span id="line-84"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="contextColorCount"><span class="annot"><span class="annottext">Output -&gt; Int
+</span><a href="Graphics.Vty.Output.Interface.html#contextColorCount"><span class="hs-identifier hs-var hs-var">contextColorCount</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-85"></span><span>      </span><span class="hs-comment">-- | Specifies whether the cursor can be shown / hidden.</span><span>
+</span><span id="line-86"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="supportsCursorVisibility"><span class="annot"><span class="annottext">Output -&gt; Bool
+</span><a href="Graphics.Vty.Output.Interface.html#supportsCursorVisibility"><span class="hs-identifier hs-var hs-var">supportsCursorVisibility</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-87"></span><span>      </span><span class="hs-comment">-- | Indicates support for terminal modes for this output device.</span><span>
+</span><span id="line-88"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="supportsMode"><span class="annot"><span class="annottext">Output -&gt; Mode -&gt; Bool
+</span><a href="Graphics.Vty.Output.Interface.html#supportsMode"><span class="hs-identifier hs-var hs-var">supportsMode</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Output.Interface.html#Mode"><span class="hs-identifier hs-type">Mode</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-89"></span><span>      </span><span class="hs-comment">-- | Enables or disables a mode (does nothing if the mode is</span><span>
+</span><span id="line-90"></span><span>      </span><span class="hs-comment">-- unsupported).</span><span>
+</span><span id="line-91"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="setMode"><span class="annot"><span class="annottext">Output -&gt; Mode -&gt; Bool -&gt; IO ()
+</span><a href="Graphics.Vty.Output.Interface.html#setMode"><span class="hs-identifier hs-var hs-var">setMode</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Output.Interface.html#Mode"><span class="hs-identifier hs-type">Mode</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-92"></span><span>      </span><span class="hs-comment">-- | Returns whether a mode is enabled.</span><span>
+</span><span id="line-93"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="getModeStatus"><span class="annot"><span class="annottext">Output -&gt; Mode -&gt; IO Bool
+</span><a href="Graphics.Vty.Output.Interface.html#getModeStatus"><span class="hs-identifier hs-var hs-var">getModeStatus</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Output.Interface.html#Mode"><span class="hs-identifier hs-type">Mode</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-94"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="assumedStateRef"><span class="annot"><span class="annottext">Output -&gt; IORef AssumedState
+</span><a href="Graphics.Vty.Output.Interface.html#assumedStateRef"><span class="hs-identifier hs-var hs-var">assumedStateRef</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IORef</span></span><span> </span><span class="annot"><a href="Graphics.Vty.Output.Interface.html#AssumedState"><span class="hs-identifier hs-type">AssumedState</span></a></span><span>
+</span><span id="line-95"></span><span>      </span><span class="hs-comment">-- | Acquire display access to the given region of the display.</span><span>
+</span><span id="line-96"></span><span>      </span><span class="hs-comment">-- Currently all regions have the upper left corner of (0,0) and</span><span>
+</span><span id="line-97"></span><span>      </span><span class="hs-comment">-- the lower right corner at (max displayWidth providedWidth, max</span><span>
+</span><span id="line-98"></span><span>      </span><span class="hs-comment">-- displayHeight providedHeight)</span><span>
+</span><span id="line-99"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="mkDisplayContext"><span class="annot"><span class="annottext">Output -&gt; Output -&gt; (Int, Int) -&gt; IO DisplayContext
+</span><a href="Graphics.Vty.Output.Interface.html#mkDisplayContext"><span class="hs-identifier hs-var hs-var">mkDisplayContext</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Output.Interface.html#Output"><span class="hs-identifier hs-type">Output</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html#DisplayRegion"><span class="hs-identifier hs-type">DisplayRegion</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="annot"><a href="Graphics.Vty.Output.Interface.html#DisplayContext"><span class="hs-identifier hs-type">DisplayContext</span></a></span><span>
+</span><span id="line-100"></span><span>      </span><span class="hs-comment">-- | Ring the terminal bell if supported.</span><span>
+</span><span id="line-101"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="ringTerminalBell"><span class="annot"><span class="annottext">Output -&gt; IO ()
+</span><a href="Graphics.Vty.Output.Interface.html#ringTerminalBell"><span class="hs-identifier hs-var hs-var">ringTerminalBell</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-102"></span><span>      </span><span class="hs-comment">-- | Returns whether the terminal has an audio bell feature.</span><span>
+</span><span id="line-103"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="supportsBell"><span class="annot"><span class="annottext">Output -&gt; IO Bool
+</span><a href="Graphics.Vty.Output.Interface.html#supportsBell"><span class="hs-identifier hs-var hs-var">supportsBell</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-104"></span><span>      </span><span class="hs-comment">-- | Returns whether the terminal supports italicized text.</span><span>
+</span><span id="line-105"></span><span>      </span><span class="hs-comment">--</span><span>
+</span><span id="line-106"></span><span>      </span><span class="hs-comment">-- This is terminal-dependent and should make a best effort to</span><span>
+</span><span id="line-107"></span><span>      </span><span class="hs-comment">-- determine whether this feature is supported, but even if the</span><span>
+</span><span id="line-108"></span><span>      </span><span class="hs-comment">-- terminal advertises support (e.g. via terminfo) that might not</span><span>
+</span><span id="line-109"></span><span>      </span><span class="hs-comment">-- be a reliable indicator of whether the feature will work as</span><span>
+</span><span id="line-110"></span><span>      </span><span class="hs-comment">-- desired.</span><span>
+</span><span id="line-111"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="supportsItalics"><span class="annot"><span class="annottext">Output -&gt; IO Bool
+</span><a href="Graphics.Vty.Output.Interface.html#supportsItalics"><span class="hs-identifier hs-var hs-var">supportsItalics</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-112"></span><span>      </span><span class="hs-comment">-- | Returns whether the terminal supports strikethrough text.</span><span>
+</span><span id="line-113"></span><span>      </span><span class="hs-comment">--</span><span>
+</span><span id="line-114"></span><span>      </span><span class="hs-comment">-- This is terminal-dependent and should make a best effort to</span><span>
+</span><span id="line-115"></span><span>      </span><span class="hs-comment">-- determine whether this feature is supported, but even if the</span><span>
+</span><span id="line-116"></span><span>      </span><span class="hs-comment">-- terminal advertises support (e.g. via terminfo) that might not</span><span>
+</span><span id="line-117"></span><span>      </span><span class="hs-comment">-- be a reliable indicator of whether the feature will work as</span><span>
+</span><span id="line-118"></span><span>      </span><span class="hs-comment">-- desired.</span><span>
+</span><span id="line-119"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="supportsStrikethrough"><span class="annot"><span class="annottext">Output -&gt; IO Bool
+</span><a href="Graphics.Vty.Output.Interface.html#supportsStrikethrough"><span class="hs-identifier hs-var hs-var">supportsStrikethrough</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-120"></span><span>    </span><span class="hs-special">}</span><span>
+</span><span id="line-121"></span><span>
+</span><span id="line-122"></span><span class="annot"><a href="Graphics.Vty.Output.Interface.html#displayContext"><span class="hs-identifier hs-type">displayContext</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Output.Interface.html#Output"><span class="hs-identifier hs-type">Output</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html#DisplayRegion"><span class="hs-identifier hs-type">DisplayRegion</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="annot"><a href="Graphics.Vty.Output.Interface.html#DisplayContext"><span class="hs-identifier hs-type">DisplayContext</span></a></span><span>
+</span><span id="line-123"></span><span id="displayContext"><span class="annot"><span class="annottext">displayContext :: Output -&gt; (Int, Int) -&gt; IO DisplayContext
+</span><a href="Graphics.Vty.Output.Interface.html#displayContext"><span class="hs-identifier hs-var hs-var">displayContext</span></a></span></span><span> </span><span id="local-6989586621679368175"><span class="annot"><span class="annottext">Output
+</span><a href="#local-6989586621679368175"><span class="hs-identifier hs-var">t</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Output -&gt; Output -&gt; (Int, Int) -&gt; IO DisplayContext
+</span><a href="Graphics.Vty.Output.Interface.html#mkDisplayContext"><span class="hs-identifier hs-var hs-var">mkDisplayContext</span></a></span><span> </span><span class="annot"><span class="annottext">Output
+</span><a href="#local-6989586621679368175"><span class="hs-identifier hs-var">t</span></a></span><span> </span><span class="annot"><span class="annottext">Output
+</span><a href="#local-6989586621679368175"><span class="hs-identifier hs-var">t</span></a></span><span>
+</span><span id="line-124"></span><span>
+</span><span id="line-125"></span><span class="hs-keyword">data</span><span> </span><span id="AssumedState"><span class="annot"><a href="Graphics.Vty.Output.Interface.html#AssumedState"><span class="hs-identifier hs-var">AssumedState</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="AssumedState"><span class="annot"><a href="Graphics.Vty.Output.Interface.html#AssumedState"><span class="hs-identifier hs-var">AssumedState</span></a></span></span><span>
+</span><span id="line-126"></span><span>    </span><span class="hs-special">{</span><span> </span><span id="prevFattr"><span class="annot"><span class="annottext">AssumedState -&gt; Maybe FixedAttr
+</span><a href="Graphics.Vty.Output.Interface.html#prevFattr"><span class="hs-identifier hs-var hs-var">prevFattr</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#FixedAttr"><span class="hs-identifier hs-type">FixedAttr</span></a></span><span>
+</span><span id="line-127"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="prevOutputOps"><span class="annot"><span class="annottext">AssumedState -&gt; Maybe DisplayOps
+</span><a href="Graphics.Vty.Output.Interface.html#prevOutputOps"><span class="hs-identifier hs-var hs-var">prevOutputOps</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Graphics.Vty.Span.html#DisplayOps"><span class="hs-identifier hs-type">DisplayOps</span></a></span><span>
+</span><span id="line-128"></span><span>    </span><span class="hs-special">}</span><span>
+</span><span id="line-129"></span><span>
+</span><span id="line-130"></span><span class="annot"><a href="Graphics.Vty.Output.Interface.html#initialAssumedState"><span class="hs-identifier hs-type">initialAssumedState</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Output.Interface.html#AssumedState"><span class="hs-identifier hs-type">AssumedState</span></a></span><span>
+</span><span id="line-131"></span><span id="initialAssumedState"><span class="annot"><span class="annottext">initialAssumedState :: AssumedState
+</span><a href="Graphics.Vty.Output.Interface.html#initialAssumedState"><span class="hs-identifier hs-var hs-var">initialAssumedState</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe FixedAttr -&gt; Maybe DisplayOps -&gt; AssumedState
+</span><a href="Graphics.Vty.Output.Interface.html#AssumedState"><span class="hs-identifier hs-var">AssumedState</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe FixedAttr
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="annot"><span class="annottext">Maybe DisplayOps
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-132"></span><span>
+</span><span id="line-133"></span><span class="hs-keyword">data</span><span> </span><span id="DisplayContext"><span class="annot"><a href="Graphics.Vty.Output.Interface.html#DisplayContext"><span class="hs-identifier hs-var">DisplayContext</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="DisplayContext"><span class="annot"><a href="Graphics.Vty.Output.Interface.html#DisplayContext"><span class="hs-identifier hs-var">DisplayContext</span></a></span></span><span>
+</span><span id="line-134"></span><span>    </span><span class="hs-special">{</span><span> </span><span id="contextDevice"><span class="annot"><span class="annottext">DisplayContext -&gt; Output
+</span><a href="Graphics.Vty.Output.Interface.html#contextDevice"><span class="hs-identifier hs-var hs-var">contextDevice</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Output.Interface.html#Output"><span class="hs-identifier hs-type">Output</span></a></span><span>
+</span><span id="line-135"></span><span>    </span><span class="hs-comment">-- | Provide the bounds of the display context.</span><span>
+</span><span id="line-136"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="contextRegion"><span class="annot"><span class="annottext">DisplayContext -&gt; (Int, Int)
+</span><a href="Graphics.Vty.Output.Interface.html#contextRegion"><span class="hs-identifier hs-var hs-var">contextRegion</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html#DisplayRegion"><span class="hs-identifier hs-type">DisplayRegion</span></a></span><span>
+</span><span id="line-137"></span><span>    </span><span class="hs-comment">-- | Sets the output position to the specified row and column</span><span>
+</span><span id="line-138"></span><span>    </span><span class="hs-comment">-- where the number of bytes required for the control codes can be</span><span>
+</span><span id="line-139"></span><span>    </span><span class="hs-comment">-- specified seperate from the actual byte sequence.</span><span>
+</span><span id="line-140"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="writeMoveCursor"><span class="annot"><span class="annottext">DisplayContext -&gt; Int -&gt; Int -&gt; Write
+</span><a href="Graphics.Vty.Output.Interface.html#writeMoveCursor"><span class="hs-identifier hs-var hs-var">writeMoveCursor</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Write</span></span><span>
+</span><span id="line-141"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="writeShowCursor"><span class="annot"><span class="annottext">DisplayContext -&gt; Write
+</span><a href="Graphics.Vty.Output.Interface.html#writeShowCursor"><span class="hs-identifier hs-var hs-var">writeShowCursor</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Write</span></span><span>
+</span><span id="line-142"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="writeHideCursor"><span class="annot"><span class="annottext">DisplayContext -&gt; Write
+</span><a href="Graphics.Vty.Output.Interface.html#writeHideCursor"><span class="hs-identifier hs-var hs-var">writeHideCursor</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Write</span></span><span>
+</span><span id="line-143"></span><span>    </span><span class="hs-comment">-- Ensure that the specified output attributes will be applied to</span><span>
+</span><span id="line-144"></span><span>    </span><span class="hs-comment">-- all the following text until the next output attribute change</span><span>
+</span><span id="line-145"></span><span>    </span><span class="hs-comment">-- where the number of bytes required for the control codes can be</span><span>
+</span><span id="line-146"></span><span>    </span><span class="hs-comment">-- specified seperately from the actual byte sequence. The required</span><span>
+</span><span id="line-147"></span><span>    </span><span class="hs-comment">-- number of bytes must be at least the maximum number of bytes</span><span>
+</span><span id="line-148"></span><span>    </span><span class="hs-comment">-- required by any attribute changes. The serialization equations</span><span>
+</span><span id="line-149"></span><span>    </span><span class="hs-comment">-- must provide the ptr to the next byte to be specified in the</span><span>
+</span><span id="line-150"></span><span>    </span><span class="hs-comment">-- output buffer.</span><span>
+</span><span id="line-151"></span><span>    </span><span class="hs-comment">--</span><span>
+</span><span id="line-152"></span><span>    </span><span class="hs-comment">-- The currently applied display attributes are provided as well.</span><span>
+</span><span id="line-153"></span><span>    </span><span class="hs-comment">-- The Attr data type can specify the style or color should not be</span><span>
+</span><span id="line-154"></span><span>    </span><span class="hs-comment">-- changed from the currently applied display attributes. In order</span><span>
+</span><span id="line-155"></span><span>    </span><span class="hs-comment">-- to support this the currently applied display attributes are</span><span>
+</span><span id="line-156"></span><span>    </span><span class="hs-comment">-- required. In addition it may be possible to optimize the state</span><span>
+</span><span id="line-157"></span><span>    </span><span class="hs-comment">-- changes based off the currently applied display attributes.</span><span>
+</span><span id="line-158"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="writeSetAttr"><span class="annot"><span class="annottext">DisplayContext
+-&gt; Bool -&gt; FixedAttr -&gt; Attr -&gt; DisplayAttrDiff -&gt; Write
+</span><a href="Graphics.Vty.Output.Interface.html#writeSetAttr"><span class="hs-identifier hs-var hs-var">writeSetAttr</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#FixedAttr"><span class="hs-identifier hs-type">FixedAttr</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#Attr"><span class="hs-identifier hs-type">Attr</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.DisplayAttributes.html#DisplayAttrDiff"><span class="hs-identifier hs-type">DisplayAttrDiff</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Write</span></span><span>
+</span><span id="line-159"></span><span>    </span><span class="hs-comment">-- | Reset the display attributes to the default display attributes.</span><span>
+</span><span id="line-160"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="writeDefaultAttr"><span class="annot"><span class="annottext">DisplayContext -&gt; Bool -&gt; Write
+</span><a href="Graphics.Vty.Output.Interface.html#writeDefaultAttr"><span class="hs-identifier hs-var hs-var">writeDefaultAttr</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Write</span></span><span>
+</span><span id="line-161"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="writeRowEnd"><span class="annot"><span class="annottext">DisplayContext -&gt; Write
+</span><a href="Graphics.Vty.Output.Interface.html#writeRowEnd"><span class="hs-identifier hs-var hs-var">writeRowEnd</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Write</span></span><span>
+</span><span id="line-162"></span><span>    </span><span class="hs-comment">-- | See `Graphics.Vty.Output.XTermColor.inlineHack`</span><span>
+</span><span id="line-163"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="inlineHack"><span class="annot"><span class="annottext">DisplayContext -&gt; IO ()
+</span><a href="Graphics.Vty.Output.Interface.html#inlineHack"><span class="hs-identifier hs-var hs-var">inlineHack</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-164"></span><span>    </span><span class="hs-special">}</span><span>
+</span><span id="line-165"></span><span>
+</span><span id="line-166"></span><span class="hs-comment">-- | All terminals serialize UTF8 text to the terminal device exactly as</span><span>
+</span><span id="line-167"></span><span class="hs-comment">-- serialized in memory.</span><span>
+</span><span id="line-168"></span><span class="annot"><a href="Graphics.Vty.Output.Interface.html#writeUtf8Text"><span class="hs-identifier hs-type">writeUtf8Text</span></a></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">BS.ByteString</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Write</span></span><span>
+</span><span id="line-169"></span><span id="writeUtf8Text"><span class="annot"><span class="annottext">writeUtf8Text :: ByteString -&gt; Write
+</span><a href="Graphics.Vty.Output.Interface.html#writeUtf8Text"><span class="hs-identifier hs-var hs-var">writeUtf8Text</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; Write
+</span><span class="hs-identifier hs-var">writeByteString</span></span><span>
+</span><span id="line-170"></span><span>
+</span><span id="line-171"></span><span class="hs-comment">-- | Displays the given `Picture`.</span><span>
+</span><span id="line-172"></span><span class="hs-comment">--</span><span>
+</span><span id="line-173"></span><span class="hs-comment">--      1. The image is cropped to the display size.</span><span>
+</span><span id="line-174"></span><span class="hs-comment">--</span><span>
+</span><span id="line-175"></span><span class="hs-comment">--      2. Converted into a sequence of attribute changes and text spans.</span><span>
+</span><span id="line-176"></span><span class="hs-comment">--</span><span>
+</span><span id="line-177"></span><span class="hs-comment">--      3. The cursor is hidden.</span><span>
+</span><span id="line-178"></span><span class="hs-comment">--</span><span>
+</span><span id="line-179"></span><span class="hs-comment">--      4. Serialized to the display.</span><span>
+</span><span id="line-180"></span><span class="hs-comment">--</span><span>
+</span><span id="line-181"></span><span class="hs-comment">--      5. The cursor is then shown and positioned or kept hidden.</span><span>
+</span><span id="line-182"></span><span class="annot"><a href="Graphics.Vty.Output.Interface.html#outputPicture"><span class="hs-identifier hs-type">outputPicture</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Output.Interface.html#DisplayContext"><span class="hs-identifier hs-type">DisplayContext</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Picture.html#Picture"><span class="hs-identifier hs-type">Picture</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-183"></span><span id="outputPicture"><span class="annot"><span class="annottext">outputPicture :: DisplayContext -&gt; Picture -&gt; IO ()
+</span><a href="Graphics.Vty.Output.Interface.html#outputPicture"><span class="hs-identifier hs-var hs-var">outputPicture</span></a></span></span><span> </span><span id="local-6989586621679368160"><span class="annot"><span class="annottext">DisplayContext
+</span><a href="#local-6989586621679368160"><span class="hs-identifier hs-var">dc</span></a></span></span><span> </span><span id="local-6989586621679368159"><span class="annot"><span class="annottext">Picture
+</span><a href="#local-6989586621679368159"><span class="hs-identifier hs-var">pic</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-184"></span><span>    </span><span id="local-6989586621679368158"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679368158"><span class="hs-identifier hs-var">urlsEnabled</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Output -&gt; Mode -&gt; IO Bool
+</span><a href="Graphics.Vty.Output.Interface.html#getModeStatus"><span class="hs-identifier hs-var hs-var">getModeStatus</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DisplayContext -&gt; Output
+</span><a href="Graphics.Vty.Output.Interface.html#contextDevice"><span class="hs-identifier hs-var hs-var">contextDevice</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayContext
+</span><a href="#local-6989586621679368160"><span class="hs-identifier hs-var">dc</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Mode
+</span><a href="Graphics.Vty.Output.Interface.html#Hyperlink"><span class="hs-identifier hs-var">Hyperlink</span></a></span><span>
+</span><span id="line-185"></span><span>    </span><span id="local-6989586621679368157"><span class="annot"><span class="annottext">AssumedState
+</span><a href="#local-6989586621679368157"><span class="hs-keyword hs-var">as</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">IORef AssumedState -&gt; IO AssumedState
+forall a. IORef a -&gt; IO a
+</span><span class="hs-identifier hs-var">readIORef</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Output -&gt; IORef AssumedState
+</span><a href="Graphics.Vty.Output.Interface.html#assumedStateRef"><span class="hs-identifier hs-var hs-var">assumedStateRef</span></a></span><span> </span><span class="annot"><span class="annottext">(Output -&gt; IORef AssumedState) -&gt; Output -&gt; IORef AssumedState
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">DisplayContext -&gt; Output
+</span><a href="Graphics.Vty.Output.Interface.html#contextDevice"><span class="hs-identifier hs-var hs-var">contextDevice</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayContext
+</span><a href="#local-6989586621679368160"><span class="hs-identifier hs-var">dc</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-186"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679368155"><span class="annot"><span class="annottext">manipCursor :: Bool
+</span><a href="#local-6989586621679368155"><span class="hs-identifier hs-var hs-var">manipCursor</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Output -&gt; Bool
+</span><a href="Graphics.Vty.Output.Interface.html#supportsCursorVisibility"><span class="hs-identifier hs-var hs-var">supportsCursorVisibility</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DisplayContext -&gt; Output
+</span><a href="Graphics.Vty.Output.Interface.html#contextDevice"><span class="hs-identifier hs-var hs-var">contextDevice</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayContext
+</span><a href="#local-6989586621679368160"><span class="hs-identifier hs-var">dc</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-187"></span><span>        </span><span id="local-6989586621679368154"><span class="annot"><span class="annottext">r :: (Int, Int)
+</span><a href="#local-6989586621679368154"><span class="hs-identifier hs-var hs-var">r</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DisplayContext -&gt; (Int, Int)
+</span><a href="Graphics.Vty.Output.Interface.html#contextRegion"><span class="hs-identifier hs-var hs-var">contextRegion</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayContext
+</span><a href="#local-6989586621679368160"><span class="hs-identifier hs-var">dc</span></a></span><span>
+</span><span id="line-188"></span><span>        </span><span id="local-6989586621679368153"><span class="annot"><span class="annottext">ops :: DisplayOps
+</span><a href="#local-6989586621679368153"><span class="hs-identifier hs-var hs-var">ops</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Picture -&gt; (Int, Int) -&gt; DisplayOps
+</span><a href="Graphics.Vty.PictureToSpans.html#displayOpsForPic"><span class="hs-identifier hs-var">displayOpsForPic</span></a></span><span> </span><span class="annot"><span class="annottext">Picture
+</span><a href="#local-6989586621679368159"><span class="hs-identifier hs-var">pic</span></a></span><span> </span><span class="annot"><span class="annottext">(Int, Int)
+</span><a href="#local-6989586621679368154"><span class="hs-identifier hs-var">r</span></a></span><span>
+</span><span id="line-189"></span><span>        </span><span id="local-6989586621679368151"><span class="annot"><span class="annottext">initialAttr :: FixedAttr
+</span><a href="#local-6989586621679368151"><span class="hs-identifier hs-var hs-var">initialAttr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Style -&gt; Maybe Color -&gt; Maybe Color -&gt; Maybe Text -&gt; FixedAttr
+</span><a href="Graphics.Vty.Attributes.html#FixedAttr"><span class="hs-identifier hs-var">FixedAttr</span></a></span><span> </span><span class="annot"><span class="annottext">Style
+</span><a href="Graphics.Vty.Attributes.html#defaultStyleMask"><span class="hs-identifier hs-var">defaultStyleMask</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe Color
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="annot"><span class="annottext">Maybe Color
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="annot"><span class="annottext">Maybe Text
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-190"></span><span>        </span><span class="hs-comment">-- Diff the previous output against the requested output.</span><span>
+</span><span id="line-191"></span><span>        </span><span class="hs-comment">-- Differences are currently on a per-row basis.</span><span>
+</span><span id="line-192"></span><span>        </span><span id="local-6989586621679368148"><span class="annot"><span class="annottext">[Bool]
+</span><a href="#local-6989586621679368148"><span class="hs-identifier hs-var">diffs</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">AssumedState -&gt; Maybe DisplayOps
+</span><a href="Graphics.Vty.Output.Interface.html#prevOutputOps"><span class="hs-identifier hs-var hs-var">prevOutputOps</span></a></span><span> </span><span class="annot"><span class="annottext">AssumedState
+</span><a href="#local-6989586621679368157"><span class="hs-keyword hs-var">as</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-193"></span><span>            </span><span class="annot"><span class="annottext">Maybe DisplayOps
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Bool -&gt; [Bool]
+forall a. Int -&gt; a -&gt; [a]
+</span><span class="hs-identifier hs-var">replicate</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int
+forall a. Enum a =&gt; a -&gt; Int
+</span><span class="hs-identifier hs-var">fromEnum</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Int) -&gt; Int -&gt; Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(Int, Int) -&gt; Int
+</span><a href="Graphics.Vty.Image.html#regionHeight"><span class="hs-identifier hs-var">regionHeight</span></a></span><span> </span><span class="annot"><span class="annottext">((Int, Int) -&gt; Int) -&gt; (Int, Int) -&gt; Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">DisplayOps -&gt; (Int, Int)
+</span><a href="Graphics.Vty.Span.html#affectedRegion"><span class="hs-identifier hs-var">affectedRegion</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayOps
+</span><a href="#local-6989586621679368153"><span class="hs-identifier hs-var">ops</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span>
+</span><span id="line-194"></span><span>            </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679368144"><span class="annot"><span class="annottext">DisplayOps
+</span><a href="#local-6989586621679368144"><span class="hs-identifier hs-var">previousOps</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">DisplayOps -&gt; (Int, Int)
+</span><a href="Graphics.Vty.Span.html#affectedRegion"><span class="hs-identifier hs-var">affectedRegion</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayOps
+</span><a href="#local-6989586621679368144"><span class="hs-identifier hs-var">previousOps</span></a></span><span> </span><span class="annot"><span class="annottext">(Int, Int) -&gt; (Int, Int) -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">/=</span></span><span> </span><span class="annot"><span class="annottext">DisplayOps -&gt; (Int, Int)
+</span><a href="Graphics.Vty.Span.html#affectedRegion"><span class="hs-identifier hs-var">affectedRegion</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayOps
+</span><a href="#local-6989586621679368153"><span class="hs-identifier hs-var">ops</span></a></span><span>
+</span><span id="line-195"></span><span>                </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Bool -&gt; [Bool]
+forall a. Int -&gt; a -&gt; [a]
+</span><span class="hs-identifier hs-var">replicate</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DisplayOps -&gt; Int
+</span><a href="Graphics.Vty.Span.html#displayOpsRows"><span class="hs-identifier hs-var">displayOpsRows</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayOps
+</span><a href="#local-6989586621679368153"><span class="hs-identifier hs-var">ops</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span>
+</span><span id="line-196"></span><span>                </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Vector Bool -&gt; [Bool]
+forall a. Vector a -&gt; [a]
+</span><span class="hs-identifier hs-var">Vector.toList</span></span><span> </span><span class="annot"><span class="annottext">(Vector Bool -&gt; [Bool]) -&gt; Vector Bool -&gt; [Bool]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(SpanOps -&gt; SpanOps -&gt; Bool)
+-&gt; DisplayOps -&gt; DisplayOps -&gt; Vector Bool
+forall a b c. (a -&gt; b -&gt; c) -&gt; Vector a -&gt; Vector b -&gt; Vector c
+</span><span class="hs-identifier hs-var">Vector.zipWith</span></span><span> </span><span class="annot"><span class="annottext">SpanOps -&gt; SpanOps -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">(/=)</span></span><span> </span><span class="annot"><span class="annottext">DisplayOps
+</span><a href="#local-6989586621679368144"><span class="hs-identifier hs-var">previousOps</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayOps
+</span><a href="#local-6989586621679368153"><span class="hs-identifier hs-var">ops</span></a></span><span>
+</span><span id="line-197"></span><span>        </span><span class="hs-comment">-- build the Write corresponding to the output image</span><span>
+</span><span id="line-198"></span><span>        </span><span id="local-6989586621679368139"><span class="annot"><span class="annottext">out :: Write
+</span><a href="#local-6989586621679368139"><span class="hs-identifier hs-var hs-var">out</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679368155"><span class="hs-identifier hs-var">manipCursor</span></a></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">DisplayContext -&gt; Write
+</span><a href="Graphics.Vty.Output.Interface.html#writeHideCursor"><span class="hs-identifier hs-var hs-var">writeHideCursor</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayContext
+</span><a href="#local-6989586621679368160"><span class="hs-identifier hs-var">dc</span></a></span><span> </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Write
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span class="hs-special">)</span><span>
+</span><span id="line-199"></span><span>              </span><span class="annot"><span class="annottext">Write -&gt; Write -&gt; Write
+forall a. Monoid a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">`mappend`</span></span><span> </span><span class="annot"><span class="annottext">Bool
+-&gt; DisplayContext -&gt; FixedAttr -&gt; [Bool] -&gt; DisplayOps -&gt; Write
+</span><a href="Graphics.Vty.Output.Interface.html#writeOutputOps"><span class="hs-identifier hs-var">writeOutputOps</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679368158"><span class="hs-identifier hs-var">urlsEnabled</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayContext
+</span><a href="#local-6989586621679368160"><span class="hs-identifier hs-var">dc</span></a></span><span> </span><span class="annot"><span class="annottext">FixedAttr
+</span><a href="#local-6989586621679368151"><span class="hs-identifier hs-var">initialAttr</span></a></span><span> </span><span class="annot"><span class="annottext">[Bool]
+</span><a href="#local-6989586621679368148"><span class="hs-identifier hs-var">diffs</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayOps
+</span><a href="#local-6989586621679368153"><span class="hs-identifier hs-var">ops</span></a></span><span>
+</span><span id="line-200"></span><span>              </span><span class="annot"><span class="annottext">Write -&gt; Write -&gt; Write
+forall a. Monoid a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">`mappend`</span></span><span>
+</span><span id="line-201"></span><span>                </span><span class="hs-special">(</span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679368137"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368137"><span class="hs-identifier hs-var">w</span></a></span></span><span class="hs-special">,</span><span id="local-6989586621679368136"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368136"><span class="hs-identifier hs-var">h</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DisplayContext -&gt; (Int, Int)
+</span><a href="Graphics.Vty.Output.Interface.html#contextRegion"><span class="hs-identifier hs-var hs-var">contextRegion</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayContext
+</span><a href="#local-6989586621679368160"><span class="hs-identifier hs-var">dc</span></a></span><span>
+</span><span id="line-202"></span><span>                     </span><span id="local-6989586621679368135"><span class="annot"><span class="annottext">clampX :: Int -&gt; Int
+</span><a href="#local-6989586621679368135"><span class="hs-identifier hs-var hs-var">clampX</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">max</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Int) -&gt; (Int -&gt; Int) -&gt; Int -&gt; Int
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">min</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368137"><span class="hs-identifier hs-var">w</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-203"></span><span>                     </span><span id="local-6989586621679368131"><span class="annot"><span class="annottext">clampY :: Int -&gt; Int
+</span><a href="#local-6989586621679368131"><span class="hs-identifier hs-var hs-var">clampY</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">max</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Int) -&gt; (Int -&gt; Int) -&gt; Int -&gt; Int
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">min</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368136"><span class="hs-identifier hs-var">h</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">in</span><span>
+</span><span id="line-204"></span><span>                 </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Picture -&gt; Cursor
+</span><a href="Graphics.Vty.Picture.html#picCursor"><span class="hs-identifier hs-var hs-var">picCursor</span></a></span><span> </span><span class="annot"><span class="annottext">Picture
+</span><a href="#local-6989586621679368159"><span class="hs-identifier hs-var">pic</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-205"></span><span>                    </span><span class="annot"><span class="annottext">Cursor
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool
+</span><span class="hs-identifier hs-var">not</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679368155"><span class="hs-identifier hs-var">manipCursor</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Write
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span>
+</span><span id="line-206"></span><span>                    </span><span class="annot"><span class="annottext">Cursor
+</span><a href="Graphics.Vty.Picture.html#NoCursor"><span class="hs-identifier hs-var">NoCursor</span></a></span><span>            </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Write
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span>
+</span><span id="line-207"></span><span>                    </span><span class="annot"><a href="Graphics.Vty.Picture.html#AbsoluteCursor"><span class="hs-identifier hs-type">AbsoluteCursor</span></a></span><span> </span><span id="local-6989586621679368126"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368126"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span id="local-6989586621679368125"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368125"><span class="hs-identifier hs-var">y</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-208"></span><span>                        </span><span class="annot"><span class="annottext">DisplayContext -&gt; Write
+</span><a href="Graphics.Vty.Output.Interface.html#writeShowCursor"><span class="hs-identifier hs-var hs-var">writeShowCursor</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayContext
+</span><a href="#local-6989586621679368160"><span class="hs-identifier hs-var">dc</span></a></span><span> </span><span class="annot"><span class="annottext">Write -&gt; Write -&gt; Write
+forall a. Monoid a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">`mappend`</span></span><span>
+</span><span id="line-209"></span><span>                        </span><span class="annot"><span class="annottext">DisplayContext -&gt; Int -&gt; Int -&gt; Write
+</span><a href="Graphics.Vty.Output.Interface.html#writeMoveCursor"><span class="hs-identifier hs-var hs-var">writeMoveCursor</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayContext
+</span><a href="#local-6989586621679368160"><span class="hs-identifier hs-var">dc</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int
+</span><a href="#local-6989586621679368135"><span class="hs-identifier hs-var">clampX</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368126"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int
+</span><a href="#local-6989586621679368131"><span class="hs-identifier hs-var">clampY</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368125"><span class="hs-identifier hs-var">y</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-210"></span><span>                    </span><span class="annot"><a href="Graphics.Vty.Picture.html#Cursor"><span class="hs-identifier hs-type">Cursor</span></a></span><span> </span><span id="local-6989586621679368123"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368123"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span id="local-6989586621679368122"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368122"><span class="hs-identifier hs-var">y</span></a></span></span><span>           </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-211"></span><span>                        </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679368121"><span class="annot"><span class="annottext">m :: CursorOutputMap
+</span><a href="#local-6989586621679368121"><span class="hs-identifier hs-var hs-var">m</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DisplayOps -&gt; Cursor -&gt; CursorOutputMap
+</span><a href="Graphics.Vty.Output.Interface.html#cursorOutputMap"><span class="hs-identifier hs-var">cursorOutputMap</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayOps
+</span><a href="#local-6989586621679368153"><span class="hs-identifier hs-var">ops</span></a></span><span> </span><span class="annot"><span class="annottext">(Cursor -&gt; CursorOutputMap) -&gt; Cursor -&gt; CursorOutputMap
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Picture -&gt; Cursor
+</span><a href="Graphics.Vty.Picture.html#picCursor"><span class="hs-identifier hs-var hs-var">picCursor</span></a></span><span> </span><span class="annot"><span class="annottext">Picture
+</span><a href="#local-6989586621679368159"><span class="hs-identifier hs-var">pic</span></a></span><span>
+</span><span id="line-212"></span><span>                            </span><span class="hs-special">(</span><span id="local-6989586621679368119"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368119"><span class="hs-identifier hs-var">ox</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679368118"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368118"><span class="hs-identifier hs-var">oy</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CursorOutputMap -&gt; (Int, Int) -&gt; (Int, Int)
+</span><a href="Graphics.Vty.Output.Interface.html#charToOutputPos"><span class="hs-identifier hs-var hs-var">charToOutputPos</span></a></span><span> </span><span class="annot"><span class="annottext">CursorOutputMap
+</span><a href="#local-6989586621679368121"><span class="hs-identifier hs-var">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int
+</span><a href="#local-6989586621679368135"><span class="hs-identifier hs-var">clampX</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368123"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int
+</span><a href="#local-6989586621679368131"><span class="hs-identifier hs-var">clampY</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368122"><span class="hs-identifier hs-var">y</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-213"></span><span>                        </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">DisplayContext -&gt; Write
+</span><a href="Graphics.Vty.Output.Interface.html#writeShowCursor"><span class="hs-identifier hs-var hs-var">writeShowCursor</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayContext
+</span><a href="#local-6989586621679368160"><span class="hs-identifier hs-var">dc</span></a></span><span> </span><span class="annot"><span class="annottext">Write -&gt; Write -&gt; Write
+forall a. Monoid a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">`mappend`</span></span><span>
+</span><span id="line-214"></span><span>                           </span><span class="annot"><span class="annottext">DisplayContext -&gt; Int -&gt; Int -&gt; Write
+</span><a href="Graphics.Vty.Output.Interface.html#writeMoveCursor"><span class="hs-identifier hs-var hs-var">writeMoveCursor</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayContext
+</span><a href="#local-6989586621679368160"><span class="hs-identifier hs-var">dc</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int
+</span><a href="#local-6989586621679368135"><span class="hs-identifier hs-var">clampX</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368119"><span class="hs-identifier hs-var">ox</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int
+</span><a href="#local-6989586621679368131"><span class="hs-identifier hs-var">clampY</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368118"><span class="hs-identifier hs-var">oy</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-215"></span><span>                </span><span class="hs-special">)</span><span>
+</span><span id="line-216"></span><span>    </span><span class="hs-comment">-- ... then serialize</span><span>
+</span><span id="line-217"></span><span>    </span><span class="annot"><span class="annottext">Output -&gt; ByteString -&gt; IO ()
+</span><a href="Graphics.Vty.Output.Interface.html#outputByteBuffer"><span class="hs-identifier hs-var hs-var">outputByteBuffer</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DisplayContext -&gt; Output
+</span><a href="Graphics.Vty.Output.Interface.html#contextDevice"><span class="hs-identifier hs-var hs-var">contextDevice</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayContext
+</span><a href="#local-6989586621679368160"><span class="hs-identifier hs-var">dc</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Write -&gt; ByteString
+</span><span class="hs-identifier hs-var">writeToByteString</span></span><span> </span><span class="annot"><span class="annottext">Write
+</span><a href="#local-6989586621679368139"><span class="hs-identifier hs-var">out</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-218"></span><span>    </span><span class="hs-comment">-- Cache the output spans.</span><span>
+</span><span id="line-219"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679368116"><span class="annot"><span class="annottext">as' :: AssumedState
+</span><a href="#local-6989586621679368116"><span class="hs-identifier hs-var hs-var">as'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">AssumedState
+</span><a href="#local-6989586621679368157"><span class="hs-keyword hs-var">as</span></a></span><span> </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">prevOutputOps :: Maybe DisplayOps
+</span><a href="Graphics.Vty.Output.Interface.html#prevOutputOps"><span class="hs-identifier hs-var">prevOutputOps</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DisplayOps -&gt; Maybe DisplayOps
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">DisplayOps
+</span><a href="#local-6989586621679368153"><span class="hs-identifier hs-var">ops</span></a></span><span> </span><span class="hs-special">}</span><span>
+</span><span id="line-220"></span><span>    </span><span class="annot"><span class="annottext">IORef AssumedState -&gt; AssumedState -&gt; IO ()
+forall a. IORef a -&gt; a -&gt; IO ()
+</span><span class="hs-identifier hs-var">writeIORef</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Output -&gt; IORef AssumedState
+</span><a href="Graphics.Vty.Output.Interface.html#assumedStateRef"><span class="hs-identifier hs-var hs-var">assumedStateRef</span></a></span><span> </span><span class="annot"><span class="annottext">(Output -&gt; IORef AssumedState) -&gt; Output -&gt; IORef AssumedState
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">DisplayContext -&gt; Output
+</span><a href="Graphics.Vty.Output.Interface.html#contextDevice"><span class="hs-identifier hs-var hs-var">contextDevice</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayContext
+</span><a href="#local-6989586621679368160"><span class="hs-identifier hs-var">dc</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">AssumedState
+</span><a href="#local-6989586621679368116"><span class="hs-identifier hs-var">as'</span></a></span><span>
+</span><span id="line-221"></span><span>
+</span><span id="line-222"></span><span class="annot"><a href="Graphics.Vty.Output.Interface.html#writeOutputOps"><span class="hs-identifier hs-type">writeOutputOps</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Output.Interface.html#DisplayContext"><span class="hs-identifier hs-type">DisplayContext</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#FixedAttr"><span class="hs-identifier hs-type">FixedAttr</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Span.html#DisplayOps"><span class="hs-identifier hs-type">DisplayOps</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Write</span></span><span>
+</span><span id="line-223"></span><span id="writeOutputOps"><span class="annot"><span class="annottext">writeOutputOps :: Bool
+-&gt; DisplayContext -&gt; FixedAttr -&gt; [Bool] -&gt; DisplayOps -&gt; Write
+</span><a href="Graphics.Vty.Output.Interface.html#writeOutputOps"><span class="hs-identifier hs-var hs-var">writeOutputOps</span></a></span></span><span> </span><span id="local-6989586621679368114"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679368114"><span class="hs-identifier hs-var">urlsEnabled</span></a></span></span><span> </span><span id="local-6989586621679368113"><span class="annot"><span class="annottext">DisplayContext
+</span><a href="#local-6989586621679368113"><span class="hs-identifier hs-var">dc</span></a></span></span><span> </span><span id="local-6989586621679368112"><span class="annot"><span class="annottext">FixedAttr
+</span><a href="#local-6989586621679368112"><span class="hs-identifier hs-var">initialAttr</span></a></span></span><span> </span><span id="local-6989586621679368111"><span class="annot"><span class="annottext">[Bool]
+</span><a href="#local-6989586621679368111"><span class="hs-identifier hs-var">diffs</span></a></span></span><span> </span><span id="local-6989586621679368110"><span class="annot"><span class="annottext">DisplayOps
+</span><a href="#local-6989586621679368110"><span class="hs-identifier hs-var">ops</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-224"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-identifier">_</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679368109"><span class="annot"><span class="annottext">Write
+</span><a href="#local-6989586621679368109"><span class="hs-identifier hs-var">out</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">[Bool]
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">((Int, Write, [Bool]) -&gt; SpanOps -&gt; (Int, Write, [Bool]))
+-&gt; (Int, Write, [Bool]) -&gt; DisplayOps -&gt; (Int, Write, [Bool])
+forall a b. (a -&gt; b -&gt; a) -&gt; a -&gt; Vector b -&gt; a
+</span><span class="hs-identifier hs-var">Vector.foldl'</span></span><span> </span><span class="annot"><span class="annottext">(Int, Write, [Bool]) -&gt; SpanOps -&gt; (Int, Write, [Bool])
+</span><a href="#local-6989586621679368107"><span class="hs-identifier hs-var">writeOutputOps'</span></a></span><span>
+</span><span id="line-225"></span><span>                                       </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Write
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">[Bool]
+</span><a href="#local-6989586621679368111"><span class="hs-identifier hs-var">diffs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-226"></span><span>                                       </span><span class="annot"><span class="annottext">DisplayOps
+</span><a href="#local-6989586621679368110"><span class="hs-identifier hs-var">ops</span></a></span><span>
+</span><span id="line-227"></span><span>    </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">Write
+</span><a href="#local-6989586621679368109"><span class="hs-identifier hs-var">out</span></a></span><span>
+</span><span id="line-228"></span><span>    </span><span class="hs-keyword">where</span><span>
+</span><span id="line-229"></span><span>        </span><span id="local-6989586621679368107"><span class="annot"><span class="annottext">writeOutputOps' :: (Int, Write, [Bool]) -&gt; SpanOps -&gt; (Int, Write, [Bool])
+</span><a href="#local-6989586621679368107"><span class="hs-identifier hs-var hs-var">writeOutputOps'</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679368106"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368106"><span class="hs-identifier hs-var">y</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679368105"><span class="annot"><span class="annottext">Write
+</span><a href="#local-6989586621679368105"><span class="hs-identifier hs-var">out</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679368104"><span class="annot"><span class="annottext">[Bool]
+</span><a href="#local-6989586621679368104"><span class="hs-identifier hs-var">diffs'</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679368103"><span class="annot"><span class="annottext">SpanOps
+</span><a href="#local-6989586621679368103"><span class="hs-identifier hs-var">spanOps</span></a></span></span><span>
+</span><span id="line-230"></span><span>            </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679368102"><span class="annot"><span class="annottext">spanOut :: Write
+</span><a href="#local-6989586621679368102"><span class="hs-identifier hs-var hs-var">spanOut</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; DisplayContext -&gt; Int -&gt; FixedAttr -&gt; SpanOps -&gt; Write
+</span><a href="Graphics.Vty.Output.Interface.html#writeSpanOps"><span class="hs-identifier hs-var">writeSpanOps</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679368114"><span class="hs-identifier hs-var">urlsEnabled</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayContext
+</span><a href="#local-6989586621679368113"><span class="hs-identifier hs-var">dc</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368106"><span class="hs-identifier hs-var">y</span></a></span><span> </span><span class="annot"><span class="annottext">FixedAttr
+</span><a href="#local-6989586621679368112"><span class="hs-identifier hs-var">initialAttr</span></a></span><span> </span><span class="annot"><span class="annottext">SpanOps
+</span><a href="#local-6989586621679368103"><span class="hs-identifier hs-var">spanOps</span></a></span><span>
+</span><span id="line-231"></span><span>                  </span><span id="local-6989586621679368100"><span class="annot"><span class="annottext">out' :: Write
+</span><a href="#local-6989586621679368100"><span class="hs-identifier hs-var hs-var">out'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Write
+</span><a href="#local-6989586621679368105"><span class="hs-identifier hs-var">out</span></a></span><span> </span><span class="annot"><span class="annottext">Write -&gt; Write -&gt; Write
+forall a. Monoid a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">`mappend`</span></span><span> </span><span class="annot"><span class="annottext">Write
+</span><a href="#local-6989586621679368102"><span class="hs-identifier hs-var">spanOut</span></a></span><span>
+</span><span id="line-232"></span><span>              </span><span class="hs-keyword">in</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368106"><span class="hs-identifier hs-var">y</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Write
+</span><a href="#local-6989586621679368100"><span class="hs-identifier hs-var">out'</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">[Bool]
+</span><a href="#local-6989586621679368104"><span class="hs-identifier hs-var">diffs'</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-233"></span><span>        </span><span class="annot"><a href="#local-6989586621679368107"><span class="hs-identifier hs-var">writeOutputOps'</span></a></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679368098"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368098"><span class="hs-identifier hs-var">y</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679368097"><span class="annot"><span class="annottext">Write
+</span><a href="#local-6989586621679368097"><span class="hs-identifier hs-var">out</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span> </span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span> </span><span id="local-6989586621679368096"><span class="annot"><span class="annottext">[Bool]
+</span><a href="#local-6989586621679368096"><span class="hs-identifier hs-var">diffs'</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679368095"><span class="annot"><span class="annottext">SpanOps
+</span><a href="#local-6989586621679368095"><span class="hs-identifier hs-var">_spanOps</span></a></span></span><span>
+</span><span id="line-234"></span><span>            </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368098"><span class="hs-identifier hs-var">y</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Write
+</span><a href="#local-6989586621679368097"><span class="hs-identifier hs-var">out</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">[Bool]
+</span><a href="#local-6989586621679368096"><span class="hs-identifier hs-var">diffs'</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-235"></span><span>        </span><span class="annot"><a href="#local-6989586621679368107"><span class="hs-identifier hs-var">writeOutputOps'</span></a></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679368094"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368094"><span class="hs-identifier hs-var">_y</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679368093"><span class="annot"><span class="annottext">Write
+</span><a href="#local-6989586621679368093"><span class="hs-identifier hs-var">_out</span></a></span></span><span class="hs-special">,</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span id="local-6989586621679368092"><span class="annot"><span class="annottext">SpanOps
+</span><a href="#local-6989586621679368092"><span class="hs-identifier hs-var">_spanOps</span></a></span></span><span>
+</span><span id="line-236"></span><span>            </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String -&gt; (Int, Write, [Bool])
+forall a. HasCallStack =&gt; String -&gt; a
+</span><span class="hs-identifier hs-var">error</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;vty - output spans without a corresponding diff.&quot;</span></span><span>
+</span><span id="line-237"></span><span>
+</span><span id="line-238"></span><span class="annot"><a href="Graphics.Vty.Output.Interface.html#writeSpanOps"><span class="hs-identifier hs-type">writeSpanOps</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Output.Interface.html#DisplayContext"><span class="hs-identifier hs-type">DisplayContext</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#FixedAttr"><span class="hs-identifier hs-type">FixedAttr</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Span.html#SpanOps"><span class="hs-identifier hs-type">SpanOps</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Write</span></span><span>
+</span><span id="line-239"></span><span id="writeSpanOps"><span class="annot"><span class="annottext">writeSpanOps :: Bool -&gt; DisplayContext -&gt; Int -&gt; FixedAttr -&gt; SpanOps -&gt; Write
+</span><a href="Graphics.Vty.Output.Interface.html#writeSpanOps"><span class="hs-identifier hs-var hs-var">writeSpanOps</span></a></span></span><span> </span><span id="local-6989586621679368090"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679368090"><span class="hs-identifier hs-var">urlsEnabled</span></a></span></span><span> </span><span id="local-6989586621679368089"><span class="annot"><span class="annottext">DisplayContext
+</span><a href="#local-6989586621679368089"><span class="hs-identifier hs-var">dc</span></a></span></span><span> </span><span id="local-6989586621679368088"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368088"><span class="hs-identifier hs-var">y</span></a></span></span><span> </span><span id="local-6989586621679368087"><span class="annot"><span class="annottext">FixedAttr
+</span><a href="#local-6989586621679368087"><span class="hs-identifier hs-var">initialAttr</span></a></span></span><span> </span><span id="local-6989586621679368086"><span class="annot"><span class="annottext">SpanOps
+</span><a href="#local-6989586621679368086"><span class="hs-identifier hs-var">spanOps</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-240"></span><span>    </span><span class="hs-comment">-- The first operation is to set the cursor to the start of the row</span><span>
+</span><span id="line-241"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679368085"><span class="annot"><span class="annottext">start :: Write
+</span><a href="#local-6989586621679368085"><span class="hs-identifier hs-var hs-var">start</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DisplayContext -&gt; Int -&gt; Int -&gt; Write
+</span><a href="Graphics.Vty.Output.Interface.html#writeMoveCursor"><span class="hs-identifier hs-var hs-var">writeMoveCursor</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayContext
+</span><a href="#local-6989586621679368089"><span class="hs-identifier hs-var">dc</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368088"><span class="hs-identifier hs-var">y</span></a></span><span> </span><span class="annot"><span class="annottext">Write -&gt; Write -&gt; Write
+forall a. Monoid a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">`mappend`</span></span><span> </span><span class="annot"><span class="annottext">DisplayContext -&gt; Bool -&gt; Write
+</span><a href="Graphics.Vty.Output.Interface.html#writeDefaultAttr"><span class="hs-identifier hs-var hs-var">writeDefaultAttr</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayContext
+</span><a href="#local-6989586621679368089"><span class="hs-identifier hs-var">dc</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679368090"><span class="hs-identifier hs-var">urlsEnabled</span></a></span><span>
+</span><span id="line-242"></span><span>    </span><span class="hs-comment">-- then the span ops are serialized in the order specified</span><span>
+</span><span id="line-243"></span><span>    </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">(Write, FixedAttr) -&gt; Write
+forall a b. (a, b) -&gt; a
+</span><span class="hs-identifier hs-var">fst</span></span><span> </span><span class="annot"><span class="annottext">((Write, FixedAttr) -&gt; Write) -&gt; (Write, FixedAttr) -&gt; Write
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">((Write, FixedAttr) -&gt; SpanOp -&gt; (Write, FixedAttr))
+-&gt; (Write, FixedAttr) -&gt; SpanOps -&gt; (Write, FixedAttr)
+forall a b. (a -&gt; b -&gt; a) -&gt; a -&gt; Vector b -&gt; a
+</span><span class="hs-identifier hs-var">Vector.foldl'</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679368084"><span class="annot"><span class="annottext">Write
+</span><a href="#local-6989586621679368084"><span class="hs-identifier hs-var">out</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679368083"><span class="annot"><span class="annottext">FixedAttr
+</span><a href="#local-6989586621679368083"><span class="hs-identifier hs-var">fattr</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679368082"><span class="annot"><span class="annottext">SpanOp
+</span><a href="#local-6989586621679368082"><span class="hs-identifier hs-var">op</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; DisplayContext -&gt; SpanOp -&gt; FixedAttr -&gt; (Write, FixedAttr)
+</span><a href="Graphics.Vty.Output.Interface.html#writeSpanOp"><span class="hs-identifier hs-var">writeSpanOp</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679368090"><span class="hs-identifier hs-var">urlsEnabled</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayContext
+</span><a href="#local-6989586621679368089"><span class="hs-identifier hs-var">dc</span></a></span><span> </span><span class="annot"><span class="annottext">SpanOp
+</span><a href="#local-6989586621679368082"><span class="hs-identifier hs-var">op</span></a></span><span> </span><span class="annot"><span class="annottext">FixedAttr
+</span><a href="#local-6989586621679368083"><span class="hs-identifier hs-var">fattr</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-244"></span><span>                              </span><span class="hs-special">(</span><span id="local-6989586621679368080"><span class="annot"><span class="annottext">Write
+</span><a href="#local-6989586621679368080"><span class="hs-identifier hs-var">opOut</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679368079"><span class="annot"><span class="annottext">FixedAttr
+</span><a href="#local-6989586621679368079"><span class="hs-identifier hs-var">fattr'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Write
+</span><a href="#local-6989586621679368084"><span class="hs-identifier hs-var">out</span></a></span><span> </span><span class="annot"><span class="annottext">Write -&gt; Write -&gt; Write
+forall a. Monoid a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">`mappend`</span></span><span> </span><span class="annot"><span class="annottext">Write
+</span><a href="#local-6989586621679368080"><span class="hs-identifier hs-var">opOut</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">FixedAttr
+</span><a href="#local-6989586621679368079"><span class="hs-identifier hs-var">fattr'</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-245"></span><span>                           </span><span class="hs-special">)</span><span>
+</span><span id="line-246"></span><span>                           </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Write
+</span><a href="#local-6989586621679368085"><span class="hs-identifier hs-var">start</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">FixedAttr
+</span><a href="#local-6989586621679368087"><span class="hs-identifier hs-var">initialAttr</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-247"></span><span>                           </span><span class="annot"><span class="annottext">SpanOps
+</span><a href="#local-6989586621679368086"><span class="hs-identifier hs-var">spanOps</span></a></span><span>
+</span><span id="line-248"></span><span>
+</span><span id="line-249"></span><span class="annot"><a href="Graphics.Vty.Output.Interface.html#writeSpanOp"><span class="hs-identifier hs-type">writeSpanOp</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Output.Interface.html#DisplayContext"><span class="hs-identifier hs-type">DisplayContext</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Span.html#SpanOp"><span class="hs-identifier hs-type">SpanOp</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#FixedAttr"><span class="hs-identifier hs-type">FixedAttr</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Write</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#FixedAttr"><span class="hs-identifier hs-type">FixedAttr</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-250"></span><span id="writeSpanOp"><span class="annot"><span class="annottext">writeSpanOp :: Bool -&gt; DisplayContext -&gt; SpanOp -&gt; FixedAttr -&gt; (Write, FixedAttr)
+</span><a href="Graphics.Vty.Output.Interface.html#writeSpanOp"><span class="hs-identifier hs-var hs-var">writeSpanOp</span></a></span></span><span> </span><span id="local-6989586621679368078"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679368078"><span class="hs-identifier hs-var">urlsEnabled</span></a></span></span><span> </span><span id="local-6989586621679368077"><span class="annot"><span class="annottext">DisplayContext
+</span><a href="#local-6989586621679368077"><span class="hs-identifier hs-var">dc</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Graphics.Vty.Span.html#TextSpan"><span class="hs-identifier hs-type">TextSpan</span></a></span><span> </span><span id="local-6989586621679368075"><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679368075"><span class="hs-identifier hs-var">attr</span></a></span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679368074"><span class="annot"><span class="annottext">DisplayText
+</span><a href="#local-6989586621679368074"><span class="hs-identifier hs-var">str</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679368073"><span class="annot"><span class="annottext">FixedAttr
+</span><a href="#local-6989586621679368073"><span class="hs-identifier hs-var">fattr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-251"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679368072"><span class="annot"><span class="annottext">attr' :: Attr
+</span><a href="#local-6989586621679368072"><span class="hs-identifier hs-var hs-var">attr'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Output -&gt; Attr -&gt; Attr
+</span><a href="Graphics.Vty.Output.Interface.html#limitAttrForDisplay"><span class="hs-identifier hs-var">limitAttrForDisplay</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DisplayContext -&gt; Output
+</span><a href="Graphics.Vty.Output.Interface.html#contextDevice"><span class="hs-identifier hs-var hs-var">contextDevice</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayContext
+</span><a href="#local-6989586621679368077"><span class="hs-identifier hs-var">dc</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679368075"><span class="hs-identifier hs-var">attr</span></a></span><span>
+</span><span id="line-252"></span><span>        </span><span id="local-6989586621679368071"><span class="annot"><span class="annottext">fattr' :: FixedAttr
+</span><a href="#local-6989586621679368071"><span class="hs-identifier hs-var hs-var">fattr'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">FixedAttr -&gt; Attr -&gt; FixedAttr
+</span><a href="Graphics.Vty.DisplayAttributes.html#fixDisplayAttr"><span class="hs-identifier hs-var">fixDisplayAttr</span></a></span><span> </span><span class="annot"><span class="annottext">FixedAttr
+</span><a href="#local-6989586621679368073"><span class="hs-identifier hs-var">fattr</span></a></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679368072"><span class="hs-identifier hs-var">attr'</span></a></span><span>
+</span><span id="line-253"></span><span>        </span><span id="local-6989586621679368069"><span class="annot"><span class="annottext">diffs :: DisplayAttrDiff
+</span><a href="#local-6989586621679368069"><span class="hs-identifier hs-var hs-var">diffs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">FixedAttr -&gt; FixedAttr -&gt; DisplayAttrDiff
+</span><a href="Graphics.Vty.DisplayAttributes.html#displayAttrDiffs"><span class="hs-identifier hs-var">displayAttrDiffs</span></a></span><span> </span><span class="annot"><span class="annottext">FixedAttr
+</span><a href="#local-6989586621679368073"><span class="hs-identifier hs-var">fattr</span></a></span><span> </span><span class="annot"><span class="annottext">FixedAttr
+</span><a href="#local-6989586621679368071"><span class="hs-identifier hs-var">fattr'</span></a></span><span>
+</span><span id="line-254"></span><span>        </span><span id="local-6989586621679368067"><span class="annot"><span class="annottext">out :: Write
+</span><a href="#local-6989586621679368067"><span class="hs-identifier hs-var hs-var">out</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>  </span><span class="annot"><span class="annottext">DisplayContext
+-&gt; Bool -&gt; FixedAttr -&gt; Attr -&gt; DisplayAttrDiff -&gt; Write
+</span><a href="Graphics.Vty.Output.Interface.html#writeSetAttr"><span class="hs-identifier hs-var hs-var">writeSetAttr</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayContext
+</span><a href="#local-6989586621679368077"><span class="hs-identifier hs-var">dc</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679368078"><span class="hs-identifier hs-var">urlsEnabled</span></a></span><span> </span><span class="annot"><span class="annottext">FixedAttr
+</span><a href="#local-6989586621679368073"><span class="hs-identifier hs-var">fattr</span></a></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679368072"><span class="hs-identifier hs-var">attr'</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayAttrDiff
+</span><a href="#local-6989586621679368069"><span class="hs-identifier hs-var">diffs</span></a></span><span>
+</span><span id="line-255"></span><span>               </span><span class="annot"><span class="annottext">Write -&gt; Write -&gt; Write
+forall a. Monoid a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">`mappend`</span></span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; Write
+</span><a href="Graphics.Vty.Output.Interface.html#writeUtf8Text"><span class="hs-identifier hs-var">writeUtf8Text</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Text -&gt; ByteString
+</span><span class="hs-identifier hs-var">T.encodeUtf8</span></span><span> </span><span class="annot"><span class="annottext">(Text -&gt; ByteString) -&gt; Text -&gt; ByteString
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">DisplayText -&gt; Text
+</span><span class="hs-identifier hs-var">TL.toStrict</span></span><span> </span><span class="annot"><span class="annottext">DisplayText
+</span><a href="#local-6989586621679368074"><span class="hs-identifier hs-var">str</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-256"></span><span>    </span><span class="hs-keyword">in</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Write
+</span><a href="#local-6989586621679368067"><span class="hs-identifier hs-var">out</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">FixedAttr
+</span><a href="#local-6989586621679368071"><span class="hs-identifier hs-var">fattr'</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-257"></span><span class="annot"><a href="Graphics.Vty.Output.Interface.html#writeSpanOp"><span class="hs-identifier hs-var">writeSpanOp</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">DisplayContext
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Graphics.Vty.Span.html#Skip"><span class="hs-identifier hs-type">Skip</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679368063"><span class="annot"><span class="annottext">FixedAttr
+</span><a href="#local-6989586621679368063"><span class="hs-identifier hs-var">_fattr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String -&gt; (Write, FixedAttr)
+forall a. HasCallStack =&gt; String -&gt; a
+</span><span class="hs-identifier hs-var">error</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;writeSpanOp for Skip&quot;</span></span><span>
+</span><span id="line-258"></span><span class="annot"><a href="Graphics.Vty.Output.Interface.html#writeSpanOp"><span class="hs-identifier hs-var">writeSpanOp</span></a></span><span> </span><span id="local-6989586621679368062"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679368062"><span class="hs-identifier hs-var">urlsEnabled</span></a></span></span><span> </span><span id="local-6989586621679368061"><span class="annot"><span class="annottext">DisplayContext
+</span><a href="#local-6989586621679368061"><span class="hs-identifier hs-var">dc</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Graphics.Vty.Span.html#RowEnd"><span class="hs-identifier hs-type">RowEnd</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679368059"><span class="annot"><span class="annottext">FixedAttr
+</span><a href="#local-6989586621679368059"><span class="hs-identifier hs-var">fattr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DisplayContext -&gt; Bool -&gt; Write
+</span><a href="Graphics.Vty.Output.Interface.html#writeDefaultAttr"><span class="hs-identifier hs-var hs-var">writeDefaultAttr</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayContext
+</span><a href="#local-6989586621679368061"><span class="hs-identifier hs-var">dc</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679368062"><span class="hs-identifier hs-var">urlsEnabled</span></a></span><span> </span><span class="annot"><span class="annottext">Write -&gt; Write -&gt; Write
+forall a. Monoid a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">`mappend`</span></span><span> </span><span class="annot"><span class="annottext">DisplayContext -&gt; Write
+</span><a href="Graphics.Vty.Output.Interface.html#writeRowEnd"><span class="hs-identifier hs-var hs-var">writeRowEnd</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayContext
+</span><a href="#local-6989586621679368061"><span class="hs-identifier hs-var">dc</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">FixedAttr
+</span><a href="#local-6989586621679368059"><span class="hs-identifier hs-var">fattr</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-259"></span><span>
+</span><span id="line-260"></span><span class="hs-comment">-- | The cursor position is given in X,Y character offsets. Due to</span><span>
+</span><span id="line-261"></span><span class="hs-comment">-- multi-column characters this needs to be translated to column, row</span><span>
+</span><span id="line-262"></span><span class="hs-comment">-- positions.</span><span>
+</span><span id="line-263"></span><span class="hs-keyword">data</span><span> </span><span id="CursorOutputMap"><span class="annot"><a href="Graphics.Vty.Output.Interface.html#CursorOutputMap"><span class="hs-identifier hs-var">CursorOutputMap</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="CursorOutputMap"><span class="annot"><a href="Graphics.Vty.Output.Interface.html#CursorOutputMap"><span class="hs-identifier hs-var">CursorOutputMap</span></a></span></span><span>
+</span><span id="line-264"></span><span>    </span><span class="hs-special">{</span><span> </span><span id="charToOutputPos"><span class="annot"><span class="annottext">CursorOutputMap -&gt; (Int, Int) -&gt; (Int, Int)
+</span><a href="Graphics.Vty.Output.Interface.html#charToOutputPos"><span class="hs-identifier hs-var hs-var">charToOutputPos</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span>
+</span><span id="line-265"></span><span>    </span><span class="hs-special">}</span><span>
+</span><span id="line-266"></span><span>
+</span><span id="line-267"></span><span class="annot"><a href="Graphics.Vty.Output.Interface.html#cursorOutputMap"><span class="hs-identifier hs-type">cursorOutputMap</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Span.html#DisplayOps"><span class="hs-identifier hs-type">DisplayOps</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Picture.html#Cursor"><span class="hs-identifier hs-type">Cursor</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Output.Interface.html#CursorOutputMap"><span class="hs-identifier hs-type">CursorOutputMap</span></a></span><span>
+</span><span id="line-268"></span><span id="cursorOutputMap"><span class="annot"><span class="annottext">cursorOutputMap :: DisplayOps -&gt; Cursor -&gt; CursorOutputMap
+</span><a href="Graphics.Vty.Output.Interface.html#cursorOutputMap"><span class="hs-identifier hs-var hs-var">cursorOutputMap</span></a></span></span><span> </span><span id="local-6989586621679368057"><span class="annot"><span class="annottext">DisplayOps
+</span><a href="#local-6989586621679368057"><span class="hs-identifier hs-var">spanOps</span></a></span></span><span> </span><span id="local-6989586621679368056"><span class="annot"><span class="annottext">Cursor
+</span><a href="#local-6989586621679368056"><span class="hs-identifier hs-var">_cursor</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CursorOutputMap :: ((Int, Int) -&gt; (Int, Int)) -&gt; CursorOutputMap
+</span><a href="Graphics.Vty.Output.Interface.html#CursorOutputMap"><span class="hs-identifier hs-type">CursorOutputMap</span></a></span><span>
+</span><span id="line-269"></span><span>    </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">charToOutputPos :: (Int, Int) -&gt; (Int, Int)
+</span><a href="Graphics.Vty.Output.Interface.html#charToOutputPos"><span class="hs-identifier hs-var">charToOutputPos</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679368055"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368055"><span class="hs-identifier hs-var">cx</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679368054"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368054"><span class="hs-identifier hs-var">cy</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">DisplayOps -&gt; Int -&gt; Int -&gt; Int
+</span><a href="Graphics.Vty.Output.Interface.html#cursorColumnOffset"><span class="hs-identifier hs-var">cursorColumnOffset</span></a></span><span> </span><span class="annot"><span class="annottext">DisplayOps
+</span><a href="#local-6989586621679368057"><span class="hs-identifier hs-var">spanOps</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368055"><span class="hs-identifier hs-var">cx</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368054"><span class="hs-identifier hs-var">cy</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368054"><span class="hs-identifier hs-var">cy</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-270"></span><span>    </span><span class="hs-special">}</span><span>
+</span><span id="line-271"></span><span>
+</span><span id="line-272"></span><span class="annot"><a href="Graphics.Vty.Output.Interface.html#cursorColumnOffset"><span class="hs-identifier hs-type">cursorColumnOffset</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Span.html#DisplayOps"><span class="hs-identifier hs-type">DisplayOps</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-273"></span><span id="cursorColumnOffset"><span class="annot"><span class="annottext">cursorColumnOffset :: DisplayOps -&gt; Int -&gt; Int -&gt; Int
+</span><a href="Graphics.Vty.Output.Interface.html#cursorColumnOffset"><span class="hs-identifier hs-var hs-var">cursorColumnOffset</span></a></span></span><span> </span><span id="local-6989586621679368052"><span class="annot"><span class="annottext">DisplayOps
+</span><a href="#local-6989586621679368052"><span class="hs-identifier hs-var">ops</span></a></span></span><span> </span><span id="local-6989586621679368051"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368051"><span class="hs-identifier hs-var">cx</span></a></span></span><span> </span><span id="local-6989586621679368050"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368050"><span class="hs-identifier hs-var">cy</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-274"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679368049"><span class="annot"><span class="annottext">cursorRowOps :: SpanOps
+</span><a href="#local-6989586621679368049"><span class="hs-identifier hs-var hs-var">cursorRowOps</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DisplayOps -&gt; Int -&gt; SpanOps
+forall a. Vector a -&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">Vector.unsafeIndex</span></span><span> </span><span class="annot"><span class="annottext">DisplayOps
+</span><a href="#local-6989586621679368052"><span class="hs-identifier hs-var">ops</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int
+forall a. Enum a =&gt; a -&gt; Int
+</span><span class="hs-identifier hs-var">fromEnum</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368050"><span class="hs-identifier hs-var">cy</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-275"></span><span>        </span><span class="hs-special">(</span><span id="local-6989586621679368047"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368047"><span class="hs-identifier hs-var">outOffset</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-identifier">_</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span>
+</span><span id="line-276"></span><span>            </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">((Int, Int, Bool) -&gt; SpanOp -&gt; (Int, Int, Bool))
+-&gt; (Int, Int, Bool) -&gt; SpanOps -&gt; (Int, Int, Bool)
+forall a b. (a -&gt; b -&gt; a) -&gt; a -&gt; Vector b -&gt; a
+</span><span class="hs-identifier hs-var">Vector.foldl'</span></span><span> </span><span class="hs-special">(</span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679368046"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368046"><span class="hs-identifier hs-var">d</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679368045"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368045"><span class="hs-identifier hs-var">currentCx</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679368044"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679368044"><span class="hs-identifier hs-var">done</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679368043"><span class="annot"><span class="annottext">SpanOp
+</span><a href="#local-6989586621679368043"><span class="hs-identifier hs-var">op</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-277"></span><span>                        </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679368044"><span class="hs-identifier hs-var">done</span></a></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368046"><span class="hs-identifier hs-var">d</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368045"><span class="hs-identifier hs-var">currentCx</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679368044"><span class="hs-identifier hs-var">done</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">else</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">SpanOp -&gt; Maybe (Int, Int)
+</span><a href="Graphics.Vty.Span.html#spanOpHasWidth"><span class="hs-identifier hs-var">spanOpHasWidth</span></a></span><span> </span><span class="annot"><span class="annottext">SpanOp
+</span><a href="#local-6989586621679368043"><span class="hs-identifier hs-var">op</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-278"></span><span>                            </span><span class="annot"><span class="annottext">Maybe (Int, Int)
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368046"><span class="hs-identifier hs-var">d</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368045"><span class="hs-identifier hs-var">currentCx</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span class="hs-special">)</span><span>
+</span><span id="line-279"></span><span>                            </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679368041"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368041"><span class="hs-identifier hs-var">cw</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679368040"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368040"><span class="hs-identifier hs-var">ow</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Ordering
+forall a. Ord a =&gt; a -&gt; a -&gt; Ordering
+</span><span class="hs-identifier hs-var">compare</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368051"><span class="hs-identifier hs-var">cx</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368045"><span class="hs-identifier hs-var">currentCx</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368041"><span class="hs-identifier hs-var">cw</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-280"></span><span>                                    </span><span class="annot"><span class="annottext">Ordering
+</span><span class="hs-identifier hs-var">GT</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368046"><span class="hs-identifier hs-var">d</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368040"><span class="hs-identifier hs-var">ow</span></a></span><span>
+</span><span id="line-281"></span><span>                                          </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368045"><span class="hs-identifier hs-var">currentCx</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368041"><span class="hs-identifier hs-var">cw</span></a></span><span>
+</span><span id="line-282"></span><span>                                          </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span>
+</span><span id="line-283"></span><span>                                          </span><span class="hs-special">)</span><span>
+</span><span id="line-284"></span><span>                                    </span><span class="annot"><span class="annottext">Ordering
+</span><span class="hs-identifier hs-var">EQ</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368046"><span class="hs-identifier hs-var">d</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368040"><span class="hs-identifier hs-var">ow</span></a></span><span>
+</span><span id="line-285"></span><span>                                          </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368045"><span class="hs-identifier hs-var">currentCx</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368041"><span class="hs-identifier hs-var">cw</span></a></span><span>
+</span><span id="line-286"></span><span>                                          </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span>
+</span><span id="line-287"></span><span>                                          </span><span class="hs-special">)</span><span>
+</span><span id="line-288"></span><span>                                    </span><span class="annot"><span class="annottext">Ordering
+</span><span class="hs-identifier hs-var">LT</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368046"><span class="hs-identifier hs-var">d</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; SpanOp -&gt; Int
+</span><a href="Graphics.Vty.Span.html#columnsToCharOffset"><span class="hs-identifier hs-var">columnsToCharOffset</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368051"><span class="hs-identifier hs-var">cx</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368045"><span class="hs-identifier hs-var">currentCx</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">SpanOp
+</span><a href="#local-6989586621679368043"><span class="hs-identifier hs-var">op</span></a></span><span>
+</span><span id="line-289"></span><span>                                          </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368045"><span class="hs-identifier hs-var">currentCx</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368041"><span class="hs-identifier hs-var">cw</span></a></span><span>
+</span><span id="line-290"></span><span>                                          </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span>
+</span><span id="line-291"></span><span>                                          </span><span class="hs-special">)</span><span>
+</span><span id="line-292"></span><span>                      </span><span class="hs-special">)</span><span>
+</span><span id="line-293"></span><span>                      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span class="hs-special">)</span><span>
+</span><span id="line-294"></span><span>                      </span><span class="annot"><span class="annottext">SpanOps
+</span><a href="#local-6989586621679368049"><span class="hs-identifier hs-var">cursorRowOps</span></a></span><span>
+</span><span id="line-295"></span><span>    </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368047"><span class="hs-identifier hs-var">outOffset</span></a></span><span>
+</span><span id="line-296"></span><span>
+</span><span id="line-297"></span><span class="hs-comment">-- | Not all terminals support all display attributes. This filters a</span><span>
+</span><span id="line-298"></span><span class="hs-comment">-- display attribute to what the given terminal can display.</span><span>
+</span><span id="line-299"></span><span class="annot"><a href="Graphics.Vty.Output.Interface.html#limitAttrForDisplay"><span class="hs-identifier hs-type">limitAttrForDisplay</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Output.Interface.html#Output"><span class="hs-identifier hs-type">Output</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#Attr"><span class="hs-identifier hs-type">Attr</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.html#Attr"><span class="hs-identifier hs-type">Attr</span></a></span><span>
+</span><span id="line-300"></span><span id="limitAttrForDisplay"><span class="annot"><span class="annottext">limitAttrForDisplay :: Output -&gt; Attr -&gt; Attr
+</span><a href="Graphics.Vty.Output.Interface.html#limitAttrForDisplay"><span class="hs-identifier hs-var hs-var">limitAttrForDisplay</span></a></span></span><span> </span><span id="local-6989586621679368037"><span class="annot"><span class="annottext">Output
+</span><a href="#local-6989586621679368037"><span class="hs-identifier hs-var">t</span></a></span></span><span> </span><span id="local-6989586621679368036"><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679368036"><span class="hs-identifier hs-var">attr</span></a></span></span><span>
+</span><span id="line-301"></span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679368036"><span class="hs-identifier hs-var">attr</span></a></span><span> </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">attrForeColor :: MaybeDefault Color
+</span><a href="Graphics.Vty.Attributes.html#attrForeColor"><span class="hs-identifier hs-var">attrForeColor</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MaybeDefault Color -&gt; MaybeDefault Color
+</span><a href="#local-6989586621679368034"><span class="hs-identifier hs-var">clampColor</span></a></span><span> </span><span class="annot"><span class="annottext">(MaybeDefault Color -&gt; MaybeDefault Color)
+-&gt; MaybeDefault Color -&gt; MaybeDefault Color
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Attr -&gt; MaybeDefault Color
+</span><a href="Graphics.Vty.Attributes.html#attrForeColor"><span class="hs-identifier hs-var hs-var">attrForeColor</span></a></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679368036"><span class="hs-identifier hs-var">attr</span></a></span><span>
+</span><span id="line-302"></span><span>           </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">attrBackColor :: MaybeDefault Color
+</span><a href="Graphics.Vty.Attributes.html#attrBackColor"><span class="hs-identifier hs-var">attrBackColor</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MaybeDefault Color -&gt; MaybeDefault Color
+</span><a href="#local-6989586621679368034"><span class="hs-identifier hs-var">clampColor</span></a></span><span> </span><span class="annot"><span class="annottext">(MaybeDefault Color -&gt; MaybeDefault Color)
+-&gt; MaybeDefault Color -&gt; MaybeDefault Color
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Attr -&gt; MaybeDefault Color
+</span><a href="Graphics.Vty.Attributes.html#attrBackColor"><span class="hs-identifier hs-var hs-var">attrBackColor</span></a></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679368036"><span class="hs-identifier hs-var">attr</span></a></span><span>
+</span><span id="line-303"></span><span>           </span><span class="hs-special">}</span><span>
+</span><span id="line-304"></span><span>    </span><span class="hs-keyword">where</span><span>
+</span><span id="line-305"></span><span>        </span><span id="local-6989586621679368034"><span class="annot"><span class="annottext">clampColor :: MaybeDefault Color -&gt; MaybeDefault Color
+</span><a href="#local-6989586621679368034"><span class="hs-identifier hs-var hs-var">clampColor</span></a></span></span><span> </span><span class="annot"><span class="annottext">MaybeDefault Color
+</span><a href="Graphics.Vty.Attributes.html#Default"><span class="hs-identifier hs-var">Default</span></a></span><span>     </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MaybeDefault Color
+forall v. MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#Default"><span class="hs-identifier hs-var">Default</span></a></span><span>
+</span><span id="line-306"></span><span>        </span><span class="annot"><a href="#local-6989586621679368034"><span class="hs-identifier hs-var">clampColor</span></a></span><span> </span><span class="annot"><span class="annottext">MaybeDefault Color
+</span><a href="Graphics.Vty.Attributes.html#KeepCurrent"><span class="hs-identifier hs-var">KeepCurrent</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MaybeDefault Color
+forall v. MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#KeepCurrent"><span class="hs-identifier hs-var">KeepCurrent</span></a></span><span>
+</span><span id="line-307"></span><span>        </span><span class="annot"><a href="#local-6989586621679368034"><span class="hs-identifier hs-var">clampColor</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Graphics.Vty.Attributes.html#SetTo"><span class="hs-identifier hs-type">SetTo</span></a></span><span> </span><span id="local-6989586621679368029"><span class="annot"><span class="annottext">Color
+</span><a href="#local-6989586621679368029"><span class="hs-identifier hs-var">c</span></a></span></span><span class="hs-special">)</span><span>   </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Color -&gt; MaybeDefault Color
+</span><a href="#local-6989586621679368028"><span class="hs-identifier hs-var">clampColor'</span></a></span><span> </span><span class="annot"><span class="annottext">Color
+</span><a href="#local-6989586621679368029"><span class="hs-identifier hs-var">c</span></a></span><span>
+</span><span id="line-308"></span><span>        </span><span id="local-6989586621679368028"><span class="annot"><span class="annottext">clampColor' :: Color -&gt; MaybeDefault Color
+</span><a href="#local-6989586621679368028"><span class="hs-identifier hs-var hs-var">clampColor'</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#ISOColor"><span class="hs-identifier hs-type">ISOColor</span></a></span><span> </span><span id="local-6989586621679368026"><span class="annot"><span class="annottext">Style
+</span><a href="#local-6989586621679368026"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span>
+</span><span id="line-309"></span><span>            </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Output -&gt; Int
+</span><a href="Graphics.Vty.Output.Interface.html#contextColorCount"><span class="hs-identifier hs-var hs-var">contextColorCount</span></a></span><span> </span><span class="annot"><span class="annottext">Output
+</span><a href="#local-6989586621679368037"><span class="hs-identifier hs-var">t</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">8</span></span><span>            </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MaybeDefault Color
+forall v. MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#Default"><span class="hs-identifier hs-var">Default</span></a></span><span>
+</span><span id="line-310"></span><span>            </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Output -&gt; Int
+</span><a href="Graphics.Vty.Output.Interface.html#contextColorCount"><span class="hs-identifier hs-var hs-var">contextColorCount</span></a></span><span> </span><span class="annot"><span class="annottext">Output
+</span><a href="#local-6989586621679368037"><span class="hs-identifier hs-var">t</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">16</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="annot"><span class="annottext">Style
+</span><a href="#local-6989586621679368026"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Style -&gt; Style -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;=</span></span><span> </span><span class="annot"><span class="annottext">Style
+</span><span class="hs-number">8</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Color -&gt; MaybeDefault Color
+forall v. (Eq v, Show v, Read v) =&gt; v -&gt; MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#SetTo"><span class="hs-identifier hs-var">SetTo</span></a></span><span> </span><span class="annot"><span class="annottext">(Color -&gt; MaybeDefault Color) -&gt; Color -&gt; MaybeDefault Color
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Style -&gt; Color
+</span><a href="Graphics.Vty.Attributes.Color.html#ISOColor"><span class="hs-identifier hs-var">ISOColor</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Style
+</span><a href="#local-6989586621679368026"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Style -&gt; Style -&gt; Style
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Style
+</span><span class="hs-number">8</span></span><span class="hs-special">)</span><span>
+</span><span id="line-311"></span><span>            </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span>                          </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Color -&gt; MaybeDefault Color
+forall v. (Eq v, Show v, Read v) =&gt; v -&gt; MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#SetTo"><span class="hs-identifier hs-var">SetTo</span></a></span><span> </span><span class="annot"><span class="annottext">(Color -&gt; MaybeDefault Color) -&gt; Color -&gt; MaybeDefault Color
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Style -&gt; Color
+</span><a href="Graphics.Vty.Attributes.Color.html#ISOColor"><span class="hs-identifier hs-var">ISOColor</span></a></span><span> </span><span class="annot"><span class="annottext">Style
+</span><a href="#local-6989586621679368026"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-312"></span><span>        </span><span class="annot"><a href="#local-6989586621679368028"><span class="hs-identifier hs-var">clampColor'</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#Color240"><span class="hs-identifier hs-type">Color240</span></a></span><span> </span><span id="local-6989586621679368022"><span class="annot"><span class="annottext">Style
+</span><a href="#local-6989586621679368022"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span>
+</span><span id="line-313"></span><span>            </span><span class="hs-comment">-- Should we choose closest ISO color?</span><span>
+</span><span id="line-314"></span><span>            </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Output -&gt; Int
+</span><a href="Graphics.Vty.Output.Interface.html#contextColorCount"><span class="hs-identifier hs-var hs-var">contextColorCount</span></a></span><span> </span><span class="annot"><span class="annottext">Output
+</span><a href="#local-6989586621679368037"><span class="hs-identifier hs-var">t</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span>  </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">8</span></span><span>           </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MaybeDefault Color
+forall v. MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#Default"><span class="hs-identifier hs-var">Default</span></a></span><span>
+</span><span id="line-315"></span><span>            </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Output -&gt; Int
+</span><a href="Graphics.Vty.Output.Interface.html#contextColorCount"><span class="hs-identifier hs-var hs-var">contextColorCount</span></a></span><span> </span><span class="annot"><span class="annottext">Output
+</span><a href="#local-6989586621679368037"><span class="hs-identifier hs-var">t</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span>  </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">16</span></span><span>          </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MaybeDefault Color
+forall v. MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#Default"><span class="hs-identifier hs-var">Default</span></a></span><span>
+</span><span id="line-316"></span><span>            </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Output -&gt; Int
+</span><a href="Graphics.Vty.Output.Interface.html#contextColorCount"><span class="hs-identifier hs-var hs-var">contextColorCount</span></a></span><span> </span><span class="annot"><span class="annottext">Output
+</span><a href="#local-6989586621679368037"><span class="hs-identifier hs-var">t</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">256</span></span><span>         </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Color -&gt; MaybeDefault Color
+forall v. (Eq v, Show v, Read v) =&gt; v -&gt; MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#SetTo"><span class="hs-identifier hs-var">SetTo</span></a></span><span> </span><span class="annot"><span class="annottext">(Color -&gt; MaybeDefault Color) -&gt; Color -&gt; MaybeDefault Color
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Style -&gt; Color
+</span><a href="Graphics.Vty.Attributes.Color.html#Color240"><span class="hs-identifier hs-var">Color240</span></a></span><span> </span><span class="annot"><span class="annottext">Style
+</span><a href="#local-6989586621679368022"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-317"></span><span>            </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span>
+</span><span id="line-318"></span><span>                </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679368020"><span class="annot"><span class="annottext">Double
+</span><a href="#local-6989586621679368020"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Double</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Style -&gt; Double
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Style
+</span><a href="#local-6989586621679368022"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Double -&gt; Double -&gt; Double
+forall a. Fractional a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">/</span></span><span> </span><span class="annot"><span class="annottext">Double
+</span><span class="hs-number">240.0</span></span><span>
+</span><span id="line-319"></span><span>                      </span><span id="local-6989586621679368018"><span class="annot"><span class="annottext">v' :: Style
+</span><a href="#local-6989586621679368018"><span class="hs-identifier hs-var hs-var">v'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Double -&gt; Style
+forall a b. (RealFrac a, Integral b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">floor</span></span><span> </span><span class="annot"><span class="annottext">(Double -&gt; Style) -&gt; Double -&gt; Style
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Double
+</span><a href="#local-6989586621679368020"><span class="hs-identifier hs-var">p</span></a></span><span> </span><span class="annot"><span class="annottext">Double -&gt; Double -&gt; Double
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Double
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Double) -&gt; Int -&gt; Double
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Output -&gt; Int
+</span><a href="Graphics.Vty.Output.Interface.html#contextColorCount"><span class="hs-identifier hs-var hs-var">contextColorCount</span></a></span><span> </span><span class="annot"><span class="annottext">Output
+</span><a href="#local-6989586621679368037"><span class="hs-identifier hs-var">t</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-320"></span><span>                  </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">Color -&gt; MaybeDefault Color
+forall v. (Eq v, Show v, Read v) =&gt; v -&gt; MaybeDefault v
+</span><a href="Graphics.Vty.Attributes.html#SetTo"><span class="hs-identifier hs-var">SetTo</span></a></span><span> </span><span class="annot"><span class="annottext">(Color -&gt; MaybeDefault Color) -&gt; Color -&gt; MaybeDefault Color
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Style -&gt; Color
+</span><a href="Graphics.Vty.Attributes.Color.html#Color240"><span class="hs-identifier hs-var">Color240</span></a></span><span> </span><span class="annot"><span class="annottext">Style
+</span><a href="#local-6989586621679368018"><span class="hs-identifier hs-var">v'</span></a></span><span>
+</span><span id="line-321"></span></pre></body></html>

@@ -1,0 +1,99 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE Safe #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-comment">{-|
+Module      : Dep.Bricks.Box
+Description : A module to define characters that are used in the other modules for the /bricks/.
+Maintainer  : hapytexeu+gh@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+This module defines characters to generate images in the user interface. These render wires, boxes, etc.
+-}</span><span>
+</span><span id="line-12"></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Dep.Bricks.Box</span><span> </span><span class="hs-special">(</span><span>
+</span><span id="line-14"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Box borders</span></span><span>
+</span><span id="line-15"></span><span>    </span><span class="annot"><a href="Dep.Bricks.Box.html#boxh"><span class="hs-identifier">boxh</span></a></span><span class="hs-special">,</span><span>  </span><span class="annot"><a href="Dep.Bricks.Box.html#boxv"><span class="hs-identifier">boxv</span></a></span><span>
+</span><span id="line-16"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Bricks.Box.html#boxlb"><span class="hs-identifier">boxlb</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Bricks.Box.html#boxlt"><span class="hs-identifier">boxlt</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Bricks.Box.html#boxrb"><span class="hs-identifier">boxrb</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Bricks.Box.html#boxrt"><span class="hs-identifier">boxrt</span></a></span><span>
+</span><span id="line-17"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Bricks.Box.html#boxhu"><span class="hs-identifier">boxhu</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Bricks.Box.html#boxhd"><span class="hs-identifier">boxhd</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Bricks.Box.html#boxvl"><span class="hs-identifier">boxvl</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Bricks.Box.html#boxvr"><span class="hs-identifier">boxvr</span></a></span><span>
+</span><span id="line-18"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Wire characters</span></span><span>
+</span><span id="line-19"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Bricks.Box.html#lineh"><span class="hs-identifier">lineh</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Bricks.Box.html#linev"><span class="hs-identifier">linev</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Bricks.Box.html#negator"><span class="hs-identifier">negator</span></a></span><span>
+</span><span id="line-20"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-21"></span><span>
+</span><span id="line-22"></span><span class="hs-comment">-- | A character to render a /wire/ in a /vertical/ direction.</span><span>
+</span><span id="line-23"></span><span class="annot"><a href="Dep.Bricks.Box.html#linev"><span class="hs-identifier hs-type">linev</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>
+</span><span id="line-24"></span><span id="linev"><span class="annot"><span class="annottext">linev :: Char
+</span><a href="Dep.Bricks.Box.html#linev"><span class="hs-identifier hs-var hs-var">linev</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x2502'</span></span><span>
+</span><span id="line-25"></span><span>
+</span><span id="line-26"></span><span class="hs-comment">-- | A character to render a /wire/ in a /horizontal/ direction.</span><span>
+</span><span id="line-27"></span><span class="annot"><a href="Dep.Bricks.Box.html#lineh"><span class="hs-identifier hs-type">lineh</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>
+</span><span id="line-28"></span><span id="lineh"><span class="annot"><span class="annottext">lineh :: Char
+</span><a href="Dep.Bricks.Box.html#lineh"><span class="hs-identifier hs-var hs-var">lineh</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x2500'</span></span><span>
+</span><span id="line-29"></span><span>
+</span><span id="line-30"></span><span class="hs-comment">-- | A character to render the top left corner of a /thick/ box.</span><span>
+</span><span id="line-31"></span><span class="annot"><a href="Dep.Bricks.Box.html#boxlt"><span class="hs-identifier hs-type">boxlt</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>
+</span><span id="line-32"></span><span id="boxlt"><span class="annot"><span class="annottext">boxlt :: Char
+</span><a href="Dep.Bricks.Box.html#boxlt"><span class="hs-identifier hs-var hs-var">boxlt</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x250f'</span></span><span>
+</span><span id="line-33"></span><span>
+</span><span id="line-34"></span><span class="hs-comment">-- | A character to render the horizontal border corner of a /thick/ box.</span><span>
+</span><span id="line-35"></span><span class="annot"><a href="Dep.Bricks.Box.html#boxh"><span class="hs-identifier hs-type">boxh</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>
+</span><span id="line-36"></span><span id="boxh"><span class="annot"><span class="annottext">boxh :: Char
+</span><a href="Dep.Bricks.Box.html#boxh"><span class="hs-identifier hs-var hs-var">boxh</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x2501'</span></span><span>
+</span><span id="line-37"></span><span>
+</span><span id="line-38"></span><span class="hs-comment">-- | A character to render the vertical border corner of a /thick/ box.</span><span>
+</span><span id="line-39"></span><span class="annot"><a href="Dep.Bricks.Box.html#boxv"><span class="hs-identifier hs-type">boxv</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>
+</span><span id="line-40"></span><span id="boxv"><span class="annot"><span class="annottext">boxv :: Char
+</span><a href="Dep.Bricks.Box.html#boxv"><span class="hs-identifier hs-var hs-var">boxv</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x2503'</span></span><span>
+</span><span id="line-41"></span><span>
+</span><span id="line-42"></span><span class="hs-comment">-- | A character to render the top right corner of a /thick/ box.</span><span>
+</span><span id="line-43"></span><span class="annot"><a href="Dep.Bricks.Box.html#boxrt"><span class="hs-identifier hs-type">boxrt</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>
+</span><span id="line-44"></span><span id="boxrt"><span class="annot"><span class="annottext">boxrt :: Char
+</span><a href="Dep.Bricks.Box.html#boxrt"><span class="hs-identifier hs-var hs-var">boxrt</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x2513'</span></span><span>
+</span><span id="line-45"></span><span>
+</span><span id="line-46"></span><span class="hs-comment">-- | A character to render the bottom left corner of a /thick/ box.</span><span>
+</span><span id="line-47"></span><span class="annot"><a href="Dep.Bricks.Box.html#boxlb"><span class="hs-identifier hs-type">boxlb</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>
+</span><span id="line-48"></span><span id="boxlb"><span class="annot"><span class="annottext">boxlb :: Char
+</span><a href="Dep.Bricks.Box.html#boxlb"><span class="hs-identifier hs-var hs-var">boxlb</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x2517'</span></span><span>
+</span><span id="line-49"></span><span>
+</span><span id="line-50"></span><span class="hs-comment">-- | A character to render the bottom right corner of a /thick/ box.</span><span>
+</span><span id="line-51"></span><span class="annot"><a href="Dep.Bricks.Box.html#boxrb"><span class="hs-identifier hs-type">boxrb</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>
+</span><span id="line-52"></span><span id="boxrb"><span class="annot"><span class="annottext">boxrb :: Char
+</span><a href="Dep.Bricks.Box.html#boxrb"><span class="hs-identifier hs-var hs-var">boxrb</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x251b'</span></span><span>
+</span><span id="line-53"></span><span>
+</span><span id="line-54"></span><span class="hs-comment">-- | A character to render the horizontal border of a /thick/ box with a wire at at the upper part.</span><span>
+</span><span id="line-55"></span><span class="annot"><a href="Dep.Bricks.Box.html#boxhu"><span class="hs-identifier hs-type">boxhu</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>
+</span><span id="line-56"></span><span id="boxhu"><span class="annot"><span class="annottext">boxhu :: Char
+</span><a href="Dep.Bricks.Box.html#boxhu"><span class="hs-identifier hs-var hs-var">boxhu</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x2537'</span></span><span>
+</span><span id="line-57"></span><span>
+</span><span id="line-58"></span><span class="hs-comment">-- | A character to render the horizontal border of a /thick/ box with a wire at at the bottom part.</span><span>
+</span><span id="line-59"></span><span class="annot"><a href="Dep.Bricks.Box.html#boxhd"><span class="hs-identifier hs-type">boxhd</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>
+</span><span id="line-60"></span><span id="boxhd"><span class="annot"><span class="annottext">boxhd :: Char
+</span><a href="Dep.Bricks.Box.html#boxhd"><span class="hs-identifier hs-var hs-var">boxhd</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x252f'</span></span><span>
+</span><span id="line-61"></span><span>
+</span><span id="line-62"></span><span class="hs-comment">-- | A character to render the vertical border of a /thick/ box with a wire at at the left part.</span><span>
+</span><span id="line-63"></span><span class="annot"><a href="Dep.Bricks.Box.html#boxvl"><span class="hs-identifier hs-type">boxvl</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>
+</span><span id="line-64"></span><span id="boxvl"><span class="annot"><span class="annottext">boxvl :: Char
+</span><a href="Dep.Bricks.Box.html#boxvl"><span class="hs-identifier hs-var hs-var">boxvl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x2528'</span></span><span>
+</span><span id="line-65"></span><span>
+</span><span id="line-66"></span><span class="hs-comment">-- | A character to render the vertical border of a /thick/ box with a wire at at the right part.</span><span>
+</span><span id="line-67"></span><span class="annot"><a href="Dep.Bricks.Box.html#boxvr"><span class="hs-identifier hs-type">boxvr</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>
+</span><span id="line-68"></span><span id="boxvr"><span class="annot"><span class="annottext">boxvr :: Char
+</span><a href="Dep.Bricks.Box.html#boxvr"><span class="hs-identifier hs-var hs-var">boxvr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\x2520'</span></span><span>
+</span><span id="line-69"></span><span>
+</span><span id="line-70"></span><span class="hs-comment">-- | A character to render a negator.</span><span>
+</span><span id="line-71"></span><span class="annot"><a href="Dep.Bricks.Box.html#negator"><span class="hs-identifier hs-type">negator</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>
+</span><span id="line-72"></span><span id="negator"><span class="annot"><span class="annottext">negator :: Char
+</span><a href="Dep.Bricks.Box.html#negator"><span class="hs-identifier hs-var hs-var">negator</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'O'</span></span><span>
+</span><span id="line-73"></span></pre></body></html>

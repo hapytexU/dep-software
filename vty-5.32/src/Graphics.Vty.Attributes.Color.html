@@ -1,0 +1,239 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DeriveGeneric #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE DeriveAnyClass #-}</span><span>
+</span><span id="line-3"></span><span>
+</span><span id="line-4"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Graphics.Vty.Attributes.Color</span><span>
+</span><span id="line-5"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#Color"><span class="hs-identifier">Color</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-6"></span><span>
+</span><span id="line-7"></span><span>  </span><span class="annot"><span class="hs-comment">-- ** Fixed Colors</span></span><span>
+</span><span id="line-8"></span><span>  </span><span class="hs-comment">-- | Standard 8-color ANSI terminal color codes.</span><span>
+</span><span id="line-9"></span><span>  </span><span class="hs-comment">--</span><span>
+</span><span id="line-10"></span><span>  </span><span class="hs-comment">-- Note that these map to colors in the terminal's custom palette. For</span><span>
+</span><span id="line-11"></span><span>  </span><span class="hs-comment">-- instance, `white` maps to whatever the terminal color theme uses for</span><span>
+</span><span id="line-12"></span><span>  </span><span class="hs-comment">-- white.</span><span>
+</span><span id="line-13"></span><span>  </span><span class="hs-comment">--</span><span>
+</span><span id="line-14"></span><span>  </span><span class="hs-comment">-- Use these functions if you want to make apps that fit the terminal theme.</span><span>
+</span><span id="line-15"></span><span>  </span><span class="hs-comment">-- If you want access to more/stronger colors use `rgbColor`</span><span>
+</span><span id="line-16"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#black"><span class="hs-identifier">black</span></a></span><span>
+</span><span id="line-17"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#red"><span class="hs-identifier">red</span></a></span><span>
+</span><span id="line-18"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#green"><span class="hs-identifier">green</span></a></span><span>
+</span><span id="line-19"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#yellow"><span class="hs-identifier">yellow</span></a></span><span>
+</span><span id="line-20"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#blue"><span class="hs-identifier">blue</span></a></span><span>
+</span><span id="line-21"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#magenta"><span class="hs-identifier">magenta</span></a></span><span>
+</span><span id="line-22"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#cyan"><span class="hs-identifier">cyan</span></a></span><span>
+</span><span id="line-23"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#white"><span class="hs-identifier">white</span></a></span><span>
+</span><span id="line-24"></span><span>
+</span><span id="line-25"></span><span>  </span><span class="annot"><span class="hs-comment">-- | Bright/Vivid variants of the standard 8-color ANSI</span></span><span>
+</span><span id="line-26"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#brightBlack"><span class="hs-identifier">brightBlack</span></a></span><span>
+</span><span id="line-27"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#brightRed"><span class="hs-identifier">brightRed</span></a></span><span>
+</span><span id="line-28"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#brightGreen"><span class="hs-identifier">brightGreen</span></a></span><span>
+</span><span id="line-29"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#brightYellow"><span class="hs-identifier">brightYellow</span></a></span><span>
+</span><span id="line-30"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#brightBlue"><span class="hs-identifier">brightBlue</span></a></span><span>
+</span><span id="line-31"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#brightMagenta"><span class="hs-identifier">brightMagenta</span></a></span><span>
+</span><span id="line-32"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#brightCyan"><span class="hs-identifier">brightCyan</span></a></span><span>
+</span><span id="line-33"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#brightWhite"><span class="hs-identifier">brightWhite</span></a></span><span>
+</span><span id="line-34"></span><span>  </span><span class="annot"><span class="hs-comment">-- ** Creating Colors From RGB</span></span><span>
+</span><span id="line-35"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#rgbColor"><span class="hs-identifier">rgbColor</span></a></span><span>
+</span><span id="line-36"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="hs-keyword">module</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color240.html"><span class="hs-identifier">Graphics.Vty.Attributes.Color240</span></a></span><span>
+</span><span id="line-37"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-38"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-39"></span><span>
+</span><span id="line-40"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Word</span></span><span>
+</span><span id="line-41"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">GHC.Generics</span></span><span>
+</span><span id="line-42"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.DeepSeq</span></span><span>
+</span><span id="line-43"></span><span>
+</span><span id="line-44"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color240.html"><span class="hs-identifier">Graphics.Vty.Attributes.Color240</span></a></span><span>
+</span><span id="line-45"></span><span>
+</span><span id="line-46"></span><span class="hs-comment">-- | Abstract data type representing a color.</span><span>
+</span><span id="line-47"></span><span class="hs-comment">--</span><span>
+</span><span id="line-48"></span><span class="hs-comment">-- Currently the foreground and background color are specified as points</span><span>
+</span><span id="line-49"></span><span class="hs-comment">-- in either a:</span><span>
+</span><span id="line-50"></span><span class="hs-comment">--</span><span>
+</span><span id="line-51"></span><span class="hs-comment">--  * 16 color palette. Where the first 8 colors are equal to the 8</span><span>
+</span><span id="line-52"></span><span class="hs-comment">--  colors of the ISO 6429 (ANSI) 8 color palette and the second 8</span><span>
+</span><span id="line-53"></span><span class="hs-comment">--  colors are bright/vivid versions of the first 8 colors.</span><span>
+</span><span id="line-54"></span><span class="hs-comment">--</span><span>
+</span><span id="line-55"></span><span class="hs-comment">--  * 240 color palette. This palette is a regular sampling of the full</span><span>
+</span><span id="line-56"></span><span class="hs-comment">--  RGB colorspace for the first 224 colors. The remaining 16 colors is</span><span>
+</span><span id="line-57"></span><span class="hs-comment">--  a greyscale palette.</span><span>
+</span><span id="line-58"></span><span class="hs-comment">--</span><span>
+</span><span id="line-59"></span><span class="hs-comment">-- The 8 ISO 6429 (ANSI) colors are as follows:</span><span>
+</span><span id="line-60"></span><span class="hs-comment">--</span><span>
+</span><span id="line-61"></span><span class="hs-comment">--      0. black</span><span>
+</span><span id="line-62"></span><span class="hs-comment">--</span><span>
+</span><span id="line-63"></span><span class="hs-comment">--      1. red</span><span>
+</span><span id="line-64"></span><span class="hs-comment">--</span><span>
+</span><span id="line-65"></span><span class="hs-comment">--      2. green</span><span>
+</span><span id="line-66"></span><span class="hs-comment">--</span><span>
+</span><span id="line-67"></span><span class="hs-comment">--      3. yellow</span><span>
+</span><span id="line-68"></span><span class="hs-comment">--</span><span>
+</span><span id="line-69"></span><span class="hs-comment">--      4. blue</span><span>
+</span><span id="line-70"></span><span class="hs-comment">--</span><span>
+</span><span id="line-71"></span><span class="hs-comment">--      5. magenta</span><span>
+</span><span id="line-72"></span><span class="hs-comment">--</span><span>
+</span><span id="line-73"></span><span class="hs-comment">--      6. cyan</span><span>
+</span><span id="line-74"></span><span class="hs-comment">--</span><span>
+</span><span id="line-75"></span><span class="hs-comment">--      7. white</span><span>
+</span><span id="line-76"></span><span class="hs-comment">--</span><span>
+</span><span id="line-77"></span><span class="hs-comment">-- The mapping from points in the 240 color palette to colors actually</span><span>
+</span><span id="line-78"></span><span class="hs-comment">-- displayable by the terminal depends on the number of colors the</span><span>
+</span><span id="line-79"></span><span class="hs-comment">-- terminal claims to support. Which is usually determined by the</span><span>
+</span><span id="line-80"></span><span class="hs-comment">-- terminfo &quot;colors&quot; property. If this property is not being accurately</span><span>
+</span><span id="line-81"></span><span class="hs-comment">-- reported then the color reproduction will be incorrect.</span><span>
+</span><span id="line-82"></span><span class="hs-comment">--</span><span>
+</span><span id="line-83"></span><span class="hs-comment">-- If the terminal reports &lt;= 16 colors then the 240 color palette</span><span>
+</span><span id="line-84"></span><span class="hs-comment">-- points are only mapped to the 8 color pallete. I'm not sure of</span><span>
+</span><span id="line-85"></span><span class="hs-comment">-- the RGB points for the &quot;bright&quot; colors which is why they are not</span><span>
+</span><span id="line-86"></span><span class="hs-comment">-- addressable via the 240 color palette.</span><span>
+</span><span id="line-87"></span><span class="hs-comment">--</span><span>
+</span><span id="line-88"></span><span class="hs-comment">-- If the terminal reports &gt; 16 colors then the 240 color palette</span><span>
+</span><span id="line-89"></span><span class="hs-comment">-- points are mapped to the nearest points in a (&quot;color count&quot; - 16)</span><span>
+</span><span id="line-90"></span><span class="hs-comment">-- subsampling of the 240 color palette.</span><span>
+</span><span id="line-91"></span><span class="hs-comment">--</span><span>
+</span><span id="line-92"></span><span class="hs-comment">-- All of this assumes the terminals are behaving similarly to xterm and</span><span>
+</span><span id="line-93"></span><span class="hs-comment">-- rxvt when handling colors. And that the individual colors have not</span><span>
+</span><span id="line-94"></span><span class="hs-comment">-- been remapped by the user. There may be a way to verify this through</span><span>
+</span><span id="line-95"></span><span class="hs-comment">-- terminfo but I don't know it.</span><span>
+</span><span id="line-96"></span><span class="hs-comment">--</span><span>
+</span><span id="line-97"></span><span class="hs-comment">-- Seriously, terminal color support is INSANE.</span><span>
+</span><span id="line-98"></span><span id="local-6989586621679364762"><span id="local-6989586621679364763"></span></span><span class="hs-keyword">data</span><span> </span><span id="Color"><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#Color"><span class="hs-identifier hs-var">Color</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="ISOColor"><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#ISOColor"><span class="hs-identifier hs-var">ISOColor</span></a></span></span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="hs-identifier hs-type">Word8</span></span><span> </span><span class="hs-glyph">|</span><span> </span><span id="Color240"><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#Color240"><span class="hs-identifier hs-var">Color240</span></a></span></span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="hs-identifier hs-type">Word8</span></span><span>
+</span><span id="line-99"></span><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span> </span><span id="local-6989586621679364756"><span id="local-6989586621679364758"><span class="annot"><span class="annottext">Color -&gt; Color -&gt; Bool
+(Color -&gt; Color -&gt; Bool) -&gt; (Color -&gt; Color -&gt; Bool) -&gt; Eq Color
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: Color -&gt; Color -&gt; Bool
+$c/= :: Color -&gt; Color -&gt; Bool
+== :: Color -&gt; Color -&gt; Bool
+$c== :: Color -&gt; Color -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679364749"><span id="local-6989586621679364751"><span id="local-6989586621679364753"><span class="annot"><span class="annottext">Int -&gt; Color -&gt; ShowS
+[Color] -&gt; ShowS
+Color -&gt; String
+(Int -&gt; Color -&gt; ShowS)
+-&gt; (Color -&gt; String) -&gt; ([Color] -&gt; ShowS) -&gt; Show Color
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [Color] -&gt; ShowS
+$cshowList :: [Color] -&gt; ShowS
+show :: Color -&gt; String
+$cshow :: Color -&gt; String
+showsPrec :: Int -&gt; Color -&gt; ShowS
+$cshowsPrec :: Int -&gt; Color -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679364740"><span id="local-6989586621679364742"><span id="local-6989586621679364744"><span id="local-6989586621679364746"><span class="annot"><span class="annottext">ReadPrec [Color]
+ReadPrec Color
+Int -&gt; ReadS Color
+ReadS [Color]
+(Int -&gt; ReadS Color)
+-&gt; ReadS [Color]
+-&gt; ReadPrec Color
+-&gt; ReadPrec [Color]
+-&gt; Read Color
+forall a.
+(Int -&gt; ReadS a)
+-&gt; ReadS [a] -&gt; ReadPrec a -&gt; ReadPrec [a] -&gt; Read a
+readListPrec :: ReadPrec [Color]
+$creadListPrec :: ReadPrec [Color]
+readPrec :: ReadPrec Color
+$creadPrec :: ReadPrec Color
+readList :: ReadS [Color]
+$creadList :: ReadS [Color]
+readsPrec :: Int -&gt; ReadS Color
+$creadsPrec :: Int -&gt; ReadS Color
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Read</span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(forall x. Color -&gt; Rep Color x)
+-&gt; (forall x. Rep Color x -&gt; Color) -&gt; Generic Color
+forall x. Rep Color x -&gt; Color
+forall x. Color -&gt; Rep Color x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+$cto :: forall x. Rep Color x -&gt; Color
+$cfrom :: forall x. Color -&gt; Rep Color x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679364734"><span class="annot"><span class="annottext">Color -&gt; ()
+(Color -&gt; ()) -&gt; NFData Color
+forall a. (a -&gt; ()) -&gt; NFData a
+rnf :: Color -&gt; ()
+$crnf :: Color -&gt; ()
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">NFData</span></span></span><span> </span><span class="hs-special">)</span><span>
+</span><span id="line-100"></span><span>
+</span><span id="line-101"></span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#black"><span class="hs-identifier hs-type">black</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#red"><span class="hs-identifier hs-type">red</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#green"><span class="hs-identifier hs-type">green</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#yellow"><span class="hs-identifier hs-type">yellow</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#blue"><span class="hs-identifier hs-type">blue</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#magenta"><span class="hs-identifier hs-type">magenta</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#cyan"><span class="hs-identifier hs-type">cyan</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#white"><span class="hs-identifier hs-type">white</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#Color"><span class="hs-identifier hs-type">Color</span></a></span><span>
+</span><span id="line-102"></span><span id="black"><span class="annot"><span class="annottext">black :: Color
+</span><a href="Graphics.Vty.Attributes.Color.html#black"><span class="hs-identifier hs-var hs-var">black</span></a></span></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Color
+</span><a href="Graphics.Vty.Attributes.Color.html#ISOColor"><span class="hs-identifier hs-var">ISOColor</span></a></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">0</span></span><span>
+</span><span id="line-103"></span><span id="red"><span class="annot"><span class="annottext">red :: Color
+</span><a href="Graphics.Vty.Attributes.Color.html#red"><span class="hs-identifier hs-var hs-var">red</span></a></span></span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Color
+</span><a href="Graphics.Vty.Attributes.Color.html#ISOColor"><span class="hs-identifier hs-var">ISOColor</span></a></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">1</span></span><span>
+</span><span id="line-104"></span><span id="green"><span class="annot"><span class="annottext">green :: Color
+</span><a href="Graphics.Vty.Attributes.Color.html#green"><span class="hs-identifier hs-var hs-var">green</span></a></span></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Color
+</span><a href="Graphics.Vty.Attributes.Color.html#ISOColor"><span class="hs-identifier hs-var">ISOColor</span></a></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">2</span></span><span>
+</span><span id="line-105"></span><span id="yellow"><span class="annot"><span class="annottext">yellow :: Color
+</span><a href="Graphics.Vty.Attributes.Color.html#yellow"><span class="hs-identifier hs-var hs-var">yellow</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Color
+</span><a href="Graphics.Vty.Attributes.Color.html#ISOColor"><span class="hs-identifier hs-var">ISOColor</span></a></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">3</span></span><span>
+</span><span id="line-106"></span><span id="blue"><span class="annot"><span class="annottext">blue :: Color
+</span><a href="Graphics.Vty.Attributes.Color.html#blue"><span class="hs-identifier hs-var hs-var">blue</span></a></span></span><span>   </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Color
+</span><a href="Graphics.Vty.Attributes.Color.html#ISOColor"><span class="hs-identifier hs-var">ISOColor</span></a></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">4</span></span><span>
+</span><span id="line-107"></span><span id="magenta"><span class="annot"><span class="annottext">magenta :: Color
+</span><a href="Graphics.Vty.Attributes.Color.html#magenta"><span class="hs-identifier hs-var hs-var">magenta</span></a></span></span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Color
+</span><a href="Graphics.Vty.Attributes.Color.html#ISOColor"><span class="hs-identifier hs-var">ISOColor</span></a></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">5</span></span><span>
+</span><span id="line-108"></span><span id="cyan"><span class="annot"><span class="annottext">cyan :: Color
+</span><a href="Graphics.Vty.Attributes.Color.html#cyan"><span class="hs-identifier hs-var hs-var">cyan</span></a></span></span><span>   </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Color
+</span><a href="Graphics.Vty.Attributes.Color.html#ISOColor"><span class="hs-identifier hs-var">ISOColor</span></a></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">6</span></span><span>
+</span><span id="line-109"></span><span id="white"><span class="annot"><span class="annottext">white :: Color
+</span><a href="Graphics.Vty.Attributes.Color.html#white"><span class="hs-identifier hs-var hs-var">white</span></a></span></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Color
+</span><a href="Graphics.Vty.Attributes.Color.html#ISOColor"><span class="hs-identifier hs-var">ISOColor</span></a></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">7</span></span><span>
+</span><span id="line-110"></span><span>
+</span><span id="line-111"></span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#brightBlack"><span class="hs-identifier hs-type">brightBlack</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#brightRed"><span class="hs-identifier hs-type">brightRed</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#brightGreen"><span class="hs-identifier hs-type">brightGreen</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#brightYellow"><span class="hs-identifier hs-type">brightYellow</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#Color"><span class="hs-identifier hs-type">Color</span></a></span><span>
+</span><span id="line-112"></span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#brightBlue"><span class="hs-identifier hs-type">brightBlue</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#brightMagenta"><span class="hs-identifier hs-type">brightMagenta</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#brightCyan"><span class="hs-identifier hs-type">brightCyan</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#brightWhite"><span class="hs-identifier hs-type">brightWhite</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#Color"><span class="hs-identifier hs-type">Color</span></a></span><span>
+</span><span id="line-113"></span><span id="brightBlack"><span class="annot"><span class="annottext">brightBlack :: Color
+</span><a href="Graphics.Vty.Attributes.Color.html#brightBlack"><span class="hs-identifier hs-var hs-var">brightBlack</span></a></span></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Color
+</span><a href="Graphics.Vty.Attributes.Color.html#ISOColor"><span class="hs-identifier hs-var">ISOColor</span></a></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">8</span></span><span>
+</span><span id="line-114"></span><span id="brightRed"><span class="annot"><span class="annottext">brightRed :: Color
+</span><a href="Graphics.Vty.Attributes.Color.html#brightRed"><span class="hs-identifier hs-var hs-var">brightRed</span></a></span></span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Color
+</span><a href="Graphics.Vty.Attributes.Color.html#ISOColor"><span class="hs-identifier hs-var">ISOColor</span></a></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">9</span></span><span>
+</span><span id="line-115"></span><span id="brightGreen"><span class="annot"><span class="annottext">brightGreen :: Color
+</span><a href="Graphics.Vty.Attributes.Color.html#brightGreen"><span class="hs-identifier hs-var hs-var">brightGreen</span></a></span></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Color
+</span><a href="Graphics.Vty.Attributes.Color.html#ISOColor"><span class="hs-identifier hs-var">ISOColor</span></a></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">10</span></span><span>
+</span><span id="line-116"></span><span id="brightYellow"><span class="annot"><span class="annottext">brightYellow :: Color
+</span><a href="Graphics.Vty.Attributes.Color.html#brightYellow"><span class="hs-identifier hs-var hs-var">brightYellow</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Color
+</span><a href="Graphics.Vty.Attributes.Color.html#ISOColor"><span class="hs-identifier hs-var">ISOColor</span></a></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">11</span></span><span>
+</span><span id="line-117"></span><span id="brightBlue"><span class="annot"><span class="annottext">brightBlue :: Color
+</span><a href="Graphics.Vty.Attributes.Color.html#brightBlue"><span class="hs-identifier hs-var hs-var">brightBlue</span></a></span></span><span>   </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Color
+</span><a href="Graphics.Vty.Attributes.Color.html#ISOColor"><span class="hs-identifier hs-var">ISOColor</span></a></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">12</span></span><span>
+</span><span id="line-118"></span><span id="brightMagenta"><span class="annot"><span class="annottext">brightMagenta :: Color
+</span><a href="Graphics.Vty.Attributes.Color.html#brightMagenta"><span class="hs-identifier hs-var hs-var">brightMagenta</span></a></span></span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Color
+</span><a href="Graphics.Vty.Attributes.Color.html#ISOColor"><span class="hs-identifier hs-var">ISOColor</span></a></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">13</span></span><span>
+</span><span id="line-119"></span><span id="brightCyan"><span class="annot"><span class="annottext">brightCyan :: Color
+</span><a href="Graphics.Vty.Attributes.Color.html#brightCyan"><span class="hs-identifier hs-var hs-var">brightCyan</span></a></span></span><span>   </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Color
+</span><a href="Graphics.Vty.Attributes.Color.html#ISOColor"><span class="hs-identifier hs-var">ISOColor</span></a></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">14</span></span><span>
+</span><span id="line-120"></span><span id="brightWhite"><span class="annot"><span class="annottext">brightWhite :: Color
+</span><a href="Graphics.Vty.Attributes.Color.html#brightWhite"><span class="hs-identifier hs-var hs-var">brightWhite</span></a></span></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Color
+</span><a href="Graphics.Vty.Attributes.Color.html#ISOColor"><span class="hs-identifier hs-var">ISOColor</span></a></span><span> </span><span class="annot"><span class="annottext">Word8
+</span><span class="hs-number">15</span></span><span>
+</span><span id="line-121"></span><span>
+</span><span id="line-122"></span><span>
+</span><span id="line-123"></span><span class="hs-comment">-- | Create a Vty 'Color' (in the 240 color set) from an RGB triple.</span><span>
+</span><span id="line-124"></span><span class="hs-comment">-- This function is lossy in the sense that we only internally support 240 colors but the</span><span>
+</span><span id="line-125"></span><span class="hs-comment">-- #RRGGBB format supports 16^3 colors.</span><span>
+</span><span id="line-126"></span><span id="local-6989586621679364732"><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#rgbColor"><span class="hs-identifier hs-type">rgbColor</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Integral</span></span><span> </span><span class="annot"><a href="#local-6989586621679364732"><span class="hs-identifier hs-type">i</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679364732"><span class="hs-identifier hs-type">i</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679364732"><span class="hs-identifier hs-type">i</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679364732"><span class="hs-identifier hs-type">i</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Attributes.Color.html#Color"><span class="hs-identifier hs-type">Color</span></a></span></span><span>
+</span><span id="line-127"></span><span id="rgbColor"><span class="annot"><span class="annottext">rgbColor :: i -&gt; i -&gt; i -&gt; Color
+</span><a href="Graphics.Vty.Attributes.Color.html#rgbColor"><span class="hs-identifier hs-var hs-var">rgbColor</span></a></span></span><span> </span><span id="local-6989586621679364731"><span class="annot"><span class="annottext">i
+</span><a href="#local-6989586621679364731"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span id="local-6989586621679364730"><span class="annot"><span class="annottext">i
+</span><a href="#local-6989586621679364730"><span class="hs-identifier hs-var">g</span></a></span></span><span> </span><span id="local-6989586621679364729"><span class="annot"><span class="annottext">i
+</span><a href="#local-6989586621679364729"><span class="hs-identifier hs-var">b</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Color
+</span><a href="Graphics.Vty.Attributes.Color.html#Color240"><span class="hs-identifier hs-var">Color240</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">i -&gt; i -&gt; i -&gt; Word8
+forall i. Integral i =&gt; i -&gt; i -&gt; i -&gt; Word8
+</span><a href="Graphics.Vty.Attributes.Color240.html#rgbColorToColor240"><span class="hs-identifier hs-var">rgbColorToColor240</span></a></span><span> </span><span class="annot"><span class="annottext">i
+</span><a href="#local-6989586621679364731"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">i
+</span><a href="#local-6989586621679364730"><span class="hs-identifier hs-var">g</span></a></span><span> </span><span class="annot"><span class="annottext">i
+</span><a href="#local-6989586621679364729"><span class="hs-identifier hs-var">b</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-128"></span></pre></body></html>

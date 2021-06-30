@@ -1,0 +1,338 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">{-|
+Module      : Dep.Bricks.Circuit
+Description : A module that exports widgets to render circuits effectively.
+Maintainer  : hapytexeu+gh@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+A module to render circuits in an effective manner.
+-}</span><span>
+</span><span id="line-10"></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Dep.Bricks.Circuit</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-12"></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Brick.Types</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Size</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Fixed</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">Widget</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Widget</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">emptyResult</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">imageL</span></span><span class="hs-special">)</span><span> </span><span class="hs-comment">-- attrL, emptyResult, getContext, imageL)</span><span>
+</span><span id="line-14"></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Lens.Operators</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-operator">(&amp;)</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-operator">(.~)</span></span><span class="hs-special">)</span><span> </span><span class="hs-comment">-- , (^.))</span><span>
+</span><span id="line-16"></span><span>
+</span><span id="line-17"></span><span class="hs-comment">-- import Dep.Bricks.Gate(genericGate)</span><span>
+</span><span id="line-18"></span><span class="hs-comment">-- import Dep.Bricks.Layout(CircuitLayout(Horizontal))</span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Dep.Bricks.Karnaugh.html"><span class="hs-identifier">Dep.Bricks.Karnaugh</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Bricks.Karnaugh.html#renderKarnaugh"><span class="hs-identifier">renderKarnaugh</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Dep.Data.Three.html"><span class="hs-identifier">Dep.Data.Three</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Three.html#Three"><span class="hs-identifier">Three</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Three.html#Leaf"><span class="hs-identifier">Leaf</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#Split"><span class="hs-identifier">Split</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span class="hs-comment">-- import Dep.Data.ThreeValue(ThreeValue(Zero, One, DontCare))</span><span>
+</span><span id="line-22"></span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Graphics.Vty.Attributes</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">defAttr</span></span><span class="hs-special">)</span><span>
+</span><span id="line-24"></span><span>
+</span><span id="line-25"></span><span class="hs-comment">-- | A widget that is used to render electronics circuitry.</span><span>
+</span><span id="line-26"></span><span class="annot"><a href="Dep.Bricks.Circuit.html#circuit"><span class="hs-identifier hs-type">circuit</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Widget</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-27"></span><span id="circuit"><span class="annot"><span class="annottext">circuit :: Widget ()
+</span><a href="Dep.Bricks.Circuit.html#circuit"><span class="hs-identifier hs-var hs-var">circuit</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Size -&gt; Size -&gt; RenderM () (Result ()) -&gt; Widget ()
+forall n. Size -&gt; Size -&gt; RenderM n (Result n) -&gt; Widget n
+</span><span class="hs-identifier hs-var">Widget</span></span><span> </span><span class="annot"><span class="annottext">Size
+</span><span class="hs-identifier hs-var">Fixed</span></span><span> </span><span class="annot"><span class="annottext">Size
+</span><span class="hs-identifier hs-var">Fixed</span></span><span> </span><span class="annot"><span class="annottext">(RenderM () (Result ()) -&gt; Widget ())
+-&gt; RenderM () (Result ()) -&gt; Widget ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-28"></span><span>  </span><span class="hs-comment">-- c &lt;- getContext</span><span>
+</span><span id="line-29"></span><span>  </span><span class="hs-comment">-- let a = c ^. attrL</span><span>
+</span><span id="line-30"></span><span>  </span><span class="hs-comment">-- return (emptyResult &amp; imageL .~ andGateV3 (c ^. attrL))</span><span>
+</span><span id="line-31"></span><span class="hs-comment">--  return (emptyResult &amp; imageL .~ genericGate '&amp;' Horizontal [False, True, False, True] True a)</span><span>
+</span><span id="line-32"></span><span>  </span><span class="hs-comment">-- let l0 = Leaf Zero</span><span>
+</span><span id="line-33"></span><span>  </span><span class="hs-comment">-- let l1 = Leaf One</span><span>
+</span><span id="line-34"></span><span>  </span><span class="hs-comment">-- let ld = Leaf DontCare</span><span>
+</span><span id="line-35"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679128503"><span class="annot"><span class="annottext">la :: Three Char
+</span><a href="#local-6989586621679128503"><span class="hs-identifier hs-var hs-var">la</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Three Char
+forall a. a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Leaf"><span class="hs-identifier hs-var">Leaf</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'a'</span></span><span>
+</span><span id="line-36"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679128502"><span class="annot"><span class="annottext">lb :: Three Char
+</span><a href="#local-6989586621679128502"><span class="hs-identifier hs-var hs-var">lb</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Three Char
+forall a. a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Leaf"><span class="hs-identifier hs-var">Leaf</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'b'</span></span><span>
+</span><span id="line-37"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679128501"><span class="annot"><span class="annottext">lc :: Three Char
+</span><a href="#local-6989586621679128501"><span class="hs-identifier hs-var hs-var">lc</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Three Char
+forall a. a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Leaf"><span class="hs-identifier hs-var">Leaf</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'c'</span></span><span>
+</span><span id="line-38"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679128500"><span class="annot"><span class="annottext">ld :: Three Char
+</span><a href="#local-6989586621679128500"><span class="hs-identifier hs-var hs-var">ld</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Three Char
+forall a. a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Leaf"><span class="hs-identifier hs-var">Leaf</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'d'</span></span><span>
+</span><span id="line-39"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679128499"><span class="annot"><span class="annottext">le :: Three Char
+</span><a href="#local-6989586621679128499"><span class="hs-identifier hs-var hs-var">le</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Three Char
+forall a. a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Leaf"><span class="hs-identifier hs-var">Leaf</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'e'</span></span><span>
+</span><span id="line-40"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679128498"><span class="annot"><span class="annottext">lf :: Three Char
+</span><a href="#local-6989586621679128498"><span class="hs-identifier hs-var hs-var">lf</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Three Char
+forall a. a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Leaf"><span class="hs-identifier hs-var">Leaf</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'f'</span></span><span>
+</span><span id="line-41"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679128497"><span class="annot"><span class="annottext">lg :: Three Char
+</span><a href="#local-6989586621679128497"><span class="hs-identifier hs-var hs-var">lg</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Three Char
+forall a. a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Leaf"><span class="hs-identifier hs-var">Leaf</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'g'</span></span><span>
+</span><span id="line-42"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679128496"><span class="annot"><span class="annottext">lh :: Three Char
+</span><a href="#local-6989586621679128496"><span class="hs-identifier hs-var hs-var">lh</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Three Char
+forall a. a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Leaf"><span class="hs-identifier hs-var">Leaf</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'h'</span></span><span>
+</span><span id="line-43"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679128495"><span class="annot"><span class="annottext">li :: Three Char
+</span><a href="#local-6989586621679128495"><span class="hs-identifier hs-var hs-var">li</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Three Char
+forall a. a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Leaf"><span class="hs-identifier hs-var">Leaf</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'i'</span></span><span>
+</span><span id="line-44"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679128494"><span class="annot"><span class="annottext">lj :: Three Char
+</span><a href="#local-6989586621679128494"><span class="hs-identifier hs-var hs-var">lj</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Three Char
+forall a. a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Leaf"><span class="hs-identifier hs-var">Leaf</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'j'</span></span><span>
+</span><span id="line-45"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679128493"><span class="annot"><span class="annottext">lk :: Three Char
+</span><a href="#local-6989586621679128493"><span class="hs-identifier hs-var hs-var">lk</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Three Char
+forall a. a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Leaf"><span class="hs-identifier hs-var">Leaf</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'k'</span></span><span>
+</span><span id="line-46"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679128492"><span class="annot"><span class="annottext">ll :: Three Char
+</span><a href="#local-6989586621679128492"><span class="hs-identifier hs-var hs-var">ll</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Three Char
+forall a. a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Leaf"><span class="hs-identifier hs-var">Leaf</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'l'</span></span><span>
+</span><span id="line-47"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679128491"><span class="annot"><span class="annottext">lm :: Three Char
+</span><a href="#local-6989586621679128491"><span class="hs-identifier hs-var hs-var">lm</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Three Char
+forall a. a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Leaf"><span class="hs-identifier hs-var">Leaf</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'m'</span></span><span>
+</span><span id="line-48"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679128490"><span class="annot"><span class="annottext">ln :: Three Char
+</span><a href="#local-6989586621679128490"><span class="hs-identifier hs-var hs-var">ln</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Three Char
+forall a. a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Leaf"><span class="hs-identifier hs-var">Leaf</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'n'</span></span><span>
+</span><span id="line-49"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679128489"><span class="annot"><span class="annottext">lo :: Three Char
+</span><a href="#local-6989586621679128489"><span class="hs-identifier hs-var hs-var">lo</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Three Char
+forall a. a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Leaf"><span class="hs-identifier hs-var">Leaf</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'o'</span></span><span>
+</span><span id="line-50"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679128488"><span class="annot"><span class="annottext">lp :: Three Char
+</span><a href="#local-6989586621679128488"><span class="hs-identifier hs-var hs-var">lp</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Three Char
+forall a. a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Leaf"><span class="hs-identifier hs-var">Leaf</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'p'</span></span><span>
+</span><span id="line-51"></span><span>
+</span><span id="line-52"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679128487"><span class="annot"><span class="annottext">lA :: Three Char
+</span><a href="#local-6989586621679128487"><span class="hs-identifier hs-var hs-var">lA</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Three Char
+forall a. a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Leaf"><span class="hs-identifier hs-var">Leaf</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'A'</span></span><span>
+</span><span id="line-53"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679128486"><span class="annot"><span class="annottext">lB :: Three Char
+</span><a href="#local-6989586621679128486"><span class="hs-identifier hs-var hs-var">lB</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Three Char
+forall a. a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Leaf"><span class="hs-identifier hs-var">Leaf</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'B'</span></span><span>
+</span><span id="line-54"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679128485"><span class="annot"><span class="annottext">lC :: Three Char
+</span><a href="#local-6989586621679128485"><span class="hs-identifier hs-var hs-var">lC</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Three Char
+forall a. a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Leaf"><span class="hs-identifier hs-var">Leaf</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'C'</span></span><span>
+</span><span id="line-55"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679128484"><span class="annot"><span class="annottext">lD :: Three Char
+</span><a href="#local-6989586621679128484"><span class="hs-identifier hs-var hs-var">lD</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Three Char
+forall a. a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Leaf"><span class="hs-identifier hs-var">Leaf</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'D'</span></span><span>
+</span><span id="line-56"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679128483"><span class="annot"><span class="annottext">lE :: Three Char
+</span><a href="#local-6989586621679128483"><span class="hs-identifier hs-var hs-var">lE</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Three Char
+forall a. a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Leaf"><span class="hs-identifier hs-var">Leaf</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'E'</span></span><span>
+</span><span id="line-57"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679128482"><span class="annot"><span class="annottext">lF :: Three Char
+</span><a href="#local-6989586621679128482"><span class="hs-identifier hs-var hs-var">lF</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Three Char
+forall a. a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Leaf"><span class="hs-identifier hs-var">Leaf</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'F'</span></span><span>
+</span><span id="line-58"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679128481"><span class="annot"><span class="annottext">lG :: Three Char
+</span><a href="#local-6989586621679128481"><span class="hs-identifier hs-var hs-var">lG</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Three Char
+forall a. a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Leaf"><span class="hs-identifier hs-var">Leaf</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'G'</span></span><span>
+</span><span id="line-59"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679128480"><span class="annot"><span class="annottext">lH :: Three Char
+</span><a href="#local-6989586621679128480"><span class="hs-identifier hs-var hs-var">lH</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Three Char
+forall a. a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Leaf"><span class="hs-identifier hs-var">Leaf</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'H'</span></span><span>
+</span><span id="line-60"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679128479"><span class="annot"><span class="annottext">lI :: Three Char
+</span><a href="#local-6989586621679128479"><span class="hs-identifier hs-var hs-var">lI</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Three Char
+forall a. a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Leaf"><span class="hs-identifier hs-var">Leaf</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'I'</span></span><span>
+</span><span id="line-61"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679128478"><span class="annot"><span class="annottext">lJ :: Three Char
+</span><a href="#local-6989586621679128478"><span class="hs-identifier hs-var hs-var">lJ</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Three Char
+forall a. a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Leaf"><span class="hs-identifier hs-var">Leaf</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'J'</span></span><span>
+</span><span id="line-62"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679128477"><span class="annot"><span class="annottext">lK :: Three Char
+</span><a href="#local-6989586621679128477"><span class="hs-identifier hs-var hs-var">lK</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Three Char
+forall a. a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Leaf"><span class="hs-identifier hs-var">Leaf</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'K'</span></span><span>
+</span><span id="line-63"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679128476"><span class="annot"><span class="annottext">lL :: Three Char
+</span><a href="#local-6989586621679128476"><span class="hs-identifier hs-var hs-var">lL</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Three Char
+forall a. a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Leaf"><span class="hs-identifier hs-var">Leaf</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'L'</span></span><span>
+</span><span id="line-64"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679128475"><span class="annot"><span class="annottext">lM :: Three Char
+</span><a href="#local-6989586621679128475"><span class="hs-identifier hs-var hs-var">lM</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Three Char
+forall a. a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Leaf"><span class="hs-identifier hs-var">Leaf</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'M'</span></span><span>
+</span><span id="line-65"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679128474"><span class="annot"><span class="annottext">lN :: Three Char
+</span><a href="#local-6989586621679128474"><span class="hs-identifier hs-var hs-var">lN</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Three Char
+forall a. a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Leaf"><span class="hs-identifier hs-var">Leaf</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'N'</span></span><span>
+</span><span id="line-66"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679128473"><span class="annot"><span class="annottext">lO :: Three Char
+</span><a href="#local-6989586621679128473"><span class="hs-identifier hs-var hs-var">lO</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Three Char
+forall a. a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Leaf"><span class="hs-identifier hs-var">Leaf</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'O'</span></span><span>
+</span><span id="line-67"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679128472"><span class="annot"><span class="annottext">lP :: Three Char
+</span><a href="#local-6989586621679128472"><span class="hs-identifier hs-var hs-var">lP</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Three Char
+forall a. a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Leaf"><span class="hs-identifier hs-var">Leaf</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'P'</span></span><span>
+</span><span id="line-68"></span><span>
+</span><span id="line-69"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679128471"><span class="annot"><span class="annottext">tree' :: Three Char
+</span><a href="#local-6989586621679128471"><span class="hs-identifier hs-var hs-var">tree'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Three Char -&gt; Three Char -&gt; Three Char
+forall a. Three a -&gt; Three a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Split"><span class="hs-identifier hs-var">Split</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Three Char -&gt; Three Char -&gt; Three Char
+forall a. Three a -&gt; Three a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Split"><span class="hs-identifier hs-var">Split</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Three Char -&gt; Three Char -&gt; Three Char
+forall a. Three a -&gt; Three a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Split"><span class="hs-identifier hs-var">Split</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Three Char -&gt; Three Char -&gt; Three Char
+forall a. Three a -&gt; Three a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Split"><span class="hs-identifier hs-var">Split</span></a></span><span> </span><span class="annot"><span class="annottext">Three Char
+</span><a href="#local-6989586621679128503"><span class="hs-identifier hs-var">la</span></a></span><span> </span><span class="annot"><span class="annottext">Three Char
+</span><a href="#local-6989586621679128502"><span class="hs-identifier hs-var">lb</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Three Char -&gt; Three Char -&gt; Three Char
+forall a. Three a -&gt; Three a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Split"><span class="hs-identifier hs-var">Split</span></a></span><span> </span><span class="annot"><span class="annottext">Three Char
+</span><a href="#local-6989586621679128501"><span class="hs-identifier hs-var">lc</span></a></span><span> </span><span class="annot"><span class="annottext">Three Char
+</span><a href="#local-6989586621679128500"><span class="hs-identifier hs-var">ld</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Three Char -&gt; Three Char -&gt; Three Char
+forall a. Three a -&gt; Three a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Split"><span class="hs-identifier hs-var">Split</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Three Char -&gt; Three Char -&gt; Three Char
+forall a. Three a -&gt; Three a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Split"><span class="hs-identifier hs-var">Split</span></a></span><span> </span><span class="annot"><span class="annottext">Three Char
+</span><a href="#local-6989586621679128499"><span class="hs-identifier hs-var">le</span></a></span><span> </span><span class="annot"><span class="annottext">Three Char
+</span><a href="#local-6989586621679128498"><span class="hs-identifier hs-var">lf</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Three Char -&gt; Three Char -&gt; Three Char
+forall a. Three a -&gt; Three a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Split"><span class="hs-identifier hs-var">Split</span></a></span><span> </span><span class="annot"><span class="annottext">Three Char
+</span><a href="#local-6989586621679128497"><span class="hs-identifier hs-var">lg</span></a></span><span> </span><span class="annot"><span class="annottext">Three Char
+</span><a href="#local-6989586621679128496"><span class="hs-identifier hs-var">lh</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Three Char -&gt; Three Char -&gt; Three Char
+forall a. Three a -&gt; Three a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Split"><span class="hs-identifier hs-var">Split</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Three Char -&gt; Three Char -&gt; Three Char
+forall a. Three a -&gt; Three a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Split"><span class="hs-identifier hs-var">Split</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Three Char -&gt; Three Char -&gt; Three Char
+forall a. Three a -&gt; Three a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Split"><span class="hs-identifier hs-var">Split</span></a></span><span> </span><span class="annot"><span class="annottext">Three Char
+</span><a href="#local-6989586621679128495"><span class="hs-identifier hs-var">li</span></a></span><span> </span><span class="annot"><span class="annottext">Three Char
+</span><a href="#local-6989586621679128494"><span class="hs-identifier hs-var">lj</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Three Char -&gt; Three Char -&gt; Three Char
+forall a. Three a -&gt; Three a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Split"><span class="hs-identifier hs-var">Split</span></a></span><span> </span><span class="annot"><span class="annottext">Three Char
+</span><a href="#local-6989586621679128493"><span class="hs-identifier hs-var">lk</span></a></span><span> </span><span class="annot"><span class="annottext">Three Char
+</span><a href="#local-6989586621679128492"><span class="hs-identifier hs-var">ll</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Three Char -&gt; Three Char -&gt; Three Char
+forall a. Three a -&gt; Three a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Split"><span class="hs-identifier hs-var">Split</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Three Char -&gt; Three Char -&gt; Three Char
+forall a. Three a -&gt; Three a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Split"><span class="hs-identifier hs-var">Split</span></a></span><span> </span><span class="annot"><span class="annottext">Three Char
+</span><a href="#local-6989586621679128491"><span class="hs-identifier hs-var">lm</span></a></span><span> </span><span class="annot"><span class="annottext">Three Char
+</span><a href="#local-6989586621679128490"><span class="hs-identifier hs-var">ln</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Three Char -&gt; Three Char -&gt; Three Char
+forall a. Three a -&gt; Three a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Split"><span class="hs-identifier hs-var">Split</span></a></span><span> </span><span class="annot"><span class="annottext">Three Char
+</span><a href="#local-6989586621679128489"><span class="hs-identifier hs-var">lo</span></a></span><span> </span><span class="annot"><span class="annottext">Three Char
+</span><a href="#local-6989586621679128488"><span class="hs-identifier hs-var">lp</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-70"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679128470"><span class="annot"><span class="annottext">tree'' :: Three Char
+</span><a href="#local-6989586621679128470"><span class="hs-identifier hs-var hs-var">tree''</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Three Char -&gt; Three Char -&gt; Three Char
+forall a. Three a -&gt; Three a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Split"><span class="hs-identifier hs-var">Split</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Three Char -&gt; Three Char -&gt; Three Char
+forall a. Three a -&gt; Three a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Split"><span class="hs-identifier hs-var">Split</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Three Char -&gt; Three Char -&gt; Three Char
+forall a. Three a -&gt; Three a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Split"><span class="hs-identifier hs-var">Split</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Three Char -&gt; Three Char -&gt; Three Char
+forall a. Three a -&gt; Three a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Split"><span class="hs-identifier hs-var">Split</span></a></span><span> </span><span class="annot"><span class="annottext">Three Char
+</span><a href="#local-6989586621679128487"><span class="hs-identifier hs-var">lA</span></a></span><span> </span><span class="annot"><span class="annottext">Three Char
+</span><a href="#local-6989586621679128486"><span class="hs-identifier hs-var">lB</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Three Char -&gt; Three Char -&gt; Three Char
+forall a. Three a -&gt; Three a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Split"><span class="hs-identifier hs-var">Split</span></a></span><span> </span><span class="annot"><span class="annottext">Three Char
+</span><a href="#local-6989586621679128485"><span class="hs-identifier hs-var">lC</span></a></span><span> </span><span class="annot"><span class="annottext">Three Char
+</span><a href="#local-6989586621679128484"><span class="hs-identifier hs-var">lD</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Three Char -&gt; Three Char -&gt; Three Char
+forall a. Three a -&gt; Three a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Split"><span class="hs-identifier hs-var">Split</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Three Char -&gt; Three Char -&gt; Three Char
+forall a. Three a -&gt; Three a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Split"><span class="hs-identifier hs-var">Split</span></a></span><span> </span><span class="annot"><span class="annottext">Three Char
+</span><a href="#local-6989586621679128483"><span class="hs-identifier hs-var">lE</span></a></span><span> </span><span class="annot"><span class="annottext">Three Char
+</span><a href="#local-6989586621679128482"><span class="hs-identifier hs-var">lF</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Three Char -&gt; Three Char -&gt; Three Char
+forall a. Three a -&gt; Three a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Split"><span class="hs-identifier hs-var">Split</span></a></span><span> </span><span class="annot"><span class="annottext">Three Char
+</span><a href="#local-6989586621679128481"><span class="hs-identifier hs-var">lG</span></a></span><span> </span><span class="annot"><span class="annottext">Three Char
+</span><a href="#local-6989586621679128480"><span class="hs-identifier hs-var">lH</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Three Char -&gt; Three Char -&gt; Three Char
+forall a. Three a -&gt; Three a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Split"><span class="hs-identifier hs-var">Split</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Three Char -&gt; Three Char -&gt; Three Char
+forall a. Three a -&gt; Three a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Split"><span class="hs-identifier hs-var">Split</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Three Char -&gt; Three Char -&gt; Three Char
+forall a. Three a -&gt; Three a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Split"><span class="hs-identifier hs-var">Split</span></a></span><span> </span><span class="annot"><span class="annottext">Three Char
+</span><a href="#local-6989586621679128479"><span class="hs-identifier hs-var">lI</span></a></span><span> </span><span class="annot"><span class="annottext">Three Char
+</span><a href="#local-6989586621679128478"><span class="hs-identifier hs-var">lJ</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Three Char -&gt; Three Char -&gt; Three Char
+forall a. Three a -&gt; Three a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Split"><span class="hs-identifier hs-var">Split</span></a></span><span> </span><span class="annot"><span class="annottext">Three Char
+</span><a href="#local-6989586621679128477"><span class="hs-identifier hs-var">lK</span></a></span><span> </span><span class="annot"><span class="annottext">Three Char
+</span><a href="#local-6989586621679128476"><span class="hs-identifier hs-var">lL</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Three Char -&gt; Three Char -&gt; Three Char
+forall a. Three a -&gt; Three a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Split"><span class="hs-identifier hs-var">Split</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Three Char -&gt; Three Char -&gt; Three Char
+forall a. Three a -&gt; Three a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Split"><span class="hs-identifier hs-var">Split</span></a></span><span> </span><span class="annot"><span class="annottext">Three Char
+</span><a href="#local-6989586621679128475"><span class="hs-identifier hs-var">lM</span></a></span><span> </span><span class="annot"><span class="annottext">Three Char
+</span><a href="#local-6989586621679128474"><span class="hs-identifier hs-var">lN</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Three Char -&gt; Three Char -&gt; Three Char
+forall a. Three a -&gt; Three a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Split"><span class="hs-identifier hs-var">Split</span></a></span><span> </span><span class="annot"><span class="annottext">Three Char
+</span><a href="#local-6989586621679128473"><span class="hs-identifier hs-var">lO</span></a></span><span> </span><span class="annot"><span class="annottext">Three Char
+</span><a href="#local-6989586621679128472"><span class="hs-identifier hs-var">lP</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-71"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679128469"><span class="annot"><span class="annottext">tree''' :: Three Char
+</span><a href="#local-6989586621679128469"><span class="hs-identifier hs-var hs-var">tree'''</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Three Char -&gt; Three Char -&gt; Three Char
+forall a. Three a -&gt; Three a -&gt; Three a
+</span><a href="Dep.Data.Three.html#Split"><span class="hs-identifier hs-var">Split</span></a></span><span> </span><span class="annot"><span class="annottext">Three Char
+</span><a href="#local-6989586621679128471"><span class="hs-identifier hs-var">tree'</span></a></span><span> </span><span class="annot"><span class="annottext">Three Char
+</span><a href="#local-6989586621679128470"><span class="hs-identifier hs-var">tree''</span></a></span><span>
+</span><span id="line-72"></span><span>  </span><span class="hs-comment">-- let tree'''' = Split tree''' tree'''</span><span>
+</span><span id="line-73"></span><span>  </span><span class="hs-comment">-- let tree''''' = Split tree'''' tree''''</span><span>
+</span><span id="line-74"></span><span>  </span><span class="hs-comment">-- let tree'''''' = Split tree''''' tree''''' --}</span><span>
+</span><span id="line-75"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679128468"><span class="annot"><span class="annottext">tree :: Three Char
+</span><a href="#local-6989586621679128468"><span class="hs-identifier hs-var hs-var">tree</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Three Char
+</span><a href="#local-6989586621679128469"><span class="hs-identifier hs-var">tree'''</span></a></span><span> </span><span class="hs-comment">-- Split tree'''''' tree''''''</span><span>
+</span><span id="line-76"></span><span>
+</span><span id="line-77"></span><span>  </span><span class="hs-comment">-- let tree = Split (Split (Split (Split la lb) (Split lc ld)) (Split (Split le lf) (Split lg lh))) (Split (Split (Split li lj) (Split lk ll)) (Split (Split lm ln) (Split lo lp)))</span><span>
+</span><span id="line-78"></span><span class="hs-comment">--   return (emptyResult &amp; imageL .~ renderKarnaugh' (Split (Split (Split (Split l1 l0) l1) (Split (Split l0 l1) l1)) (Split (Split l1 ld) ld)) defAttr)</span><span>
+</span><span id="line-79"></span><span>  </span><span class="annot"><span class="annottext">Result () -&gt; RenderM () (Result ())
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Result ()
+forall n. Result n
+</span><span class="hs-identifier hs-var">emptyResult</span></span><span> </span><span class="annot"><span class="annottext">Result () -&gt; (Result () -&gt; Result ()) -&gt; Result ()
+forall a b. a -&gt; (a -&gt; b) -&gt; b
+</span><span class="hs-operator hs-var">&amp;</span></span><span> </span><span class="annot"><span class="annottext">(Image -&gt; Identity Image) -&gt; Result () -&gt; Identity (Result ())
+forall n. Lens' (Result n) Image
+</span><span class="hs-identifier hs-var">imageL</span></span><span> </span><span class="annot"><span class="annottext">((Image -&gt; Identity Image) -&gt; Result () -&gt; Identity (Result ()))
+-&gt; Image -&gt; Result () -&gt; Result ()
+forall s t a b. ASetter s t a b -&gt; b -&gt; s -&gt; t
+</span><span class="hs-operator hs-var">.~</span></span><span> </span><span class="annot"><span class="annottext">Three Char -&gt; SumOfProducts -&gt; [String] -&gt; Attr -&gt; Image
+forall a.
+CharRenderable a =&gt;
+Three a -&gt; SumOfProducts -&gt; [String] -&gt; Attr -&gt; Image
+</span><a href="Dep.Bricks.Karnaugh.html#renderKarnaugh"><span class="hs-identifier hs-var">renderKarnaugh</span></a></span><span> </span><span class="annot"><span class="annottext">Three Char
+</span><a href="#local-6989586621679128468"><span class="hs-identifier hs-var">tree</span></a></span><span> </span><span class="annot"><span class="annottext">SumOfProducts
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span> </span><span class="annot"><span class="annottext">[String]
+forall a. HasCallStack =&gt; a
+</span><span class="hs-identifier hs-var">undefined</span></span><span> </span><span class="annot"><span class="annottext">Attr
+</span><span class="hs-identifier hs-var">defAttr</span></span><span class="hs-special">)</span><span>
+</span><span id="line-80"></span></pre></body></html>

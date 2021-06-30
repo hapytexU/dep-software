@@ -1,0 +1,1279 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE BangPatterns, DeriveDataTypeable, DeriveGeneric, MultiParamTypeClasses, OverloadedStrings, Safe, TypeApplications #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-comment">{-|
+Module      : Dep.Data.Sum
+Description : A module that defines data structures for a sum, and a product-of-sums.
+Maintainer  : hapytexeu+gh@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+This module provides utility functions to compress/decompress sums, and render these 'Dep.Data.Product.Product''s to
+a unicode string.
+-}</span><span>
+</span><span id="line-13"></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Dep.Data.Sum</span><span> </span><span class="hs-special">(</span><span>
+</span><span id="line-15"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Type synonyms to represent synthesis</span></span><span>
+</span><span id="line-16"></span><span>    </span><span class="annot"><a href="Dep.Data.Sum.html#Sum"><span class="hs-identifier">Sum</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Sum.html#Sum"><span class="hs-identifier">Sum</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#Sum%27"><span class="hs-identifier">Sum'</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#CompactSum"><span class="hs-identifier">CompactSum</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Sum.html#CompactSum"><span class="hs-identifier">CompactSum</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#CompactSum%27"><span class="hs-identifier">CompactSum'</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#ProductOfSums"><span class="hs-identifier">ProductOfSums</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Sum.html#ProductOfSums"><span class="hs-identifier">ProductOfSums</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#ProductOfSums%27"><span class="hs-identifier">ProductOfSums'</span></a></span><span>
+</span><span id="line-17"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Print sums and product of sums</span></span><span>
+</span><span id="line-18"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#showProductOfSums"><span class="hs-identifier">showProductOfSums</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#showSum"><span class="hs-identifier">showSum</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#showSum%27"><span class="hs-identifier">showSum'</span></a></span><span>
+</span><span id="line-19"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-20"></span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.DeepSeq</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">NFData</span></span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Bool</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">bool</span></span><span class="hs-special">)</span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Data</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Data</span></span><span class="hs-special">)</span><span>
+</span><span id="line-25"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Hashable</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Hashable</span></span><span class="hs-special">)</span><span>
+</span><span id="line-26"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Text</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Text</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">cons</span></span><span class="hs-special">)</span><span>
+</span><span id="line-27"></span><span>
+</span><span id="line-28"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Dep.Class.Opposite.html"><span class="hs-identifier">Dep.Class.Opposite</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Class.Opposite.html#opposite"><span class="hs-identifier">opposite</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-29"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Dep.Class.Simplify.html"><span class="hs-identifier">Dep.Class.Simplify</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Class.Simplify.html#simplify"><span class="hs-identifier">simplify</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-30"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Dep.Data.LogicItem.html"><span class="hs-identifier">Dep.Data.LogicItem</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.LogicItem.html#EvaluateItem"><span class="hs-identifier">EvaluateItem</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.LogicItem.html#evaluateItem"><span class="hs-identifier">evaluateItem</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.LogicItem.html#isTrivial"><span class="hs-identifier">isTrivial</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.LogicItem.html#numberOfVariables"><span class="hs-identifier">numberOfVariables</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.LogicItem.html#ToCompact"><span class="hs-identifier">ToCompact</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.LogicItem.html#fromCompact"><span class="hs-identifier">fromCompact</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.LogicItem.html#toCompact"><span class="hs-identifier">toCompact</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.LogicItem.html#getThreeList"><span class="hs-identifier">getThreeList</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.LogicItem.html#putThreeList"><span class="hs-identifier">putThreeList</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.LogicItem.html#subscriptVariable"><span class="hs-identifier">subscriptVariable</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-31"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Dep.Data.Three.html"><span class="hs-identifier">Dep.Data.Three</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Three.html#ThreePath"><span class="hs-identifier">ThreePath</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#Three"><span class="hs-identifier">Three</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Three.html#Leaf"><span class="hs-identifier">Leaf</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#wipeAll"><span class="hs-identifier">wipeAll</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-32"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html"><span class="hs-identifier">Dep.Data.ThreeValue</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier">ThreeValue</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.ThreeValue.html#Zero"><span class="hs-identifier">Zero</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#One"><span class="hs-identifier">One</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#DontCare"><span class="hs-identifier">DontCare</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-33"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Binary</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Binary</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">get</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">put</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">putList</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-34"></span><span>
+</span><span id="line-35"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">GHC.Generics</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Generic</span></span><span class="hs-special">)</span><span>
+</span><span id="line-36"></span><span>
+</span><span id="line-37"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Test.QuickCheck.Arbitrary</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Arbitrary</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">arbitrary</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">shrink</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-38"></span><span>
+</span><span id="line-39"></span><span class="hs-comment">-- | A type alias for a sum that is a 'ThreePath'.</span><span>
+</span><span id="line-40"></span><span class="hs-keyword">type</span><span> </span><span id="Sum%27"><span class="annot"><a href="Dep.Data.Sum.html#Sum%27"><span class="hs-identifier hs-var">Sum'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#ThreePath"><span class="hs-identifier hs-type">ThreePath</span></a></span><span>
+</span><span id="line-41"></span><span>
+</span><span id="line-42"></span><span class="hs-comment">-- | A data type that can be used to specify a sum. By using a newtype,</span><span>
+</span><span id="line-43"></span><span class="hs-comment">-- we can add special instance to the 'Sum'.</span><span>
+</span><span id="line-44"></span><span id="local-6989586621679127276"><span id="local-6989586621679127277"></span></span><span class="hs-keyword">newtype</span><span> </span><span id="Sum"><span class="annot"><a href="Dep.Data.Sum.html#Sum"><span class="hs-identifier hs-var">Sum</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="Sum"><span class="annot"><a href="Dep.Data.Sum.html#Sum"><span class="hs-identifier hs-var">Sum</span></a></span></span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#Sum%27"><span class="hs-identifier hs-type">Sum'</span></a></span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="%24cSum"><span id="%24tSum"><span id="local-6989586621679127247"><span id="local-6989586621679127249"><span id="local-6989586621679127251"><span id="local-6989586621679127253"><span id="local-6989586621679127255"><span id="local-6989586621679127257"><span id="local-6989586621679127259"><span id="local-6989586621679127261"><span id="local-6989586621679127263"><span id="local-6989586621679127265"><span id="local-6989586621679127267"><span id="local-6989586621679127269"><span id="local-6989586621679127271"><span id="local-6989586621679127273"><span class="annot"><span class="annottext">Typeable Sum
+DataType
+Constr
+Typeable Sum
+-&gt; (forall (c :: * -&gt; *).
+    (forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+    -&gt; (forall g. g -&gt; c g) -&gt; Sum -&gt; c Sum)
+-&gt; (forall (c :: * -&gt; *).
+    (forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+    -&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c Sum)
+-&gt; (Sum -&gt; Constr)
+-&gt; (Sum -&gt; DataType)
+-&gt; (forall (t :: * -&gt; *) (c :: * -&gt; *).
+    Typeable t =&gt;
+    (forall d. Data d =&gt; c (t d)) -&gt; Maybe (c Sum))
+-&gt; (forall (t :: * -&gt; * -&gt; *) (c :: * -&gt; *).
+    Typeable t =&gt;
+    (forall d e. (Data d, Data e) =&gt; c (t d e)) -&gt; Maybe (c Sum))
+-&gt; ((forall b. Data b =&gt; b -&gt; b) -&gt; Sum -&gt; Sum)
+-&gt; (forall r r'.
+    (r -&gt; r' -&gt; r) -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; Sum -&gt; r)
+-&gt; (forall r r'.
+    (r' -&gt; r -&gt; r) -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; Sum -&gt; r)
+-&gt; (forall u. (forall d. Data d =&gt; d -&gt; u) -&gt; Sum -&gt; [u])
+-&gt; (forall u. Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; Sum -&gt; u)
+-&gt; (forall (m :: * -&gt; *).
+    Monad m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; Sum -&gt; m Sum)
+-&gt; (forall (m :: * -&gt; *).
+    MonadPlus m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; Sum -&gt; m Sum)
+-&gt; (forall (m :: * -&gt; *).
+    MonadPlus m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; Sum -&gt; m Sum)
+-&gt; Data Sum
+Sum -&gt; DataType
+Sum -&gt; Constr
+(forall b. Data b =&gt; b -&gt; b) -&gt; Sum -&gt; Sum
+(forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+-&gt; (forall g. g -&gt; c g) -&gt; Sum -&gt; c Sum
+(forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+-&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c Sum
+forall a.
+Typeable a
+-&gt; (forall (c :: * -&gt; *).
+    (forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+    -&gt; (forall g. g -&gt; c g) -&gt; a -&gt; c a)
+-&gt; (forall (c :: * -&gt; *).
+    (forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+    -&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c a)
+-&gt; (a -&gt; Constr)
+-&gt; (a -&gt; DataType)
+-&gt; (forall (t :: * -&gt; *) (c :: * -&gt; *).
+    Typeable t =&gt;
+    (forall d. Data d =&gt; c (t d)) -&gt; Maybe (c a))
+-&gt; (forall (t :: * -&gt; * -&gt; *) (c :: * -&gt; *).
+    Typeable t =&gt;
+    (forall d e. (Data d, Data e) =&gt; c (t d e)) -&gt; Maybe (c a))
+-&gt; ((forall b. Data b =&gt; b -&gt; b) -&gt; a -&gt; a)
+-&gt; (forall r r'.
+    (r -&gt; r' -&gt; r) -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; a -&gt; r)
+-&gt; (forall r r'.
+    (r' -&gt; r -&gt; r) -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; a -&gt; r)
+-&gt; (forall u. (forall d. Data d =&gt; d -&gt; u) -&gt; a -&gt; [u])
+-&gt; (forall u. Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; a -&gt; u)
+-&gt; (forall (m :: * -&gt; *).
+    Monad m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; a -&gt; m a)
+-&gt; (forall (m :: * -&gt; *).
+    MonadPlus m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; a -&gt; m a)
+-&gt; (forall (m :: * -&gt; *).
+    MonadPlus m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; a -&gt; m a)
+-&gt; Data a
+forall u. Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; Sum -&gt; u
+forall u. (forall d. Data d =&gt; d -&gt; u) -&gt; Sum -&gt; [u]
+forall r r'.
+(r -&gt; r' -&gt; r) -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; Sum -&gt; r
+forall r r'.
+(r' -&gt; r -&gt; r) -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; Sum -&gt; r
+forall (m :: * -&gt; *).
+Monad m =&gt;
+(forall d. Data d =&gt; d -&gt; m d) -&gt; Sum -&gt; m Sum
+forall (m :: * -&gt; *).
+MonadPlus m =&gt;
+(forall d. Data d =&gt; d -&gt; m d) -&gt; Sum -&gt; m Sum
+forall (c :: * -&gt; *).
+(forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+-&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c Sum
+forall (c :: * -&gt; *).
+(forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+-&gt; (forall g. g -&gt; c g) -&gt; Sum -&gt; c Sum
+forall (t :: * -&gt; *) (c :: * -&gt; *).
+Typeable t =&gt;
+(forall d. Data d =&gt; c (t d)) -&gt; Maybe (c Sum)
+forall (t :: * -&gt; * -&gt; *) (c :: * -&gt; *).
+Typeable t =&gt;
+(forall d e. (Data d, Data e) =&gt; c (t d e)) -&gt; Maybe (c Sum)
+$cSum :: Constr
+$tSum :: DataType
+gmapMo :: (forall d. Data d =&gt; d -&gt; m d) -&gt; Sum -&gt; m Sum
+$cgmapMo :: forall (m :: * -&gt; *).
+MonadPlus m =&gt;
+(forall d. Data d =&gt; d -&gt; m d) -&gt; Sum -&gt; m Sum
+gmapMp :: (forall d. Data d =&gt; d -&gt; m d) -&gt; Sum -&gt; m Sum
+$cgmapMp :: forall (m :: * -&gt; *).
+MonadPlus m =&gt;
+(forall d. Data d =&gt; d -&gt; m d) -&gt; Sum -&gt; m Sum
+gmapM :: (forall d. Data d =&gt; d -&gt; m d) -&gt; Sum -&gt; m Sum
+$cgmapM :: forall (m :: * -&gt; *).
+Monad m =&gt;
+(forall d. Data d =&gt; d -&gt; m d) -&gt; Sum -&gt; m Sum
+gmapQi :: Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; Sum -&gt; u
+$cgmapQi :: forall u. Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; Sum -&gt; u
+gmapQ :: (forall d. Data d =&gt; d -&gt; u) -&gt; Sum -&gt; [u]
+$cgmapQ :: forall u. (forall d. Data d =&gt; d -&gt; u) -&gt; Sum -&gt; [u]
+gmapQr :: (r' -&gt; r -&gt; r) -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; Sum -&gt; r
+$cgmapQr :: forall r r'.
+(r' -&gt; r -&gt; r) -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; Sum -&gt; r
+gmapQl :: (r -&gt; r' -&gt; r) -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; Sum -&gt; r
+$cgmapQl :: forall r r'.
+(r -&gt; r' -&gt; r) -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; Sum -&gt; r
+gmapT :: (forall b. Data b =&gt; b -&gt; b) -&gt; Sum -&gt; Sum
+$cgmapT :: (forall b. Data b =&gt; b -&gt; b) -&gt; Sum -&gt; Sum
+dataCast2 :: (forall d e. (Data d, Data e) =&gt; c (t d e)) -&gt; Maybe (c Sum)
+$cdataCast2 :: forall (t :: * -&gt; * -&gt; *) (c :: * -&gt; *).
+Typeable t =&gt;
+(forall d e. (Data d, Data e) =&gt; c (t d e)) -&gt; Maybe (c Sum)
+dataCast1 :: (forall d. Data d =&gt; c (t d)) -&gt; Maybe (c Sum)
+$cdataCast1 :: forall (t :: * -&gt; *) (c :: * -&gt; *).
+Typeable t =&gt;
+(forall d. Data d =&gt; c (t d)) -&gt; Maybe (c Sum)
+dataTypeOf :: Sum -&gt; DataType
+$cdataTypeOf :: Sum -&gt; DataType
+toConstr :: Sum -&gt; Constr
+$ctoConstr :: Sum -&gt; Constr
+gunfold :: (forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+-&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c Sum
+$cgunfold :: forall (c :: * -&gt; *).
+(forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+-&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c Sum
+gfoldl :: (forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+-&gt; (forall g. g -&gt; c g) -&gt; Sum -&gt; c Sum
+$cgfoldl :: forall (c :: * -&gt; *).
+(forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+-&gt; (forall g. g -&gt; c g) -&gt; Sum -&gt; c Sum
+$cp1Data :: Typeable Sum
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Data</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679127240"><span id="local-6989586621679127242"><span class="annot"><span class="annottext">Sum -&gt; Sum -&gt; Bool
+(Sum -&gt; Sum -&gt; Bool) -&gt; (Sum -&gt; Sum -&gt; Bool) -&gt; Eq Sum
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: Sum -&gt; Sum -&gt; Bool
+$c/= :: Sum -&gt; Sum -&gt; Bool
+== :: Sum -&gt; Sum -&gt; Bool
+$c== :: Sum -&gt; Sum -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(forall x. Sum -&gt; Rep Sum x)
+-&gt; (forall x. Rep Sum x -&gt; Sum) -&gt; Generic Sum
+forall x. Rep Sum x -&gt; Sum
+forall x. Sum -&gt; Rep Sum x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+$cto :: forall x. Rep Sum x -&gt; Sum
+$cfrom :: forall x. Sum -&gt; Rep Sum x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679127221"><span id="local-6989586621679127223"><span id="local-6989586621679127225"><span id="local-6989586621679127227"><span id="local-6989586621679127229"><span id="local-6989586621679127231"><span id="local-6989586621679127233"><span class="annot"><span class="annottext">Eq Sum
+Eq Sum
+-&gt; (Sum -&gt; Sum -&gt; Ordering)
+-&gt; (Sum -&gt; Sum -&gt; Bool)
+-&gt; (Sum -&gt; Sum -&gt; Bool)
+-&gt; (Sum -&gt; Sum -&gt; Bool)
+-&gt; (Sum -&gt; Sum -&gt; Bool)
+-&gt; (Sum -&gt; Sum -&gt; Sum)
+-&gt; (Sum -&gt; Sum -&gt; Sum)
+-&gt; Ord Sum
+Sum -&gt; Sum -&gt; Bool
+Sum -&gt; Sum -&gt; Ordering
+Sum -&gt; Sum -&gt; Sum
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: Sum -&gt; Sum -&gt; Sum
+$cmin :: Sum -&gt; Sum -&gt; Sum
+max :: Sum -&gt; Sum -&gt; Sum
+$cmax :: Sum -&gt; Sum -&gt; Sum
+&gt;= :: Sum -&gt; Sum -&gt; Bool
+$c&gt;= :: Sum -&gt; Sum -&gt; Bool
+&gt; :: Sum -&gt; Sum -&gt; Bool
+$c&gt; :: Sum -&gt; Sum -&gt; Bool
+&lt;= :: Sum -&gt; Sum -&gt; Bool
+$c&lt;= :: Sum -&gt; Sum -&gt; Bool
+&lt; :: Sum -&gt; Sum -&gt; Bool
+$c&lt; :: Sum -&gt; Sum -&gt; Bool
+compare :: Sum -&gt; Sum -&gt; Ordering
+$ccompare :: Sum -&gt; Sum -&gt; Ordering
+$cp1Ord :: Eq Sum
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679127212"><span id="local-6989586621679127214"><span id="local-6989586621679127216"><span id="local-6989586621679127218"><span class="annot"><span class="annottext">ReadPrec [Sum]
+ReadPrec Sum
+Int -&gt; ReadS Sum
+ReadS [Sum]
+(Int -&gt; ReadS Sum)
+-&gt; ReadS [Sum] -&gt; ReadPrec Sum -&gt; ReadPrec [Sum] -&gt; Read Sum
+forall a.
+(Int -&gt; ReadS a)
+-&gt; ReadS [a] -&gt; ReadPrec a -&gt; ReadPrec [a] -&gt; Read a
+readListPrec :: ReadPrec [Sum]
+$creadListPrec :: ReadPrec [Sum]
+readPrec :: ReadPrec Sum
+$creadPrec :: ReadPrec Sum
+readList :: ReadS [Sum]
+$creadList :: ReadS [Sum]
+readsPrec :: Int -&gt; ReadS Sum
+$creadsPrec :: Int -&gt; ReadS Sum
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Read</span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679127205"><span id="local-6989586621679127207"><span id="local-6989586621679127209"><span class="annot"><span class="annottext">Int -&gt; Sum -&gt; ShowS
+[Sum] -&gt; ShowS
+Sum -&gt; String
+(Int -&gt; Sum -&gt; ShowS)
+-&gt; (Sum -&gt; String) -&gt; ([Sum] -&gt; ShowS) -&gt; Show Sum
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [Sum] -&gt; ShowS
+$cshowList :: [Sum] -&gt; ShowS
+show :: Sum -&gt; String
+$cshow :: Sum -&gt; String
+showsPrec :: Int -&gt; Sum -&gt; ShowS
+$cshowsPrec :: Int -&gt; Sum -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-45"></span><span>
+</span><span id="line-46"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Arbitrary</span></span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#Sum"><span class="hs-identifier hs-type">Sum</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-47"></span><span>  </span><span id="local-6989586621679127200"><span class="annot"><span class="annottext">arbitrary :: Gen Sum
+</span><a href="#local-6989586621679127200"><span class="hs-identifier hs-var hs-var hs-var hs-var">arbitrary</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Sum' -&gt; Sum
+</span><a href="Dep.Data.Sum.html#Sum"><span class="hs-identifier hs-var">Sum</span></a></span><span> </span><span class="annot"><span class="annottext">(Sum' -&gt; Sum) -&gt; Gen Sum' -&gt; Gen Sum
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Gen Sum'
+forall a. Arbitrary a =&gt; Gen a
+</span><span class="hs-identifier hs-var">arbitrary</span></span><span>
+</span><span id="line-48"></span><span>  </span><span id="local-6989586621679127198"><span class="annot"><span class="annottext">shrink :: Sum -&gt; [Sum]
+</span><a href="#local-6989586621679127198"><span class="hs-identifier hs-var hs-var hs-var hs-var">shrink</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Sum.html#Sum"><span class="hs-identifier hs-type">Sum</span></a></span><span> </span><span id="local-6989586621679127197"><span class="annot"><span class="annottext">Sum'
+</span><a href="#local-6989586621679127197"><span class="hs-identifier hs-var">s</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Sum' -&gt; Sum
+</span><a href="Dep.Data.Sum.html#Sum"><span class="hs-identifier hs-var">Sum</span></a></span><span> </span><span class="annot"><span class="annottext">(Sum' -&gt; Sum) -&gt; [Sum'] -&gt; [Sum]
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Sum' -&gt; [Sum']
+forall a. Arbitrary a =&gt; a -&gt; [a]
+</span><span class="hs-identifier hs-var">shrink</span></span><span> </span><span class="annot"><span class="annottext">Sum'
+</span><a href="#local-6989586621679127197"><span class="hs-identifier hs-var">s</span></a></span><span>
+</span><span id="line-49"></span><span>
+</span><span id="line-50"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679127193"><span class="annot"><span class="hs-identifier hs-type">Binary</span></span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#Sum"><span class="hs-identifier hs-type">Sum</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-51"></span><span>  </span><span id="local-6989586621679127191"><span class="annot"><span class="annottext">get :: Get Sum
+</span><a href="#local-6989586621679127191"><span class="hs-identifier hs-var hs-var hs-var hs-var">get</span></a></span></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Sum' -&gt; Sum
+</span><a href="Dep.Data.Sum.html#Sum"><span class="hs-identifier hs-var">Sum</span></a></span><span> </span><span class="annot"><span class="annottext">(Sum' -&gt; Sum) -&gt; Get Sum' -&gt; Get Sum
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Get Sum'
+</span><a href="Dep.Data.LogicItem.html#getThreeList"><span class="hs-identifier hs-var">getThreeList</span></a></span><span>
+</span><span id="line-52"></span><span>  </span><span id="local-6989586621679127190"><span class="annot"><span class="annottext">put :: Sum -&gt; Put
+</span><a href="#local-6989586621679127190"><span class="hs-identifier hs-var hs-var hs-var hs-var">put</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Sum.html#Sum"><span class="hs-identifier hs-type">Sum</span></a></span><span> </span><span id="local-6989586621679127189"><span class="annot"><span class="annottext">Sum'
+</span><a href="#local-6989586621679127189"><span class="hs-identifier hs-var">s</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Sum' -&gt; Put
+</span><a href="Dep.Data.LogicItem.html#putThreeList"><span class="hs-identifier hs-var">putThreeList</span></a></span><span> </span><span class="annot"><span class="annottext">Sum'
+</span><a href="#local-6989586621679127189"><span class="hs-identifier hs-var">s</span></a></span><span>
+</span><span id="line-53"></span><span>
+</span><span id="line-54"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679127186"><span class="annot"><a href="Dep.Data.LogicItem.html#EvaluateItem"><span class="hs-identifier hs-type">EvaluateItem</span></a></span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#Sum"><span class="hs-identifier hs-type">Sum</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-55"></span><span>  </span><span id="local-6989586621679127182"><span class="annot"><span class="annottext">evaluateItem :: (Int -&gt; Bool) -&gt; Sum -&gt; Bool
+</span><a href="#local-6989586621679127182"><span class="hs-identifier hs-var hs-var hs-var hs-var">evaluateItem</span></a></span></span><span> </span><span id="local-6989586621679127181"><span class="annot"><span class="annottext">Int -&gt; Bool
+</span><a href="#local-6989586621679127181"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">~</span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Sum.html#Sum"><span class="hs-identifier hs-type">Sum</span></a></span><span> </span><span id="local-6989586621679127180"><span class="annot"><span class="annottext">Sum'
+</span><a href="#local-6989586621679127180"><span class="hs-identifier hs-var">s</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Sum' -&gt; Bool
+</span><a href="#local-6989586621679127179"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">Sum'
+</span><a href="#local-6989586621679127180"><span class="hs-identifier hs-var">s</span></a></span><span>
+</span><span id="line-56"></span><span>    </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679127179"><span class="annot"><span class="annottext">go :: Int -&gt; Sum' -&gt; Bool
+</span><a href="#local-6989586621679127179"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span>
+</span><span id="line-57"></span><span>          </span><span class="annot"><a href="#local-6989586621679127179"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679127178"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127178"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#Zero"><span class="hs-identifier hs-var">Zero</span></a></span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span id="local-6989586621679127177"><span class="annot"><span class="annottext">Sum'
+</span><a href="#local-6989586621679127177"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool
+</span><span class="hs-identifier hs-var">not</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Bool
+</span><a href="#local-6989586621679127181"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127178"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">||</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Sum' -&gt; Bool
+</span><a href="#local-6989586621679127179"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127178"><span class="hs-identifier hs-var">n</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Sum'
+</span><a href="#local-6989586621679127177"><span class="hs-identifier hs-var">xs</span></a></span><span>
+</span><span id="line-58"></span><span>          </span><span class="annot"><a href="#local-6989586621679127179"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679127173"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127173"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#One"><span class="hs-identifier hs-var">One</span></a></span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span id="local-6989586621679127172"><span class="annot"><span class="annottext">Sum'
+</span><a href="#local-6989586621679127172"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Bool
+</span><a href="#local-6989586621679127181"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127173"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">||</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Sum' -&gt; Bool
+</span><a href="#local-6989586621679127179"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127173"><span class="hs-identifier hs-var">n</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Sum'
+</span><a href="#local-6989586621679127172"><span class="hs-identifier hs-var">xs</span></a></span><span>
+</span><span id="line-59"></span><span>          </span><span class="annot"><a href="#local-6989586621679127179"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679127171"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127171"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">~</span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#DontCare"><span class="hs-identifier hs-var">DontCare</span></a></span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span id="local-6989586621679127170"><span class="annot"><span class="annottext">Sum'
+</span><a href="#local-6989586621679127170"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Sum' -&gt; Bool
+</span><a href="#local-6989586621679127179"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127171"><span class="hs-identifier hs-var">n</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Sum'
+</span><a href="#local-6989586621679127170"><span class="hs-identifier hs-var">xs</span></a></span><span>
+</span><span id="line-60"></span><span>  </span><span id="local-6989586621679127169"><span class="annot"><span class="annottext">isTrivial :: Sum -&gt; ThreeValue
+</span><a href="#local-6989586621679127169"><span class="hs-identifier hs-var hs-var hs-var hs-var">isTrivial</span></a></span></span><span> </span><span class="hs-glyph">~</span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Sum.html#Sum"><span class="hs-identifier hs-type">Sum</span></a></span><span> </span><span id="local-6989586621679127168"><span class="annot"><span class="annottext">Sum'
+</span><a href="#local-6989586621679127168"><span class="hs-identifier hs-var">s</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ThreeValue -&gt; ThreeValue -&gt; Bool -&gt; ThreeValue
+forall a. a -&gt; a -&gt; Bool -&gt; a
+</span><span class="hs-identifier hs-var">bool</span></span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#DontCare"><span class="hs-identifier hs-var">DontCare</span></a></span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#Zero"><span class="hs-identifier hs-var">Zero</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(ThreeValue -&gt; Bool) -&gt; Sum' -&gt; Bool
+forall (t :: * -&gt; *) a. Foldable t =&gt; (a -&gt; Bool) -&gt; t a -&gt; Bool
+</span><span class="hs-identifier hs-var">all</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#DontCare"><span class="hs-identifier hs-var">DontCare</span></a></span><span> </span><span class="annot"><span class="annottext">ThreeValue -&gt; ThreeValue -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Sum'
+</span><a href="#local-6989586621679127168"><span class="hs-identifier hs-var">s</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-61"></span><span>  </span><span id="local-6989586621679127166"><span class="annot"><span class="annottext">numberOfVariables :: Sum -&gt; Int
+</span><a href="#local-6989586621679127166"><span class="hs-identifier hs-var hs-var hs-var hs-var">numberOfVariables</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Sum.html#Sum"><span class="hs-identifier hs-type">Sum</span></a></span><span> </span><span id="local-6989586621679127165"><span class="annot"><span class="annottext">Sum'
+</span><a href="#local-6989586621679127165"><span class="hs-identifier hs-var">s</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Sum' -&gt; Int
+forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Int
+</span><span class="hs-identifier hs-var">length</span></span><span> </span><span class="annot"><span class="annottext">(Sum' -&gt; Int) -&gt; (Sum' -&gt; Sum') -&gt; Sum' -&gt; Int
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(ThreeValue -&gt; Bool) -&gt; Sum' -&gt; Sum'
+forall a. (a -&gt; Bool) -&gt; [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">dropWhile</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#DontCare"><span class="hs-identifier hs-var">DontCare</span></a></span><span> </span><span class="annot"><span class="annottext">ThreeValue -&gt; ThreeValue -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Sum' -&gt; Sum') -&gt; (Sum' -&gt; Sum') -&gt; Sum' -&gt; Sum'
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Sum' -&gt; Sum'
+forall a. [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">reverse</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Sum'
+</span><a href="#local-6989586621679127165"><span class="hs-identifier hs-var">s</span></a></span><span>
+</span><span id="line-62"></span><span>
+</span><span id="line-63"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679127157"><span id="local-6989586621679127159"><span class="annot"><span class="hs-identifier hs-type">Hashable</span></span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#Sum"><span class="hs-identifier hs-type">Sum</span></a></span></span></span><span>
+</span><span id="line-64"></span><span>
+</span><span id="line-65"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679127154"><span class="annot"><span class="hs-identifier hs-type">NFData</span></span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#Sum"><span class="hs-identifier hs-type">Sum</span></a></span></span><span>
+</span><span id="line-66"></span><span>
+</span><span id="line-67"></span><span class="hs-comment">-- | A more compact representation of a sum where the indexes that have 'Zero'</span><span>
+</span><span id="line-68"></span><span class="hs-comment">-- or 'One' are listed by the /positive/ or /negative/ index respectively.</span><span>
+</span><span id="line-69"></span><span class="hs-keyword">type</span><span> </span><span id="CompactSum%27"><span class="annot"><a href="Dep.Data.Sum.html#CompactSum%27"><span class="hs-identifier hs-var">CompactSum'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">]</span><span>
+</span><span id="line-70"></span><span>
+</span><span id="line-71"></span><span class="hs-comment">-- | A data type that can be used to specify a 'CompactSum'. By using a new</span><span>
+</span><span id="line-72"></span><span class="hs-comment">-- type, this means that we can define other instances than these for a list of 'Int'.</span><span>
+</span><span id="line-73"></span><span id="local-6989586621679127151"><span id="local-6989586621679127152"></span></span><span class="hs-keyword">newtype</span><span> </span><span id="CompactSum"><span class="annot"><a href="Dep.Data.Sum.html#CompactSum"><span class="hs-identifier hs-var">CompactSum</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="CompactSum"><span class="annot"><a href="Dep.Data.Sum.html#CompactSum"><span class="hs-identifier hs-var">CompactSum</span></a></span></span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#CompactSum%27"><span class="hs-identifier hs-type">CompactSum'</span></a></span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="%24cCompactSum"><span id="%24tCompactSum"><span id="local-6989586621679127122"><span id="local-6989586621679127124"><span id="local-6989586621679127126"><span id="local-6989586621679127128"><span id="local-6989586621679127130"><span id="local-6989586621679127132"><span id="local-6989586621679127134"><span id="local-6989586621679127136"><span id="local-6989586621679127138"><span id="local-6989586621679127140"><span id="local-6989586621679127142"><span id="local-6989586621679127144"><span id="local-6989586621679127146"><span id="local-6989586621679127148"><span class="annot"><span class="annottext">Typeable CompactSum
+DataType
+Constr
+Typeable CompactSum
+-&gt; (forall (c :: * -&gt; *).
+    (forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+    -&gt; (forall g. g -&gt; c g) -&gt; CompactSum -&gt; c CompactSum)
+-&gt; (forall (c :: * -&gt; *).
+    (forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+    -&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c CompactSum)
+-&gt; (CompactSum -&gt; Constr)
+-&gt; (CompactSum -&gt; DataType)
+-&gt; (forall (t :: * -&gt; *) (c :: * -&gt; *).
+    Typeable t =&gt;
+    (forall d. Data d =&gt; c (t d)) -&gt; Maybe (c CompactSum))
+-&gt; (forall (t :: * -&gt; * -&gt; *) (c :: * -&gt; *).
+    Typeable t =&gt;
+    (forall d e. (Data d, Data e) =&gt; c (t d e))
+    -&gt; Maybe (c CompactSum))
+-&gt; ((forall b. Data b =&gt; b -&gt; b) -&gt; CompactSum -&gt; CompactSum)
+-&gt; (forall r r'.
+    (r -&gt; r' -&gt; r)
+    -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; CompactSum -&gt; r)
+-&gt; (forall r r'.
+    (r' -&gt; r -&gt; r)
+    -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; CompactSum -&gt; r)
+-&gt; (forall u. (forall d. Data d =&gt; d -&gt; u) -&gt; CompactSum -&gt; [u])
+-&gt; (forall u.
+    Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; CompactSum -&gt; u)
+-&gt; (forall (m :: * -&gt; *).
+    Monad m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; CompactSum -&gt; m CompactSum)
+-&gt; (forall (m :: * -&gt; *).
+    MonadPlus m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; CompactSum -&gt; m CompactSum)
+-&gt; (forall (m :: * -&gt; *).
+    MonadPlus m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; CompactSum -&gt; m CompactSum)
+-&gt; Data CompactSum
+CompactSum -&gt; DataType
+CompactSum -&gt; Constr
+(forall b. Data b =&gt; b -&gt; b) -&gt; CompactSum -&gt; CompactSum
+(forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+-&gt; (forall g. g -&gt; c g) -&gt; CompactSum -&gt; c CompactSum
+(forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+-&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c CompactSum
+forall a.
+Typeable a
+-&gt; (forall (c :: * -&gt; *).
+    (forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+    -&gt; (forall g. g -&gt; c g) -&gt; a -&gt; c a)
+-&gt; (forall (c :: * -&gt; *).
+    (forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+    -&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c a)
+-&gt; (a -&gt; Constr)
+-&gt; (a -&gt; DataType)
+-&gt; (forall (t :: * -&gt; *) (c :: * -&gt; *).
+    Typeable t =&gt;
+    (forall d. Data d =&gt; c (t d)) -&gt; Maybe (c a))
+-&gt; (forall (t :: * -&gt; * -&gt; *) (c :: * -&gt; *).
+    Typeable t =&gt;
+    (forall d e. (Data d, Data e) =&gt; c (t d e)) -&gt; Maybe (c a))
+-&gt; ((forall b. Data b =&gt; b -&gt; b) -&gt; a -&gt; a)
+-&gt; (forall r r'.
+    (r -&gt; r' -&gt; r) -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; a -&gt; r)
+-&gt; (forall r r'.
+    (r' -&gt; r -&gt; r) -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; a -&gt; r)
+-&gt; (forall u. (forall d. Data d =&gt; d -&gt; u) -&gt; a -&gt; [u])
+-&gt; (forall u. Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; a -&gt; u)
+-&gt; (forall (m :: * -&gt; *).
+    Monad m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; a -&gt; m a)
+-&gt; (forall (m :: * -&gt; *).
+    MonadPlus m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; a -&gt; m a)
+-&gt; (forall (m :: * -&gt; *).
+    MonadPlus m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; a -&gt; m a)
+-&gt; Data a
+forall u. Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; CompactSum -&gt; u
+forall u. (forall d. Data d =&gt; d -&gt; u) -&gt; CompactSum -&gt; [u]
+forall r r'.
+(r -&gt; r' -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; CompactSum -&gt; r
+forall r r'.
+(r' -&gt; r -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; CompactSum -&gt; r
+forall (m :: * -&gt; *).
+Monad m =&gt;
+(forall d. Data d =&gt; d -&gt; m d) -&gt; CompactSum -&gt; m CompactSum
+forall (m :: * -&gt; *).
+MonadPlus m =&gt;
+(forall d. Data d =&gt; d -&gt; m d) -&gt; CompactSum -&gt; m CompactSum
+forall (c :: * -&gt; *).
+(forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+-&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c CompactSum
+forall (c :: * -&gt; *).
+(forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+-&gt; (forall g. g -&gt; c g) -&gt; CompactSum -&gt; c CompactSum
+forall (t :: * -&gt; *) (c :: * -&gt; *).
+Typeable t =&gt;
+(forall d. Data d =&gt; c (t d)) -&gt; Maybe (c CompactSum)
+forall (t :: * -&gt; * -&gt; *) (c :: * -&gt; *).
+Typeable t =&gt;
+(forall d e. (Data d, Data e) =&gt; c (t d e)) -&gt; Maybe (c CompactSum)
+$cCompactSum :: Constr
+$tCompactSum :: DataType
+gmapMo :: (forall d. Data d =&gt; d -&gt; m d) -&gt; CompactSum -&gt; m CompactSum
+$cgmapMo :: forall (m :: * -&gt; *).
+MonadPlus m =&gt;
+(forall d. Data d =&gt; d -&gt; m d) -&gt; CompactSum -&gt; m CompactSum
+gmapMp :: (forall d. Data d =&gt; d -&gt; m d) -&gt; CompactSum -&gt; m CompactSum
+$cgmapMp :: forall (m :: * -&gt; *).
+MonadPlus m =&gt;
+(forall d. Data d =&gt; d -&gt; m d) -&gt; CompactSum -&gt; m CompactSum
+gmapM :: (forall d. Data d =&gt; d -&gt; m d) -&gt; CompactSum -&gt; m CompactSum
+$cgmapM :: forall (m :: * -&gt; *).
+Monad m =&gt;
+(forall d. Data d =&gt; d -&gt; m d) -&gt; CompactSum -&gt; m CompactSum
+gmapQi :: Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; CompactSum -&gt; u
+$cgmapQi :: forall u. Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; CompactSum -&gt; u
+gmapQ :: (forall d. Data d =&gt; d -&gt; u) -&gt; CompactSum -&gt; [u]
+$cgmapQ :: forall u. (forall d. Data d =&gt; d -&gt; u) -&gt; CompactSum -&gt; [u]
+gmapQr :: (r' -&gt; r -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; CompactSum -&gt; r
+$cgmapQr :: forall r r'.
+(r' -&gt; r -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; CompactSum -&gt; r
+gmapQl :: (r -&gt; r' -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; CompactSum -&gt; r
+$cgmapQl :: forall r r'.
+(r -&gt; r' -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; CompactSum -&gt; r
+gmapT :: (forall b. Data b =&gt; b -&gt; b) -&gt; CompactSum -&gt; CompactSum
+$cgmapT :: (forall b. Data b =&gt; b -&gt; b) -&gt; CompactSum -&gt; CompactSum
+dataCast2 :: (forall d e. (Data d, Data e) =&gt; c (t d e)) -&gt; Maybe (c CompactSum)
+$cdataCast2 :: forall (t :: * -&gt; * -&gt; *) (c :: * -&gt; *).
+Typeable t =&gt;
+(forall d e. (Data d, Data e) =&gt; c (t d e)) -&gt; Maybe (c CompactSum)
+dataCast1 :: (forall d. Data d =&gt; c (t d)) -&gt; Maybe (c CompactSum)
+$cdataCast1 :: forall (t :: * -&gt; *) (c :: * -&gt; *).
+Typeable t =&gt;
+(forall d. Data d =&gt; c (t d)) -&gt; Maybe (c CompactSum)
+dataTypeOf :: CompactSum -&gt; DataType
+$cdataTypeOf :: CompactSum -&gt; DataType
+toConstr :: CompactSum -&gt; Constr
+$ctoConstr :: CompactSum -&gt; Constr
+gunfold :: (forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+-&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c CompactSum
+$cgunfold :: forall (c :: * -&gt; *).
+(forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+-&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c CompactSum
+gfoldl :: (forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+-&gt; (forall g. g -&gt; c g) -&gt; CompactSum -&gt; c CompactSum
+$cgfoldl :: forall (c :: * -&gt; *).
+(forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+-&gt; (forall g. g -&gt; c g) -&gt; CompactSum -&gt; c CompactSum
+$cp1Data :: Typeable CompactSum
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Data</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679127116"><span id="local-6989586621679127118"><span class="annot"><span class="annottext">CompactSum -&gt; CompactSum -&gt; Bool
+(CompactSum -&gt; CompactSum -&gt; Bool)
+-&gt; (CompactSum -&gt; CompactSum -&gt; Bool) -&gt; Eq CompactSum
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: CompactSum -&gt; CompactSum -&gt; Bool
+$c/= :: CompactSum -&gt; CompactSum -&gt; Bool
+== :: CompactSum -&gt; CompactSum -&gt; Bool
+$c== :: CompactSum -&gt; CompactSum -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(forall x. CompactSum -&gt; Rep CompactSum x)
+-&gt; (forall x. Rep CompactSum x -&gt; CompactSum) -&gt; Generic CompactSum
+forall x. Rep CompactSum x -&gt; CompactSum
+forall x. CompactSum -&gt; Rep CompactSum x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+$cto :: forall x. Rep CompactSum x -&gt; CompactSum
+$cfrom :: forall x. CompactSum -&gt; Rep CompactSum x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679127099"><span id="local-6989586621679127101"><span id="local-6989586621679127103"><span id="local-6989586621679127105"><span id="local-6989586621679127107"><span id="local-6989586621679127109"><span id="local-6989586621679127111"><span class="annot"><span class="annottext">Eq CompactSum
+Eq CompactSum
+-&gt; (CompactSum -&gt; CompactSum -&gt; Ordering)
+-&gt; (CompactSum -&gt; CompactSum -&gt; Bool)
+-&gt; (CompactSum -&gt; CompactSum -&gt; Bool)
+-&gt; (CompactSum -&gt; CompactSum -&gt; Bool)
+-&gt; (CompactSum -&gt; CompactSum -&gt; Bool)
+-&gt; (CompactSum -&gt; CompactSum -&gt; CompactSum)
+-&gt; (CompactSum -&gt; CompactSum -&gt; CompactSum)
+-&gt; Ord CompactSum
+CompactSum -&gt; CompactSum -&gt; Bool
+CompactSum -&gt; CompactSum -&gt; Ordering
+CompactSum -&gt; CompactSum -&gt; CompactSum
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: CompactSum -&gt; CompactSum -&gt; CompactSum
+$cmin :: CompactSum -&gt; CompactSum -&gt; CompactSum
+max :: CompactSum -&gt; CompactSum -&gt; CompactSum
+$cmax :: CompactSum -&gt; CompactSum -&gt; CompactSum
+&gt;= :: CompactSum -&gt; CompactSum -&gt; Bool
+$c&gt;= :: CompactSum -&gt; CompactSum -&gt; Bool
+&gt; :: CompactSum -&gt; CompactSum -&gt; Bool
+$c&gt; :: CompactSum -&gt; CompactSum -&gt; Bool
+&lt;= :: CompactSum -&gt; CompactSum -&gt; Bool
+$c&lt;= :: CompactSum -&gt; CompactSum -&gt; Bool
+&lt; :: CompactSum -&gt; CompactSum -&gt; Bool
+$c&lt; :: CompactSum -&gt; CompactSum -&gt; Bool
+compare :: CompactSum -&gt; CompactSum -&gt; Ordering
+$ccompare :: CompactSum -&gt; CompactSum -&gt; Ordering
+$cp1Ord :: Eq CompactSum
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679127091"><span id="local-6989586621679127093"><span id="local-6989586621679127095"><span id="local-6989586621679127097"><span class="annot"><span class="annottext">ReadPrec [CompactSum]
+ReadPrec CompactSum
+Int -&gt; ReadS CompactSum
+ReadS [CompactSum]
+(Int -&gt; ReadS CompactSum)
+-&gt; ReadS [CompactSum]
+-&gt; ReadPrec CompactSum
+-&gt; ReadPrec [CompactSum]
+-&gt; Read CompactSum
+forall a.
+(Int -&gt; ReadS a)
+-&gt; ReadS [a] -&gt; ReadPrec a -&gt; ReadPrec [a] -&gt; Read a
+readListPrec :: ReadPrec [CompactSum]
+$creadListPrec :: ReadPrec [CompactSum]
+readPrec :: ReadPrec CompactSum
+$creadPrec :: ReadPrec CompactSum
+readList :: ReadS [CompactSum]
+$creadList :: ReadS [CompactSum]
+readsPrec :: Int -&gt; ReadS CompactSum
+$creadsPrec :: Int -&gt; ReadS CompactSum
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Read</span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679127085"><span id="local-6989586621679127087"><span id="local-6989586621679127089"><span class="annot"><span class="annottext">Int -&gt; CompactSum -&gt; ShowS
+[CompactSum] -&gt; ShowS
+CompactSum -&gt; String
+(Int -&gt; CompactSum -&gt; ShowS)
+-&gt; (CompactSum -&gt; String)
+-&gt; ([CompactSum] -&gt; ShowS)
+-&gt; Show CompactSum
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [CompactSum] -&gt; ShowS
+$cshowList :: [CompactSum] -&gt; ShowS
+show :: CompactSum -&gt; String
+$cshow :: CompactSum -&gt; String
+showsPrec :: Int -&gt; CompactSum -&gt; ShowS
+$cshowsPrec :: Int -&gt; CompactSum -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-74"></span><span>
+</span><span id="line-75"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Arbitrary</span></span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#CompactSum"><span class="hs-identifier hs-type">CompactSum</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-76"></span><span>  </span><span id="local-6989586621679127082"><span class="annot"><span class="annottext">arbitrary :: Gen CompactSum
+</span><a href="#local-6989586621679127082"><span class="hs-identifier hs-var hs-var hs-var hs-var">arbitrary</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">forall b. ToCompact Sum b =&gt; Sum -&gt; b
+forall a b. ToCompact a b =&gt; a -&gt; b
+</span><a href="Dep.Data.LogicItem.html#toCompact"><span class="hs-identifier hs-var">toCompact</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="Dep.Data.Sum.html#Sum"><span class="hs-identifier hs-type">Sum</span></a></span><span> </span><span class="annot"><span class="annottext">(Sum -&gt; CompactSum) -&gt; Gen Sum -&gt; Gen CompactSum
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Gen Sum
+forall a. Arbitrary a =&gt; Gen a
+</span><span class="hs-identifier hs-var">arbitrary</span></span><span>
+</span><span id="line-77"></span><span>  </span><span id="local-6989586621679127081"><span class="annot"><span class="annottext">shrink :: CompactSum -&gt; [CompactSum]
+</span><a href="#local-6989586621679127081"><span class="hs-identifier hs-var hs-var hs-var hs-var">shrink</span></a></span></span><span> </span><span id="local-6989586621679127080"><span class="annot"><span class="annottext">CompactSum
+</span><a href="#local-6989586621679127080"><span class="hs-identifier hs-var">cs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">forall b. ToCompact Sum b =&gt; Sum -&gt; b
+forall a b. ToCompact a b =&gt; a -&gt; b
+</span><a href="Dep.Data.LogicItem.html#toCompact"><span class="hs-identifier hs-var">toCompact</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="Dep.Data.Sum.html#Sum"><span class="hs-identifier hs-type">Sum</span></a></span><span> </span><span class="annot"><span class="annottext">(Sum -&gt; CompactSum) -&gt; [Sum] -&gt; [CompactSum]
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Sum -&gt; [Sum]
+forall a. Arbitrary a =&gt; a -&gt; [a]
+</span><span class="hs-identifier hs-var">shrink</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CompactSum -&gt; Sum
+forall a b. ToCompact a b =&gt; b -&gt; a
+</span><a href="Dep.Data.LogicItem.html#fromCompact"><span class="hs-identifier hs-var">fromCompact</span></a></span><span> </span><span class="annot"><span class="annottext">CompactSum
+</span><a href="#local-6989586621679127080"><span class="hs-identifier hs-var">cs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-78"></span><span>
+</span><span id="line-79"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679127076"><span class="annot"><span class="hs-identifier hs-type">Binary</span></span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#CompactSum"><span class="hs-identifier hs-type">CompactSum</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-80"></span><span>  </span><span id="local-6989586621679127075"><span class="annot"><span class="annottext">put :: CompactSum -&gt; Put
+</span><a href="#local-6989586621679127075"><span class="hs-identifier hs-var hs-var hs-var hs-var">put</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Sum.html#CompactSum"><span class="hs-identifier hs-type">CompactSum</span></a></span><span> </span><span id="local-6989586621679127074"><span class="annot"><span class="annottext">CompactSum'
+</span><a href="#local-6989586621679127074"><span class="hs-identifier hs-var">cs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CompactSum' -&gt; Put
+forall t. Binary t =&gt; t -&gt; Put
+</span><span class="hs-identifier hs-var">put</span></span><span> </span><span class="annot"><span class="annottext">CompactSum'
+</span><a href="#local-6989586621679127074"><span class="hs-identifier hs-var">cs</span></a></span><span>
+</span><span id="line-81"></span><span>  </span><span id="local-6989586621679127073"><span class="annot"><span class="annottext">get :: Get CompactSum
+</span><a href="#local-6989586621679127073"><span class="hs-identifier hs-var hs-var hs-var hs-var">get</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CompactSum' -&gt; CompactSum
+</span><a href="Dep.Data.Sum.html#CompactSum"><span class="hs-identifier hs-var">CompactSum</span></a></span><span> </span><span class="annot"><span class="annottext">(CompactSum' -&gt; CompactSum) -&gt; Get CompactSum' -&gt; Get CompactSum
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Get CompactSum'
+forall t. Binary t =&gt; Get t
+</span><span class="hs-identifier hs-var">get</span></span><span>
+</span><span id="line-82"></span><span>
+</span><span id="line-83"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679127069"><span id="local-6989586621679127071"><span class="annot"><span class="hs-identifier hs-type">Hashable</span></span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#CompactSum"><span class="hs-identifier hs-type">CompactSum</span></a></span></span></span><span>
+</span><span id="line-84"></span><span>
+</span><span id="line-85"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679127066"><span class="annot"><a href="Dep.Data.LogicItem.html#EvaluateItem"><span class="hs-identifier hs-type">EvaluateItem</span></a></span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#CompactSum"><span class="hs-identifier hs-type">CompactSum</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-86"></span><span>  </span><span id="local-6989586621679127063"><span class="annot"><span class="annottext">evaluateItem :: (Int -&gt; Bool) -&gt; CompactSum -&gt; Bool
+</span><a href="#local-6989586621679127063"><span class="hs-identifier hs-var hs-var hs-var hs-var">evaluateItem</span></a></span></span><span> </span><span id="local-6989586621679127062"><span class="annot"><span class="annottext">Int -&gt; Bool
+</span><a href="#local-6989586621679127062"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">~</span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Sum.html#CompactSum"><span class="hs-identifier hs-type">CompactSum</span></a></span><span> </span><span id="local-6989586621679127061"><span class="annot"><span class="annottext">CompactSum'
+</span><a href="#local-6989586621679127061"><span class="hs-identifier hs-var">s</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Bool) -&gt; CompactSum' -&gt; Bool
+forall (t :: * -&gt; *) a. Foldable t =&gt; (a -&gt; Bool) -&gt; t a -&gt; Bool
+</span><span class="hs-identifier hs-var">any</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Bool
+</span><a href="#local-6989586621679127059"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">CompactSum'
+</span><a href="#local-6989586621679127061"><span class="hs-identifier hs-var">s</span></a></span><span>
+</span><span id="line-87"></span><span>    </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679127059"><span class="annot"><span class="annottext">go :: Int -&gt; Bool
+</span><a href="#local-6989586621679127059"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span id="local-6989586621679127058"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127058"><span class="hs-identifier hs-var">n</span></a></span></span><span>
+</span><span id="line-88"></span><span>            </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127058"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool
+</span><span class="hs-identifier hs-var">not</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Bool
+</span><a href="#local-6989586621679127062"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">-</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127058"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-89"></span><span>            </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Bool
+</span><a href="#local-6989586621679127062"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127058"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-90"></span><span>  </span><span id="local-6989586621679127056"><span class="annot"><span class="annottext">isTrivial :: CompactSum -&gt; ThreeValue
+</span><a href="#local-6989586621679127056"><span class="hs-identifier hs-var hs-var hs-var hs-var">isTrivial</span></a></span></span><span> </span><span class="hs-glyph">~</span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Sum.html#CompactSum"><span class="hs-identifier hs-type">CompactSum</span></a></span><span> </span><span id="local-6989586621679127055"><span class="annot"><span class="annottext">CompactSum'
+</span><a href="#local-6989586621679127055"><span class="hs-identifier hs-var">cs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ThreeValue -&gt; ThreeValue -&gt; Bool -&gt; ThreeValue
+forall a. a -&gt; a -&gt; Bool -&gt; a
+</span><span class="hs-identifier hs-var">bool</span></span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#DontCare"><span class="hs-identifier hs-var">DontCare</span></a></span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#Zero"><span class="hs-identifier hs-var">Zero</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Int -&gt; Bool) -&gt; CompactSum' -&gt; Bool
+forall (t :: * -&gt; *) a. Foldable t =&gt; (a -&gt; Bool) -&gt; t a -&gt; Bool
+</span><span class="hs-identifier hs-var">all</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">CompactSum'
+</span><a href="#local-6989586621679127055"><span class="hs-identifier hs-var">cs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-91"></span><span>  </span><span id="local-6989586621679127054"><span class="annot"><span class="annottext">numberOfVariables :: CompactSum -&gt; Int
+</span><a href="#local-6989586621679127054"><span class="hs-identifier hs-var hs-var hs-var hs-var">numberOfVariables</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Sum.html#CompactSum"><span class="hs-identifier hs-type">CompactSum</span></a></span><span> </span><span id="local-6989586621679127053"><span class="annot"><span class="annottext">CompactSum'
+</span><a href="#local-6989586621679127053"><span class="hs-identifier hs-var">cs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CompactSum' -&gt; Int
+forall (t :: * -&gt; *) a. (Foldable t, Ord a) =&gt; t a -&gt; a
+</span><span class="hs-identifier hs-var">maximum</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; CompactSum' -&gt; CompactSum'
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Int) -&gt; CompactSum' -&gt; CompactSum'
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">abs</span></span><span> </span><span class="annot"><span class="annottext">CompactSum'
+</span><a href="#local-6989586621679127053"><span class="hs-identifier hs-var">cs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-92"></span><span>
+</span><span id="line-93"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679127049"><span class="annot"><span class="hs-identifier hs-type">NFData</span></span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#CompactSum"><span class="hs-identifier hs-type">CompactSum</span></a></span></span><span>
+</span><span id="line-94"></span><span>
+</span><span id="line-95"></span><span class="hs-comment">-- | A type synonym to present a product of sums where each item of the list is a 'Sum''.</span><span>
+</span><span id="line-96"></span><span class="hs-keyword">type</span><span> </span><span id="ProductOfSums%27"><span class="annot"><a href="Dep.Data.Sum.html#ProductOfSums%27"><span class="hs-identifier hs-var">ProductOfSums'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Dep.Data.Sum.html#Sum%27"><span class="hs-identifier hs-type">Sum'</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-97"></span><span>
+</span><span id="line-98"></span><span class="hs-comment">-- | A data type that is used to specify a product of sums. This type can be used</span><span>
+</span><span id="line-99"></span><span class="hs-comment">-- to specify new instance other than these of a list of lists of 'Int's.</span><span>
+</span><span id="line-100"></span><span id="local-6989586621679127047"><span id="local-6989586621679127048"></span></span><span class="hs-keyword">newtype</span><span> </span><span id="ProductOfSums"><span class="annot"><a href="Dep.Data.Sum.html#ProductOfSums"><span class="hs-identifier hs-var">ProductOfSums</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="ProductOfSums"><span class="annot"><a href="Dep.Data.Sum.html#ProductOfSums"><span class="hs-identifier hs-var">ProductOfSums</span></a></span></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Dep.Data.Sum.html#Sum"><span class="hs-identifier hs-type">Sum</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="%24cProductOfSums"><span id="%24tProductOfSums"><span id="local-6989586621679127018"><span id="local-6989586621679127020"><span id="local-6989586621679127022"><span id="local-6989586621679127024"><span id="local-6989586621679127026"><span id="local-6989586621679127028"><span id="local-6989586621679127030"><span id="local-6989586621679127032"><span id="local-6989586621679127034"><span id="local-6989586621679127036"><span id="local-6989586621679127038"><span id="local-6989586621679127040"><span id="local-6989586621679127042"><span id="local-6989586621679127044"><span class="annot"><span class="annottext">Typeable ProductOfSums
+DataType
+Constr
+Typeable ProductOfSums
+-&gt; (forall (c :: * -&gt; *).
+    (forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+    -&gt; (forall g. g -&gt; c g) -&gt; ProductOfSums -&gt; c ProductOfSums)
+-&gt; (forall (c :: * -&gt; *).
+    (forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+    -&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c ProductOfSums)
+-&gt; (ProductOfSums -&gt; Constr)
+-&gt; (ProductOfSums -&gt; DataType)
+-&gt; (forall (t :: * -&gt; *) (c :: * -&gt; *).
+    Typeable t =&gt;
+    (forall d. Data d =&gt; c (t d)) -&gt; Maybe (c ProductOfSums))
+-&gt; (forall (t :: * -&gt; * -&gt; *) (c :: * -&gt; *).
+    Typeable t =&gt;
+    (forall d e. (Data d, Data e) =&gt; c (t d e))
+    -&gt; Maybe (c ProductOfSums))
+-&gt; ((forall b. Data b =&gt; b -&gt; b) -&gt; ProductOfSums -&gt; ProductOfSums)
+-&gt; (forall r r'.
+    (r -&gt; r' -&gt; r)
+    -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; ProductOfSums -&gt; r)
+-&gt; (forall r r'.
+    (r' -&gt; r -&gt; r)
+    -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; ProductOfSums -&gt; r)
+-&gt; (forall u. (forall d. Data d =&gt; d -&gt; u) -&gt; ProductOfSums -&gt; [u])
+-&gt; (forall u.
+    Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; ProductOfSums -&gt; u)
+-&gt; (forall (m :: * -&gt; *).
+    Monad m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; ProductOfSums -&gt; m ProductOfSums)
+-&gt; (forall (m :: * -&gt; *).
+    MonadPlus m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; ProductOfSums -&gt; m ProductOfSums)
+-&gt; (forall (m :: * -&gt; *).
+    MonadPlus m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; ProductOfSums -&gt; m ProductOfSums)
+-&gt; Data ProductOfSums
+ProductOfSums -&gt; DataType
+ProductOfSums -&gt; Constr
+(forall b. Data b =&gt; b -&gt; b) -&gt; ProductOfSums -&gt; ProductOfSums
+(forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+-&gt; (forall g. g -&gt; c g) -&gt; ProductOfSums -&gt; c ProductOfSums
+(forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+-&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c ProductOfSums
+forall a.
+Typeable a
+-&gt; (forall (c :: * -&gt; *).
+    (forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+    -&gt; (forall g. g -&gt; c g) -&gt; a -&gt; c a)
+-&gt; (forall (c :: * -&gt; *).
+    (forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+    -&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c a)
+-&gt; (a -&gt; Constr)
+-&gt; (a -&gt; DataType)
+-&gt; (forall (t :: * -&gt; *) (c :: * -&gt; *).
+    Typeable t =&gt;
+    (forall d. Data d =&gt; c (t d)) -&gt; Maybe (c a))
+-&gt; (forall (t :: * -&gt; * -&gt; *) (c :: * -&gt; *).
+    Typeable t =&gt;
+    (forall d e. (Data d, Data e) =&gt; c (t d e)) -&gt; Maybe (c a))
+-&gt; ((forall b. Data b =&gt; b -&gt; b) -&gt; a -&gt; a)
+-&gt; (forall r r'.
+    (r -&gt; r' -&gt; r) -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; a -&gt; r)
+-&gt; (forall r r'.
+    (r' -&gt; r -&gt; r) -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; a -&gt; r)
+-&gt; (forall u. (forall d. Data d =&gt; d -&gt; u) -&gt; a -&gt; [u])
+-&gt; (forall u. Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; a -&gt; u)
+-&gt; (forall (m :: * -&gt; *).
+    Monad m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; a -&gt; m a)
+-&gt; (forall (m :: * -&gt; *).
+    MonadPlus m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; a -&gt; m a)
+-&gt; (forall (m :: * -&gt; *).
+    MonadPlus m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; a -&gt; m a)
+-&gt; Data a
+forall u. Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; ProductOfSums -&gt; u
+forall u. (forall d. Data d =&gt; d -&gt; u) -&gt; ProductOfSums -&gt; [u]
+forall r r'.
+(r -&gt; r' -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; ProductOfSums -&gt; r
+forall r r'.
+(r' -&gt; r -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; ProductOfSums -&gt; r
+forall (m :: * -&gt; *).
+Monad m =&gt;
+(forall d. Data d =&gt; d -&gt; m d) -&gt; ProductOfSums -&gt; m ProductOfSums
+forall (m :: * -&gt; *).
+MonadPlus m =&gt;
+(forall d. Data d =&gt; d -&gt; m d) -&gt; ProductOfSums -&gt; m ProductOfSums
+forall (c :: * -&gt; *).
+(forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+-&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c ProductOfSums
+forall (c :: * -&gt; *).
+(forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+-&gt; (forall g. g -&gt; c g) -&gt; ProductOfSums -&gt; c ProductOfSums
+forall (t :: * -&gt; *) (c :: * -&gt; *).
+Typeable t =&gt;
+(forall d. Data d =&gt; c (t d)) -&gt; Maybe (c ProductOfSums)
+forall (t :: * -&gt; * -&gt; *) (c :: * -&gt; *).
+Typeable t =&gt;
+(forall d e. (Data d, Data e) =&gt; c (t d e))
+-&gt; Maybe (c ProductOfSums)
+$cProductOfSums :: Constr
+$tProductOfSums :: DataType
+gmapMo :: (forall d. Data d =&gt; d -&gt; m d) -&gt; ProductOfSums -&gt; m ProductOfSums
+$cgmapMo :: forall (m :: * -&gt; *).
+MonadPlus m =&gt;
+(forall d. Data d =&gt; d -&gt; m d) -&gt; ProductOfSums -&gt; m ProductOfSums
+gmapMp :: (forall d. Data d =&gt; d -&gt; m d) -&gt; ProductOfSums -&gt; m ProductOfSums
+$cgmapMp :: forall (m :: * -&gt; *).
+MonadPlus m =&gt;
+(forall d. Data d =&gt; d -&gt; m d) -&gt; ProductOfSums -&gt; m ProductOfSums
+gmapM :: (forall d. Data d =&gt; d -&gt; m d) -&gt; ProductOfSums -&gt; m ProductOfSums
+$cgmapM :: forall (m :: * -&gt; *).
+Monad m =&gt;
+(forall d. Data d =&gt; d -&gt; m d) -&gt; ProductOfSums -&gt; m ProductOfSums
+gmapQi :: Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; ProductOfSums -&gt; u
+$cgmapQi :: forall u. Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; ProductOfSums -&gt; u
+gmapQ :: (forall d. Data d =&gt; d -&gt; u) -&gt; ProductOfSums -&gt; [u]
+$cgmapQ :: forall u. (forall d. Data d =&gt; d -&gt; u) -&gt; ProductOfSums -&gt; [u]
+gmapQr :: (r' -&gt; r -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; ProductOfSums -&gt; r
+$cgmapQr :: forall r r'.
+(r' -&gt; r -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; ProductOfSums -&gt; r
+gmapQl :: (r -&gt; r' -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; ProductOfSums -&gt; r
+$cgmapQl :: forall r r'.
+(r -&gt; r' -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; ProductOfSums -&gt; r
+gmapT :: (forall b. Data b =&gt; b -&gt; b) -&gt; ProductOfSums -&gt; ProductOfSums
+$cgmapT :: (forall b. Data b =&gt; b -&gt; b) -&gt; ProductOfSums -&gt; ProductOfSums
+dataCast2 :: (forall d e. (Data d, Data e) =&gt; c (t d e))
+-&gt; Maybe (c ProductOfSums)
+$cdataCast2 :: forall (t :: * -&gt; * -&gt; *) (c :: * -&gt; *).
+Typeable t =&gt;
+(forall d e. (Data d, Data e) =&gt; c (t d e))
+-&gt; Maybe (c ProductOfSums)
+dataCast1 :: (forall d. Data d =&gt; c (t d)) -&gt; Maybe (c ProductOfSums)
+$cdataCast1 :: forall (t :: * -&gt; *) (c :: * -&gt; *).
+Typeable t =&gt;
+(forall d. Data d =&gt; c (t d)) -&gt; Maybe (c ProductOfSums)
+dataTypeOf :: ProductOfSums -&gt; DataType
+$cdataTypeOf :: ProductOfSums -&gt; DataType
+toConstr :: ProductOfSums -&gt; Constr
+$ctoConstr :: ProductOfSums -&gt; Constr
+gunfold :: (forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+-&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c ProductOfSums
+$cgunfold :: forall (c :: * -&gt; *).
+(forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+-&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c ProductOfSums
+gfoldl :: (forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+-&gt; (forall g. g -&gt; c g) -&gt; ProductOfSums -&gt; c ProductOfSums
+$cgfoldl :: forall (c :: * -&gt; *).
+(forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+-&gt; (forall g. g -&gt; c g) -&gt; ProductOfSums -&gt; c ProductOfSums
+$cp1Data :: Typeable ProductOfSums
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Data</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679127012"><span id="local-6989586621679127014"><span class="annot"><span class="annottext">ProductOfSums -&gt; ProductOfSums -&gt; Bool
+(ProductOfSums -&gt; ProductOfSums -&gt; Bool)
+-&gt; (ProductOfSums -&gt; ProductOfSums -&gt; Bool) -&gt; Eq ProductOfSums
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: ProductOfSums -&gt; ProductOfSums -&gt; Bool
+$c/= :: ProductOfSums -&gt; ProductOfSums -&gt; Bool
+== :: ProductOfSums -&gt; ProductOfSums -&gt; Bool
+$c== :: ProductOfSums -&gt; ProductOfSums -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(forall x. ProductOfSums -&gt; Rep ProductOfSums x)
+-&gt; (forall x. Rep ProductOfSums x -&gt; ProductOfSums)
+-&gt; Generic ProductOfSums
+forall x. Rep ProductOfSums x -&gt; ProductOfSums
+forall x. ProductOfSums -&gt; Rep ProductOfSums x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+$cto :: forall x. Rep ProductOfSums x -&gt; ProductOfSums
+$cfrom :: forall x. ProductOfSums -&gt; Rep ProductOfSums x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679126995"><span id="local-6989586621679126997"><span id="local-6989586621679126999"><span id="local-6989586621679127001"><span id="local-6989586621679127003"><span id="local-6989586621679127005"><span id="local-6989586621679127007"><span class="annot"><span class="annottext">Eq ProductOfSums
+Eq ProductOfSums
+-&gt; (ProductOfSums -&gt; ProductOfSums -&gt; Ordering)
+-&gt; (ProductOfSums -&gt; ProductOfSums -&gt; Bool)
+-&gt; (ProductOfSums -&gt; ProductOfSums -&gt; Bool)
+-&gt; (ProductOfSums -&gt; ProductOfSums -&gt; Bool)
+-&gt; (ProductOfSums -&gt; ProductOfSums -&gt; Bool)
+-&gt; (ProductOfSums -&gt; ProductOfSums -&gt; ProductOfSums)
+-&gt; (ProductOfSums -&gt; ProductOfSums -&gt; ProductOfSums)
+-&gt; Ord ProductOfSums
+ProductOfSums -&gt; ProductOfSums -&gt; Bool
+ProductOfSums -&gt; ProductOfSums -&gt; Ordering
+ProductOfSums -&gt; ProductOfSums -&gt; ProductOfSums
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: ProductOfSums -&gt; ProductOfSums -&gt; ProductOfSums
+$cmin :: ProductOfSums -&gt; ProductOfSums -&gt; ProductOfSums
+max :: ProductOfSums -&gt; ProductOfSums -&gt; ProductOfSums
+$cmax :: ProductOfSums -&gt; ProductOfSums -&gt; ProductOfSums
+&gt;= :: ProductOfSums -&gt; ProductOfSums -&gt; Bool
+$c&gt;= :: ProductOfSums -&gt; ProductOfSums -&gt; Bool
+&gt; :: ProductOfSums -&gt; ProductOfSums -&gt; Bool
+$c&gt; :: ProductOfSums -&gt; ProductOfSums -&gt; Bool
+&lt;= :: ProductOfSums -&gt; ProductOfSums -&gt; Bool
+$c&lt;= :: ProductOfSums -&gt; ProductOfSums -&gt; Bool
+&lt; :: ProductOfSums -&gt; ProductOfSums -&gt; Bool
+$c&lt; :: ProductOfSums -&gt; ProductOfSums -&gt; Bool
+compare :: ProductOfSums -&gt; ProductOfSums -&gt; Ordering
+$ccompare :: ProductOfSums -&gt; ProductOfSums -&gt; Ordering
+$cp1Ord :: Eq ProductOfSums
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679126987"><span id="local-6989586621679126989"><span id="local-6989586621679126991"><span id="local-6989586621679126993"><span class="annot"><span class="annottext">ReadPrec [ProductOfSums]
+ReadPrec ProductOfSums
+Int -&gt; ReadS ProductOfSums
+ReadS [ProductOfSums]
+(Int -&gt; ReadS ProductOfSums)
+-&gt; ReadS [ProductOfSums]
+-&gt; ReadPrec ProductOfSums
+-&gt; ReadPrec [ProductOfSums]
+-&gt; Read ProductOfSums
+forall a.
+(Int -&gt; ReadS a)
+-&gt; ReadS [a] -&gt; ReadPrec a -&gt; ReadPrec [a] -&gt; Read a
+readListPrec :: ReadPrec [ProductOfSums]
+$creadListPrec :: ReadPrec [ProductOfSums]
+readPrec :: ReadPrec ProductOfSums
+$creadPrec :: ReadPrec ProductOfSums
+readList :: ReadS [ProductOfSums]
+$creadList :: ReadS [ProductOfSums]
+readsPrec :: Int -&gt; ReadS ProductOfSums
+$creadsPrec :: Int -&gt; ReadS ProductOfSums
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Read</span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679126981"><span id="local-6989586621679126983"><span id="local-6989586621679126985"><span class="annot"><span class="annottext">Int -&gt; ProductOfSums -&gt; ShowS
+[ProductOfSums] -&gt; ShowS
+ProductOfSums -&gt; String
+(Int -&gt; ProductOfSums -&gt; ShowS)
+-&gt; (ProductOfSums -&gt; String)
+-&gt; ([ProductOfSums] -&gt; ShowS)
+-&gt; Show ProductOfSums
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [ProductOfSums] -&gt; ShowS
+$cshowList :: [ProductOfSums] -&gt; ShowS
+show :: ProductOfSums -&gt; String
+$cshow :: ProductOfSums -&gt; String
+showsPrec :: Int -&gt; ProductOfSums -&gt; ShowS
+$cshowsPrec :: Int -&gt; ProductOfSums -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-101"></span><span>
+</span><span id="line-102"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Arbitrary</span></span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#ProductOfSums"><span class="hs-identifier hs-type">ProductOfSums</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-103"></span><span>  </span><span id="local-6989586621679126978"><span class="annot"><span class="annottext">arbitrary :: Gen ProductOfSums
+</span><a href="#local-6989586621679126978"><span class="hs-identifier hs-var hs-var hs-var hs-var">arbitrary</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Sum] -&gt; ProductOfSums
+</span><a href="Dep.Data.Sum.html#ProductOfSums"><span class="hs-identifier hs-var">ProductOfSums</span></a></span><span> </span><span class="annot"><span class="annottext">([Sum] -&gt; ProductOfSums) -&gt; Gen [Sum] -&gt; Gen ProductOfSums
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Gen [Sum]
+forall a. Arbitrary a =&gt; Gen a
+</span><span class="hs-identifier hs-var">arbitrary</span></span><span>
+</span><span id="line-104"></span><span>  </span><span id="local-6989586621679126977"><span class="annot"><span class="annottext">shrink :: ProductOfSums -&gt; [ProductOfSums]
+</span><a href="#local-6989586621679126977"><span class="hs-identifier hs-var hs-var hs-var hs-var">shrink</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Sum.html#ProductOfSums"><span class="hs-identifier hs-type">ProductOfSums</span></a></span><span> </span><span id="local-6989586621679126976"><span class="annot"><span class="annottext">[Sum]
+</span><a href="#local-6989586621679126976"><span class="hs-identifier hs-var">sop</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Sum] -&gt; ProductOfSums
+</span><a href="Dep.Data.Sum.html#ProductOfSums"><span class="hs-identifier hs-var">ProductOfSums</span></a></span><span> </span><span class="annot"><span class="annottext">([Sum] -&gt; ProductOfSums) -&gt; [[Sum]] -&gt; [ProductOfSums]
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">[Sum] -&gt; [[Sum]]
+forall a. Arbitrary a =&gt; a -&gt; [a]
+</span><span class="hs-identifier hs-var">shrink</span></span><span> </span><span class="annot"><span class="annottext">[Sum]
+</span><a href="#local-6989586621679126976"><span class="hs-identifier hs-var">sop</span></a></span><span>
+</span><span id="line-105"></span><span>
+</span><span id="line-106"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679126972"><span class="annot"><span class="hs-identifier hs-type">Binary</span></span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#ProductOfSums"><span class="hs-identifier hs-type">ProductOfSums</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-107"></span><span>  </span><span id="local-6989586621679126971"><span class="annot"><span class="annottext">get :: Get ProductOfSums
+</span><a href="#local-6989586621679126971"><span class="hs-identifier hs-var hs-var hs-var hs-var">get</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Sum] -&gt; ProductOfSums
+</span><a href="Dep.Data.Sum.html#ProductOfSums"><span class="hs-identifier hs-var">ProductOfSums</span></a></span><span> </span><span class="annot"><span class="annottext">([Sum] -&gt; ProductOfSums) -&gt; Get [Sum] -&gt; Get ProductOfSums
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Get [Sum]
+forall t. Binary t =&gt; Get t
+</span><span class="hs-identifier hs-var">get</span></span><span>
+</span><span id="line-108"></span><span>  </span><span id="local-6989586621679126970"><span class="annot"><span class="annottext">put :: ProductOfSums -&gt; Put
+</span><a href="#local-6989586621679126970"><span class="hs-identifier hs-var hs-var hs-var hs-var">put</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Sum.html#ProductOfSums"><span class="hs-identifier hs-type">ProductOfSums</span></a></span><span> </span><span id="local-6989586621679126969"><span class="annot"><span class="annottext">[Sum]
+</span><a href="#local-6989586621679126969"><span class="hs-identifier hs-var">ps</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Sum] -&gt; Put
+forall t. Binary t =&gt; [t] -&gt; Put
+</span><span class="hs-identifier hs-var">putList</span></span><span> </span><span class="annot"><span class="annottext">[Sum]
+</span><a href="#local-6989586621679126969"><span class="hs-identifier hs-var">ps</span></a></span><span>
+</span><span id="line-109"></span><span>
+</span><span id="line-110"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679126966"><span class="annot"><a href="Dep.Data.LogicItem.html#EvaluateItem"><span class="hs-identifier hs-type">EvaluateItem</span></a></span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#ProductOfSums"><span class="hs-identifier hs-type">ProductOfSums</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-111"></span><span>  </span><span id="local-6989586621679126963"><span class="annot"><span class="annottext">evaluateItem :: (Int -&gt; Bool) -&gt; ProductOfSums -&gt; Bool
+</span><a href="#local-6989586621679126963"><span class="hs-identifier hs-var hs-var hs-var hs-var">evaluateItem</span></a></span></span><span> </span><span id="local-6989586621679126962"><span class="annot"><span class="annottext">Int -&gt; Bool
+</span><a href="#local-6989586621679126962"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">~</span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Sum.html#ProductOfSums"><span class="hs-identifier hs-type">ProductOfSums</span></a></span><span> </span><span id="local-6989586621679126961"><span class="annot"><span class="annottext">[Sum]
+</span><a href="#local-6989586621679126961"><span class="hs-identifier hs-var">p</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Sum -&gt; Bool) -&gt; [Sum] -&gt; Bool
+forall (t :: * -&gt; *) a. Foldable t =&gt; (a -&gt; Bool) -&gt; t a -&gt; Bool
+</span><span class="hs-identifier hs-var">all</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Int -&gt; Bool) -&gt; Sum -&gt; Bool
+forall a. EvaluateItem a =&gt; (Int -&gt; Bool) -&gt; a -&gt; Bool
+</span><a href="Dep.Data.LogicItem.html#evaluateItem"><span class="hs-identifier hs-var">evaluateItem</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Bool
+</span><a href="#local-6989586621679126962"><span class="hs-identifier hs-var">f</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[Sum]
+</span><a href="#local-6989586621679126961"><span class="hs-identifier hs-var">p</span></a></span><span>
+</span><span id="line-112"></span><span>  </span><span id="local-6989586621679126960"><span class="annot"><span class="annottext">isTrivial :: ProductOfSums -&gt; ThreeValue
+</span><a href="#local-6989586621679126960"><span class="hs-identifier hs-var hs-var hs-var hs-var">isTrivial</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Sum.html#ProductOfSums"><span class="hs-identifier hs-type">ProductOfSums</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#One"><span class="hs-identifier hs-var">One</span></a></span><span>
+</span><span id="line-113"></span><span>  </span><span class="annot"><a href="Dep.Data.LogicItem.html#isTrivial"><span class="hs-identifier hs-var">isTrivial</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Sum.html#ProductOfSums"><span class="hs-identifier hs-type">ProductOfSums</span></a></span><span> </span><span id="local-6989586621679126959"><span class="annot"><span class="annottext">[Sum]
+</span><a href="#local-6989586621679126959"><span class="hs-identifier hs-var">pos</span></a></span></span><span class="hs-special">)</span><span>
+</span><span id="line-114"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#Leaf"><span class="hs-identifier hs-type">Leaf</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Three Bool -&gt; Three Bool
+forall a. Simplify a =&gt; a -&gt; a
+</span><a href="Dep.Class.Simplify.html#simplify"><span class="hs-identifier hs-var">simplify</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool -&gt; Three Bool -&gt; [Sum'] -&gt; Three Bool
+forall a. a -&gt; Three a -&gt; [Sum'] -&gt; Three a
+</span><a href="Dep.Data.Three.html#wipeAll"><span class="hs-identifier hs-var">wipeAll</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool -&gt; Three Bool
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Sum -&gt; Sum') -&gt; [Sum] -&gt; [Sum']
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="annot"><span class="annottext">Sum -&gt; Sum'
+</span><a href="#local-6989586621679126958"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">[Sum]
+</span><a href="#local-6989586621679126959"><span class="hs-identifier hs-var">pos</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#Zero"><span class="hs-identifier hs-var">Zero</span></a></span><span>
+</span><span id="line-115"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#DontCare"><span class="hs-identifier hs-var">DontCare</span></a></span><span>
+</span><span id="line-116"></span><span>    </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679126958"><span class="annot"><span class="annottext">go :: Sum -&gt; Sum'
+</span><a href="#local-6989586621679126958"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="hs-glyph">~</span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Sum.html#Sum"><span class="hs-identifier hs-type">Sum</span></a></span><span> </span><span id="local-6989586621679126957"><span class="annot"><span class="annottext">Sum'
+</span><a href="#local-6989586621679126957"><span class="hs-identifier hs-var">s</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Sum' -&gt; Sum'
+forall a. Opposite a =&gt; a -&gt; a
+</span><a href="Dep.Class.Opposite.html#opposite"><span class="hs-identifier hs-var">opposite</span></a></span><span> </span><span class="annot"><span class="annottext">Sum'
+</span><a href="#local-6989586621679126957"><span class="hs-identifier hs-var">s</span></a></span><span>
+</span><span id="line-117"></span><span>  </span><span id="local-6989586621679126956"><span class="annot"><span class="annottext">numberOfVariables :: ProductOfSums -&gt; Int
+</span><a href="#local-6989586621679126956"><span class="hs-identifier hs-var hs-var hs-var hs-var">numberOfVariables</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Sum.html#ProductOfSums"><span class="hs-identifier hs-type">ProductOfSums</span></a></span><span> </span><span id="local-6989586621679126955"><span class="annot"><span class="annottext">[Sum]
+</span><a href="#local-6989586621679126955"><span class="hs-identifier hs-var">pos</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CompactSum' -&gt; Int
+forall (t :: * -&gt; *) a. (Foldable t, Ord a) =&gt; t a -&gt; a
+</span><span class="hs-identifier hs-var">maximum</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; CompactSum' -&gt; CompactSum'
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">(Sum -&gt; Int) -&gt; [Sum] -&gt; CompactSum'
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="annot"><span class="annottext">Sum -&gt; Int
+forall a. EvaluateItem a =&gt; a -&gt; Int
+</span><a href="Dep.Data.LogicItem.html#numberOfVariables"><span class="hs-identifier hs-var">numberOfVariables</span></a></span><span> </span><span class="annot"><span class="annottext">[Sum]
+</span><a href="#local-6989586621679126955"><span class="hs-identifier hs-var">pos</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-118"></span><span>
+</span><span id="line-119"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679126951"><span id="local-6989586621679126953"><span class="annot"><span class="hs-identifier hs-type">Hashable</span></span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#ProductOfSums"><span class="hs-identifier hs-type">ProductOfSums</span></a></span></span></span><span>
+</span><span id="line-120"></span><span>
+</span><span id="line-121"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679126949"><span class="annot"><span class="hs-identifier hs-type">NFData</span></span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#ProductOfSums"><span class="hs-identifier hs-type">ProductOfSums</span></a></span></span><span>
+</span><span id="line-122"></span><span>
+</span><span id="line-123"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679126944"><span id="local-6989586621679126946"><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#ProductOfSums"><span class="hs-identifier hs-type">ProductOfSums</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-124"></span><span>  </span><span class="annot"><a href="Dep.Data.Sum.html#ProductOfSums"><span class="hs-identifier hs-type">ProductOfSums</span></a></span><span> </span><span id="local-6989586621679126942"><span class="annot"><span class="annottext">[Sum]
+</span><a href="#local-6989586621679126942"><span class="hs-identifier hs-var">posa</span></a></span></span><span> </span><span id="local-6989586621679126941"><span class="annot"><span class="annottext">&lt;&gt; :: ProductOfSums -&gt; ProductOfSums -&gt; ProductOfSums
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">&lt;&gt;</span></span></span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#ProductOfSums"><span class="hs-identifier hs-type">ProductOfSums</span></a></span><span> </span><span id="local-6989586621679126940"><span class="annot"><span class="annottext">[Sum]
+</span><a href="#local-6989586621679126940"><span class="hs-identifier hs-var">posb</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Sum] -&gt; ProductOfSums
+</span><a href="Dep.Data.Sum.html#ProductOfSums"><span class="hs-identifier hs-var">ProductOfSums</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[Sum]
+</span><a href="#local-6989586621679126942"><span class="hs-identifier hs-var">posa</span></a></span><span> </span><span class="annot"><span class="annottext">[Sum] -&gt; [Sum] -&gt; [Sum]
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">[Sum]
+</span><a href="#local-6989586621679126940"><span class="hs-identifier hs-var">posb</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-125"></span><span>
+</span><span id="line-126"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679126934"><span id="local-6989586621679126936"><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#ProductOfSums"><span class="hs-identifier hs-type">ProductOfSums</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-127"></span><span>  </span><span id="local-6989586621679126932"><span class="annot"><span class="annottext">mempty :: ProductOfSums
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">mempty</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Sum] -&gt; ProductOfSums
+</span><a href="Dep.Data.Sum.html#ProductOfSums"><span class="hs-identifier hs-var">ProductOfSums</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><span id="line-128"></span><span>
+</span><span id="line-129"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Dep.Data.LogicItem.html#ToCompact"><span class="hs-identifier hs-type">ToCompact</span></a></span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#Sum"><span class="hs-identifier hs-type">Sum</span></a></span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#CompactSum"><span class="hs-identifier hs-type">CompactSum</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-130"></span><span>  </span><span id="local-6989586621679126928"><span class="annot"><span class="annottext">toCompact :: Sum -&gt; CompactSum
+</span><a href="#local-6989586621679126928"><span class="hs-identifier hs-var hs-var hs-var hs-var">toCompact</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Sum.html#Sum"><span class="hs-identifier hs-type">Sum</span></a></span><span> </span><span id="local-6989586621679126927"><span class="annot"><span class="annottext">Sum'
+</span><a href="#local-6989586621679126927"><span class="hs-identifier hs-var">s</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CompactSum' -&gt; CompactSum
+</span><a href="Dep.Data.Sum.html#CompactSum"><span class="hs-identifier hs-var">CompactSum</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Sum' -&gt; CompactSum'
+forall a b. ToCompact a b =&gt; a -&gt; b
+</span><a href="Dep.Data.LogicItem.html#toCompact"><span class="hs-identifier hs-var">toCompact</span></a></span><span> </span><span class="annot"><span class="annottext">Sum'
+</span><a href="#local-6989586621679126927"><span class="hs-identifier hs-var">s</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-131"></span><span>  </span><span id="local-6989586621679126926"><span class="annot"><span class="annottext">fromCompact :: CompactSum -&gt; Sum
+</span><a href="#local-6989586621679126926"><span class="hs-identifier hs-var hs-var hs-var hs-var">fromCompact</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Sum.html#CompactSum"><span class="hs-identifier hs-type">CompactSum</span></a></span><span> </span><span id="local-6989586621679126925"><span class="annot"><span class="annottext">CompactSum'
+</span><a href="#local-6989586621679126925"><span class="hs-identifier hs-var">s</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Sum' -&gt; Sum
+</span><a href="Dep.Data.Sum.html#Sum"><span class="hs-identifier hs-var">Sum</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CompactSum' -&gt; Sum'
+forall a b. ToCompact a b =&gt; b -&gt; a
+</span><a href="Dep.Data.LogicItem.html#fromCompact"><span class="hs-identifier hs-var">fromCompact</span></a></span><span> </span><span class="annot"><span class="annottext">CompactSum'
+</span><a href="#local-6989586621679126925"><span class="hs-identifier hs-var">s</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-132"></span><span>
+</span><span id="line-133"></span><span class="hs-comment">-- | Convert the given product of sums to a 'Text' object that presents</span><span>
+</span><span id="line-134"></span><span class="hs-comment">-- the 'ProductOfSums'' as a 'Text' object with variables as subscript.</span><span>
+</span><span id="line-135"></span><span class="hs-comment">--</span><span>
+</span><span id="line-136"></span><span class="hs-comment">-- &gt;&gt;&gt; showProductOfSums 'x' [[One, One], [DontCare, Zero, One]]</span><span>
+</span><span id="line-137"></span><span class="hs-comment">-- &quot;(x&#8320;x&#8321;)(x&#8321;'x&#8322;)&quot;</span><span>
+</span><span id="line-138"></span><span class="annot"><a href="Dep.Data.Sum.html#showProductOfSums"><span class="hs-identifier hs-type">showProductOfSums</span></a></span><span>
+</span><span id="line-139"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>  </span><span class="hs-comment">-- ^ The name of the root variable that will be used with subscripts.</span><span>
+</span><span id="line-140"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#ProductOfSums%27"><span class="hs-identifier hs-type">ProductOfSums'</span></a></span><span> </span><span class="hs-comment">-- ^ The given sum of products to convert to a 'Text'.</span><span>
+</span><span id="line-141"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="hs-comment">-- ^ The corresponding 'Text' object that presents the given 'ProductOfSums''.</span><span>
+</span><span id="line-142"></span><span id="showProductOfSums"><span class="annot"><span class="annottext">showProductOfSums :: Char -&gt; [Sum'] -&gt; Text
+</span><a href="Dep.Data.Sum.html#showProductOfSums"><span class="hs-identifier hs-var hs-var">showProductOfSums</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Text) -&gt; [Sum'] -&gt; Text
+</span><a href="Dep.Data.Sum.html#showProductOfSums%27"><span class="hs-identifier hs-var">showProductOfSums'</span></a></span><span> </span><span class="annot"><span class="annottext">((Int -&gt; Text) -&gt; [Sum'] -&gt; Text)
+-&gt; (Char -&gt; Int -&gt; Text) -&gt; Char -&gt; [Sum'] -&gt; Text
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Char -&gt; Int -&gt; Text
+</span><a href="Dep.Data.LogicItem.html#subscriptVariable"><span class="hs-identifier hs-var">subscriptVariable</span></a></span><span>
+</span><span id="line-143"></span><span>
+</span><span id="line-144"></span><span class="hs-comment">-- | Convert the given product of sums to a 'Text' object that presents</span><span>
+</span><span id="line-145"></span><span class="hs-comment">-- the 'ProductOfSums'' as a 'Text' object with variables as subscript.</span><span>
+</span><span id="line-146"></span><span class="hs-comment">--</span><span>
+</span><span id="line-147"></span><span class="hs-comment">-- &gt;&gt;&gt; showProductOfSums' (subscriptVariable 'y') [[One, One], [DontCare, Zero, One]]</span><span>
+</span><span id="line-148"></span><span class="hs-comment">-- &quot;(y&#8320; + y&#8321;)(y&#8321; + 'y&#8322;)&quot;</span><span>
+</span><span id="line-149"></span><span class="annot"><a href="Dep.Data.Sum.html#showProductOfSums%27"><span class="hs-identifier hs-type">showProductOfSums'</span></a></span><span>
+</span><span id="line-150"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span class="hs-special">)</span><span> </span><span class="hs-comment">-- ^ A function that maps the given index to the variable name.</span><span>
+</span><span id="line-151"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#ProductOfSums%27"><span class="hs-identifier hs-type">ProductOfSums'</span></a></span><span> </span><span class="hs-comment">-- ^ The given sum of products to convert to a 'Text'.</span><span>
+</span><span id="line-152"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="hs-comment">-- ^ The corresponding 'Text' object that presents the given 'Dep.ProductOfSums''.</span><span>
+</span><span id="line-153"></span><span id="showProductOfSums%27"><span class="annot"><span class="annottext">showProductOfSums' :: (Int -&gt; Text) -&gt; [Sum'] -&gt; Text
+</span><a href="Dep.Data.Sum.html#showProductOfSums%27"><span class="hs-identifier hs-var hs-var">showProductOfSums'</span></a></span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Text
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span>
+</span><span id="line-154"></span><span class="annot"><a href="Dep.Data.Sum.html#showProductOfSums%27"><span class="hs-identifier hs-var">showProductOfSums'</span></a></span><span> </span><span id="local-6989586621679126923"><span class="annot"><span class="annottext">Int -&gt; Text
+</span><a href="#local-6989586621679126923"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679126922"><span class="annot"><span class="annottext">Sum'
+</span><a href="#local-6989586621679126922"><span class="hs-identifier hs-var">x</span></a></span></span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span id="local-6989586621679126921"><span class="annot"><span class="annottext">[Sum']
+</span><a href="#local-6989586621679126921"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Sum' -&gt; [Sum'] -&gt; Text
+</span><a href="#local-6989586621679126920"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Sum'
+</span><a href="#local-6989586621679126922"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">[Sum']
+</span><a href="#local-6989586621679126921"><span class="hs-identifier hs-var">xs</span></a></span><span>
+</span><span id="line-155"></span><span>  </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679126920"><span class="annot"><span class="annottext">go :: Sum' -&gt; [Sum'] -&gt; Text
+</span><a href="#local-6989586621679126920"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span id="local-6989586621679126919"><span class="annot"><span class="annottext">Sum'
+</span><a href="#local-6989586621679126919"><span class="hs-identifier hs-var">z</span></a></span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Sum' -&gt; Text
+</span><a href="#local-6989586621679126918"><span class="hs-identifier hs-var">go'</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span> </span><span class="annot"><span class="annottext">Sum'
+</span><a href="#local-6989586621679126919"><span class="hs-identifier hs-var">z</span></a></span><span>
+</span><span id="line-156"></span><span>        </span><span class="annot"><a href="#local-6989586621679126920"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span id="local-6989586621679126917"><span class="annot"><span class="annottext">Sum'
+</span><a href="#local-6989586621679126917"><span class="hs-identifier hs-var">z</span></a></span></span><span> </span><span class="hs-glyph">~</span><span class="hs-special">(</span><span id="local-6989586621679126916"><span class="annot"><span class="annottext">Sum'
+</span><a href="#local-6989586621679126916"><span class="hs-identifier hs-var">y</span></a></span></span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span id="local-6989586621679126915"><span class="annot"><span class="annottext">[Sum']
+</span><a href="#local-6989586621679126915"><span class="hs-identifier hs-var">ys</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Sum' -&gt; Text
+</span><a href="#local-6989586621679126918"><span class="hs-identifier hs-var">go'</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot; + &quot;</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Text -&gt; Text
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Sum' -&gt; [Sum'] -&gt; Text
+</span><a href="#local-6989586621679126920"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Sum'
+</span><a href="#local-6989586621679126916"><span class="hs-identifier hs-var">y</span></a></span><span> </span><span class="annot"><span class="annottext">[Sum']
+</span><a href="#local-6989586621679126915"><span class="hs-identifier hs-var">ys</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Sum'
+</span><a href="#local-6989586621679126917"><span class="hs-identifier hs-var">z</span></a></span><span>
+</span><span id="line-157"></span><span>        </span><span id="local-6989586621679126918"><span class="annot"><span class="annottext">go' :: Text -&gt; Sum' -&gt; Text
+</span><a href="#local-6989586621679126918"><span class="hs-identifier hs-var hs-var">go'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Text) -&gt; Text -&gt; Sum' -&gt; Text
+</span><a href="Dep.Data.Sum.html#showSum%27%27"><span class="hs-identifier hs-var">showSum''</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Text
+</span><a href="#local-6989586621679126923"><span class="hs-identifier hs-var">f</span></a></span><span>
+</span><span id="line-158"></span><span>
+</span><span id="line-159"></span><span class="hs-comment">-- | Print a given sum as a sequence of variables that can be negated.</span><span>
+</span><span id="line-160"></span><span class="hs-comment">-- for example:</span><span>
+</span><span id="line-161"></span><span class="hs-comment">--</span><span>
+</span><span id="line-162"></span><span class="hs-comment">-- &gt;&gt;&gt; showSum 'x' [One, DontCare, Zero, One]</span><span>
+</span><span id="line-163"></span><span class="hs-comment">-- &quot;x&#8320; + x&#8322;' + x&#8323;&quot;</span><span>
+</span><span id="line-164"></span><span class="annot"><a href="Dep.Data.Sum.html#showSum"><span class="hs-identifier hs-type">showSum</span></a></span><span>
+</span><span id="line-165"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>  </span><span class="hs-comment">-- ^ The name of the root variable that will be used with subscripts.</span><span>
+</span><span id="line-166"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#Sum%27"><span class="hs-identifier hs-type">Sum'</span></a></span><span> </span><span class="hs-comment">-- ^ The given sum to convert to a 'Text'.</span><span>
+</span><span id="line-167"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="hs-comment">-- ^ The corresponding 'Text' object that presents the given 'Dep.Data.Product.Product''.</span><span>
+</span><span id="line-168"></span><span id="showSum"><span class="annot"><span class="annottext">showSum :: Char -&gt; Sum' -&gt; Text
+</span><a href="Dep.Data.Sum.html#showSum"><span class="hs-identifier hs-var hs-var">showSum</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Char -&gt; Text -&gt; Sum' -&gt; Text
+</span><a href="Dep.Data.Sum.html#showSum%27"><span class="hs-operator hs-var">`showSum'`</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span class="hs-special">)</span><span>
+</span><span id="line-169"></span><span>
+</span><span id="line-170"></span><span class="hs-comment">-- | Print a given sum as a sequence of variables that can be negated.</span><span>
+</span><span id="line-171"></span><span class="hs-comment">-- for example:</span><span>
+</span><span id="line-172"></span><span class="hs-comment">--</span><span>
+</span><span id="line-173"></span><span class="hs-comment">-- &gt;&gt;&gt; showSum' 'x' mempty [One, DontCare, Zero, One]</span><span>
+</span><span id="line-174"></span><span class="hs-comment">-- &quot;x&#8320; + x&#8322;' + x&#8323;&quot;</span><span>
+</span><span id="line-175"></span><span class="annot"><a href="Dep.Data.Sum.html#showSum%27"><span class="hs-identifier hs-type">showSum'</span></a></span><span>
+</span><span id="line-176"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>  </span><span class="hs-comment">-- ^ The name of the root variable that will be used with subscripts.</span><span>
+</span><span id="line-177"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>  </span><span class="hs-comment">-- ^ The text that will be added as tail, this is useful if we combine Sums.</span><span>
+</span><span id="line-178"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#Sum%27"><span class="hs-identifier hs-type">Sum'</span></a></span><span> </span><span class="hs-comment">-- ^ The given sum to convert to a 'Text'.</span><span>
+</span><span id="line-179"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="hs-comment">-- ^ The corresponding 'Text' object that presents the given 'Sum''.</span><span>
+</span><span id="line-180"></span><span id="showSum%27"><span class="annot"><span class="annottext">showSum' :: Char -&gt; Text -&gt; Sum' -&gt; Text
+</span><a href="Dep.Data.Sum.html#showSum%27"><span class="hs-identifier hs-var hs-var">showSum'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Text) -&gt; Text -&gt; Sum' -&gt; Text
+</span><a href="Dep.Data.Sum.html#showSum%27%27"><span class="hs-identifier hs-var">showSum''</span></a></span><span> </span><span class="annot"><span class="annottext">((Int -&gt; Text) -&gt; Text -&gt; Sum' -&gt; Text)
+-&gt; (Char -&gt; Int -&gt; Text) -&gt; Char -&gt; Text -&gt; Sum' -&gt; Text
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Char -&gt; Int -&gt; Text
+</span><a href="Dep.Data.LogicItem.html#subscriptVariable"><span class="hs-identifier hs-var">subscriptVariable</span></a></span><span>
+</span><span id="line-181"></span><span>
+</span><span id="line-182"></span><span class="hs-comment">-- | Print a given sum as a sequence of variables that can be negated.</span><span>
+</span><span id="line-183"></span><span class="hs-comment">-- for example:</span><span>
+</span><span id="line-184"></span><span class="hs-comment">--</span><span>
+</span><span id="line-185"></span><span class="hs-comment">-- &gt;&gt;&gt; showSum' (subscriptVariable 'y') mempty [One, DontCare, Zero, One]</span><span>
+</span><span id="line-186"></span><span class="hs-comment">-- &quot;y&#8320; + y&#8322;' + y&#8323;&quot;</span><span>
+</span><span id="line-187"></span><span class="annot"><a href="Dep.Data.Sum.html#showSum%27%27"><span class="hs-identifier hs-type">showSum''</span></a></span><span>
+</span><span id="line-188"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span class="hs-special">)</span><span> </span><span class="hs-comment">-- ^ A function that maps the given index to the variable name.</span><span>
+</span><span id="line-189"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>  </span><span class="hs-comment">-- ^ The text that will be added as tail, this is useful if we combine sums.</span><span>
+</span><span id="line-190"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Sum.html#Sum%27"><span class="hs-identifier hs-type">Sum'</span></a></span><span> </span><span class="hs-comment">-- ^ The given sum to convert to a 'Text'.</span><span>
+</span><span id="line-191"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="hs-comment">-- ^ The corresponding 'Text' object that presents the given 'Sum''.</span><span>
+</span><span id="line-192"></span><span id="showSum%27%27"><span class="annot"><span class="annottext">showSum'' :: (Int -&gt; Text) -&gt; Text -&gt; Sum' -&gt; Text
+</span><a href="Dep.Data.Sum.html#showSum%27%27"><span class="hs-identifier hs-var hs-var">showSum''</span></a></span></span><span> </span><span id="local-6989586621679126913"><span class="annot"><span class="annottext">Int -&gt; Text
+</span><a href="#local-6989586621679126913"><span class="hs-identifier hs-var">ci</span></a></span></span><span> </span><span id="local-6989586621679126912"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679126912"><span class="hs-identifier hs-var">tl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Sum' -&gt; Text
+</span><a href="#local-6989586621679126911"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span>
+</span><span id="line-193"></span><span>    </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679126911"><span class="annot"><span class="annottext">go :: Int -&gt; Sum' -&gt; Text
+</span><a href="#local-6989586621679126911"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679126912"><span class="hs-identifier hs-var">tl</span></a></span><span>
+</span><span id="line-194"></span><span>          </span><span class="annot"><a href="#local-6989586621679126911"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span id="local-6989586621679126910"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679126910"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#DontCare"><span class="hs-identifier hs-var">DontCare</span></a></span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span id="local-6989586621679126909"><span class="annot"><span class="annottext">Sum'
+</span><a href="#local-6989586621679126909"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Sum' -&gt; Text
+</span><a href="#local-6989586621679126911"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679126910"><span class="hs-identifier hs-var">n</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Sum'
+</span><a href="#local-6989586621679126909"><span class="hs-identifier hs-var">xs</span></a></span><span>
+</span><span id="line-195"></span><span>          </span><span class="annot"><a href="#local-6989586621679126911"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span id="local-6989586621679126908"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679126908"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#One"><span class="hs-identifier hs-var">One</span></a></span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span id="local-6989586621679126907"><span class="annot"><span class="annottext">Sum'
+</span><a href="#local-6989586621679126907"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Text -&gt; Text) -&gt; Int -&gt; Sum' -&gt; Text
+</span><a href="#local-6989586621679126906"><span class="hs-identifier hs-var">_printvar</span></a></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Text
+forall a. a -&gt; a
+</span><span class="hs-identifier hs-var">id</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679126908"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Sum'
+</span><a href="#local-6989586621679126907"><span class="hs-identifier hs-var">xs</span></a></span><span>
+</span><span id="line-196"></span><span>          </span><span class="annot"><a href="#local-6989586621679126911"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span id="local-6989586621679126904"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679126904"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">~</span><span class="hs-special">(</span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#Zero"><span class="hs-identifier hs-var">Zero</span></a></span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span id="local-6989586621679126903"><span class="annot"><span class="annottext">Sum'
+</span><a href="#local-6989586621679126903"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Text -&gt; Text) -&gt; Int -&gt; Sum' -&gt; Text
+</span><a href="#local-6989586621679126906"><span class="hs-identifier hs-var">_printvar</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Char -&gt; Text -&gt; Text
+</span><span class="hs-identifier hs-var">cons</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\''</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679126904"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Sum'
+</span><a href="#local-6989586621679126903"><span class="hs-identifier hs-var">xs</span></a></span><span>
+</span><span id="line-197"></span><span>          </span><span id="local-6989586621679126906"><span class="annot"><span class="annottext">_printvar :: (Text -&gt; Text) -&gt; Int -&gt; Sum' -&gt; Text
+</span><a href="#local-6989586621679126906"><span class="hs-identifier hs-var hs-var">_printvar</span></a></span></span><span> </span><span id="local-6989586621679126902"><span class="annot"><span class="annottext">Text -&gt; Text
+</span><a href="#local-6989586621679126902"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span id="local-6989586621679126901"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679126901"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679126900"><span class="annot"><span class="annottext">Sum'
+</span><a href="#local-6989586621679126900"><span class="hs-identifier hs-var">xs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Text
+</span><a href="#local-6989586621679126913"><span class="hs-identifier hs-var">ci</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679126901"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Text -&gt; Text
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Text
+</span><a href="#local-6989586621679126902"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Sum' -&gt; Text
+</span><a href="#local-6989586621679126911"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679126901"><span class="hs-identifier hs-var">n</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Sum'
+</span><a href="#local-6989586621679126900"><span class="hs-identifier hs-var">xs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-198"></span></pre></body></html>

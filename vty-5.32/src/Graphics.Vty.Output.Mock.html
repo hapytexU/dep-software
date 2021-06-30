@@ -1,0 +1,322 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- Copyright Corey O'Connor</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE FlexibleInstances #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE TypeFamilies #-}</span><span>
+</span><span id="line-4"></span><span class="hs-comment">-- | This provides a mock terminal implementation that is nice for</span><span>
+</span><span id="line-5"></span><span class="hs-comment">-- testing. This transforms the output operations to visible characters</span><span>
+</span><span id="line-6"></span><span class="hs-comment">-- which is useful for testing.</span><span>
+</span><span id="line-7"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Graphics.Vty.Output.Mock</span><span>
+</span><span id="line-8"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Graphics.Vty.Output.Mock.html#MockData"><span class="hs-identifier">MockData</span></a></span><span>
+</span><span id="line-9"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Output.Mock.html#mockTerminal"><span class="hs-identifier">mockTerminal</span></a></span><span>
+</span><span id="line-10"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-12"></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html"><span class="hs-identifier">Graphics.Vty.Image</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Graphics.Vty.Image.html#DisplayRegion"><span class="hs-identifier">DisplayRegion</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Graphics.Vty.Output.Interface.html"><span class="hs-identifier">Graphics.Vty.Output.Interface</span></a></span><span>
+</span><span id="line-15"></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Blaze.ByteString.Builder.Word</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">writeWord8</span></span><span class="hs-special">)</span><span>
+</span><span id="line-17"></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.Trans</span></span><span>
+</span><span id="line-19"></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.ByteString</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">BS</span></span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.IORef</span></span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.String.UTF8</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">UTF8</span></span><span>
+</span><span id="line-23"></span><span>
+</span><span id="line-24"></span><span class="hs-keyword">type</span><span> </span><span id="MockData"><span class="annot"><a href="Graphics.Vty.Output.Mock.html#MockData"><span class="hs-identifier hs-var">MockData</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IORef</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">UTF8.UTF8</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">BS.ByteString</span></span><span class="hs-special">)</span><span>
+</span><span id="line-25"></span><span>
+</span><span id="line-26"></span><span class="hs-comment">-- | The mock display terminal produces a string representation of</span><span>
+</span><span id="line-27"></span><span class="hs-comment">-- the requested picture. There is *not* an isomorphism between the</span><span>
+</span><span id="line-28"></span><span class="hs-comment">-- string representation and the picture. The string representation is</span><span>
+</span><span id="line-29"></span><span class="hs-comment">-- a simplification of the picture that is only useful in debugging VTY</span><span>
+</span><span id="line-30"></span><span class="hs-comment">-- without considering terminal specific issues.</span><span>
+</span><span id="line-31"></span><span class="hs-comment">--</span><span>
+</span><span id="line-32"></span><span class="hs-comment">-- The mock implementation is useful in manually determining if the</span><span>
+</span><span id="line-33"></span><span class="hs-comment">-- sequence of terminal operations matche the expected sequence. The</span><span>
+</span><span id="line-34"></span><span class="hs-comment">-- requirement of the produced representation is simplicity in parsing</span><span>
+</span><span id="line-35"></span><span class="hs-comment">-- the text representation and determining how the picture was mapped to</span><span>
+</span><span id="line-36"></span><span class="hs-comment">-- terminal operations.</span><span>
+</span><span id="line-37"></span><span class="hs-comment">--</span><span>
+</span><span id="line-38"></span><span class="hs-comment">-- The string representation is a sequence of identifiers where each</span><span>
+</span><span id="line-39"></span><span class="hs-comment">-- identifier is the name of an operation in the algebra.</span><span>
+</span><span id="line-40"></span><span id="local-6989586621679368852"><span class="annot"><a href="Graphics.Vty.Output.Mock.html#mockTerminal"><span class="hs-identifier hs-type">mockTerminal</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Applicative</span></span><span> </span><span class="annot"><a href="#local-6989586621679368852"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MonadIO</span></span><span> </span><span class="annot"><a href="#local-6989586621679368852"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html#DisplayRegion"><span class="hs-identifier hs-type">DisplayRegion</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679368852"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Graphics.Vty.Output.Mock.html#MockData"><span class="hs-identifier hs-type">MockData</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Output.Interface.html#Output"><span class="hs-identifier hs-type">Output</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-41"></span><span id="mockTerminal"><span class="annot"><span class="annottext">mockTerminal :: DisplayRegion -&gt; m (MockData, Output)
+</span><a href="Graphics.Vty.Output.Mock.html#mockTerminal"><span class="hs-identifier hs-var hs-var">mockTerminal</span></a></span></span><span> </span><span id="local-6989586621679368851"><span class="annot"><span class="annottext">DisplayRegion
+</span><a href="#local-6989586621679368851"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IO (MockData, Output) -&gt; m (MockData, Output)
+forall (m :: * -&gt; *) a. MonadIO m =&gt; IO a -&gt; m a
+</span><span class="hs-identifier hs-var">liftIO</span></span><span> </span><span class="annot"><span class="annottext">(IO (MockData, Output) -&gt; m (MockData, Output))
+-&gt; IO (MockData, Output) -&gt; m (MockData, Output)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-42"></span><span>    </span><span id="local-6989586621679368849"><span class="annot"><span class="annottext">MockData
+</span><a href="#local-6989586621679368849"><span class="hs-identifier hs-var">outRef</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">UTF8 ByteString -&gt; IO MockData
+forall a. a -&gt; IO (IORef a)
+</span><span class="hs-identifier hs-var">newIORef</span></span><span> </span><span class="annot"><span class="annottext">UTF8 ByteString
+forall a. HasCallStack =&gt; a
+</span><span class="hs-identifier hs-var">undefined</span></span><span>
+</span><span id="line-43"></span><span>    </span><span id="local-6989586621679368846"><span class="annot"><span class="annottext">IORef AssumedState
+</span><a href="#local-6989586621679368846"><span class="hs-identifier hs-var">newAssumedStateRef</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">AssumedState -&gt; IO (IORef AssumedState)
+forall a. a -&gt; IO (IORef a)
+</span><span class="hs-identifier hs-var">newIORef</span></span><span> </span><span class="annot"><span class="annottext">AssumedState
+</span><a href="Graphics.Vty.Output.Interface.html#initialAssumedState"><span class="hs-identifier hs-var">initialAssumedState</span></a></span><span>
+</span><span id="line-44"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679368844"><span class="annot"><span class="annottext">t :: Output
+</span><a href="#local-6989586621679368844"><span class="hs-identifier hs-var hs-var">t</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Output :: String
+-&gt; IO ()
+-&gt; IO ()
+-&gt; IO ()
+-&gt; (DisplayRegion -&gt; IO ())
+-&gt; IO DisplayRegion
+-&gt; (ByteString -&gt; IO ())
+-&gt; Int
+-&gt; Bool
+-&gt; (Mode -&gt; Bool)
+-&gt; (Mode -&gt; Bool -&gt; IO ())
+-&gt; (Mode -&gt; IO Bool)
+-&gt; IORef AssumedState
+-&gt; (Output -&gt; DisplayRegion -&gt; IO DisplayContext)
+-&gt; IO ()
+-&gt; IO Bool
+-&gt; IO Bool
+-&gt; IO Bool
+-&gt; Output
+</span><a href="Graphics.Vty.Output.Interface.html#Output"><span class="hs-identifier hs-type">Output</span></a></span><span>
+</span><span id="line-45"></span><span>            </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">terminalID :: String
+</span><a href="Graphics.Vty.Output.Interface.html#terminalID"><span class="hs-identifier hs-var">terminalID</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;mock terminal&quot;</span></span><span>
+</span><span id="line-46"></span><span>            </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">releaseTerminal :: IO ()
+</span><a href="Graphics.Vty.Output.Interface.html#releaseTerminal"><span class="hs-identifier hs-var">releaseTerminal</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">() -&gt; IO ()
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-47"></span><span>            </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">reserveDisplay :: IO ()
+</span><a href="Graphics.Vty.Output.Interface.html#reserveDisplay"><span class="hs-identifier hs-var">reserveDisplay</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">() -&gt; IO ()
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-48"></span><span>            </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">releaseDisplay :: IO ()
+</span><a href="Graphics.Vty.Output.Interface.html#releaseDisplay"><span class="hs-identifier hs-var">releaseDisplay</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">() -&gt; IO ()
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-49"></span><span>            </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">ringTerminalBell :: IO ()
+</span><a href="Graphics.Vty.Output.Interface.html#ringTerminalBell"><span class="hs-identifier hs-var">ringTerminalBell</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">() -&gt; IO ()
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-50"></span><span>            </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">supportsBell :: IO Bool
+</span><a href="Graphics.Vty.Output.Interface.html#supportsBell"><span class="hs-identifier hs-var">supportsBell</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; IO Bool
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span>
+</span><span id="line-51"></span><span>            </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">supportsItalics :: IO Bool
+</span><a href="Graphics.Vty.Output.Interface.html#supportsItalics"><span class="hs-identifier hs-var">supportsItalics</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; IO Bool
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span>
+</span><span id="line-52"></span><span>            </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">supportsStrikethrough :: IO Bool
+</span><a href="Graphics.Vty.Output.Interface.html#supportsStrikethrough"><span class="hs-identifier hs-var">supportsStrikethrough</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; IO Bool
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span>
+</span><span id="line-53"></span><span>            </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">setDisplayBounds :: DisplayRegion -&gt; IO ()
+</span><a href="Graphics.Vty.Output.Interface.html#setDisplayBounds"><span class="hs-identifier hs-var">setDisplayBounds</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IO () -&gt; DisplayRegion -&gt; IO ()
+forall a b. a -&gt; b -&gt; a
+</span><span class="hs-identifier hs-var">const</span></span><span> </span><span class="annot"><span class="annottext">(IO () -&gt; DisplayRegion -&gt; IO ())
+-&gt; IO () -&gt; DisplayRegion -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">() -&gt; IO ()
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-54"></span><span>            </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">displayBounds :: IO DisplayRegion
+</span><a href="Graphics.Vty.Output.Interface.html#displayBounds"><span class="hs-identifier hs-var">displayBounds</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DisplayRegion -&gt; IO DisplayRegion
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">DisplayRegion
+</span><a href="#local-6989586621679368851"><span class="hs-identifier hs-var">r</span></a></span><span>
+</span><span id="line-55"></span><span>            </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">outputByteBuffer :: ByteString -&gt; IO ()
+</span><a href="Graphics.Vty.Output.Interface.html#outputByteBuffer"><span class="hs-identifier hs-var">outputByteBuffer</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679368830"><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679368830"><span class="hs-identifier hs-var">bytes</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-56"></span><span>                </span><span class="annot"><span class="annottext">String -&gt; IO ()
+</span><span class="hs-identifier hs-var">putStrLn</span></span><span> </span><span class="annot"><span class="annottext">(String -&gt; IO ()) -&gt; String -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;mock outputByteBuffer of &quot;</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; String -&gt; String
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; String
+forall a. Show a =&gt; a -&gt; String
+</span><span class="hs-identifier hs-var">show</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ByteString -&gt; Int
+</span><span class="hs-identifier hs-var">BS.length</span></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679368830"><span class="hs-identifier hs-var">bytes</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">String -&gt; String -&gt; String
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot; bytes&quot;</span></span><span>
+</span><span id="line-57"></span><span>                </span><span class="annot"><span class="annottext">MockData -&gt; UTF8 ByteString -&gt; IO ()
+forall a. IORef a -&gt; a -&gt; IO ()
+</span><span class="hs-identifier hs-var">writeIORef</span></span><span> </span><span class="annot"><span class="annottext">MockData
+</span><a href="#local-6989586621679368849"><span class="hs-identifier hs-var">outRef</span></a></span><span> </span><span class="annot"><span class="annottext">(UTF8 ByteString -&gt; IO ()) -&gt; UTF8 ByteString -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; UTF8 ByteString
+forall string. string -&gt; UTF8 string
+</span><span class="hs-identifier hs-var">UTF8.fromRep</span></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><a href="#local-6989586621679368830"><span class="hs-identifier hs-var">bytes</span></a></span><span>
+</span><span id="line-58"></span><span>            </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">contextColorCount :: Int
+</span><a href="Graphics.Vty.Output.Interface.html#contextColorCount"><span class="hs-identifier hs-var">contextColorCount</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">16</span></span><span>
+</span><span id="line-59"></span><span>            </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">supportsCursorVisibility :: Bool
+</span><a href="Graphics.Vty.Output.Interface.html#supportsCursorVisibility"><span class="hs-identifier hs-var">supportsCursorVisibility</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span>
+</span><span id="line-60"></span><span>            </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">supportsMode :: Mode -&gt; Bool
+</span><a href="Graphics.Vty.Output.Interface.html#supportsMode"><span class="hs-identifier hs-var">supportsMode</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Mode -&gt; Bool
+forall a b. a -&gt; b -&gt; a
+</span><span class="hs-identifier hs-var">const</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span>
+</span><span id="line-61"></span><span>            </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">setMode :: Mode -&gt; Bool -&gt; IO ()
+</span><a href="Graphics.Vty.Output.Interface.html#setMode"><span class="hs-identifier hs-var">setMode</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Bool -&gt; IO ()) -&gt; Mode -&gt; Bool -&gt; IO ()
+forall a b. a -&gt; b -&gt; a
+</span><span class="hs-identifier hs-var">const</span></span><span> </span><span class="annot"><span class="annottext">((Bool -&gt; IO ()) -&gt; Mode -&gt; Bool -&gt; IO ())
+-&gt; (Bool -&gt; IO ()) -&gt; Mode -&gt; Bool -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">IO () -&gt; Bool -&gt; IO ()
+forall a b. a -&gt; b -&gt; a
+</span><span class="hs-identifier hs-var">const</span></span><span> </span><span class="annot"><span class="annottext">(IO () -&gt; Bool -&gt; IO ()) -&gt; IO () -&gt; Bool -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">() -&gt; IO ()
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-62"></span><span>            </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">getModeStatus :: Mode -&gt; IO Bool
+</span><a href="Graphics.Vty.Output.Interface.html#getModeStatus"><span class="hs-identifier hs-var">getModeStatus</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IO Bool -&gt; Mode -&gt; IO Bool
+forall a b. a -&gt; b -&gt; a
+</span><span class="hs-identifier hs-var">const</span></span><span> </span><span class="annot"><span class="annottext">(IO Bool -&gt; Mode -&gt; IO Bool) -&gt; IO Bool -&gt; Mode -&gt; IO Bool
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; IO Bool
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span>
+</span><span id="line-63"></span><span>            </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">assumedStateRef :: IORef AssumedState
+</span><a href="Graphics.Vty.Output.Interface.html#assumedStateRef"><span class="hs-identifier hs-var">assumedStateRef</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IORef AssumedState
+</span><a href="#local-6989586621679368846"><span class="hs-identifier hs-var">newAssumedStateRef</span></a></span><span>
+</span><span id="line-64"></span><span>            </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">mkDisplayContext :: Output -&gt; DisplayRegion -&gt; IO DisplayContext
+</span><a href="Graphics.Vty.Output.Interface.html#mkDisplayContext"><span class="hs-identifier hs-var">mkDisplayContext</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679368817"><span class="annot"><span class="annottext">Output
+</span><a href="#local-6989586621679368817"><span class="hs-identifier hs-var">tActual</span></a></span></span><span> </span><span id="local-6989586621679368816"><span class="annot"><span class="annottext">DisplayRegion
+</span><a href="#local-6989586621679368816"><span class="hs-identifier hs-var">rActual</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">DisplayContext -&gt; IO DisplayContext
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(DisplayContext -&gt; IO DisplayContext)
+-&gt; DisplayContext -&gt; IO DisplayContext
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">DisplayContext :: Output
+-&gt; DisplayRegion
+-&gt; (Int -&gt; Int -&gt; Write)
+-&gt; Write
+-&gt; Write
+-&gt; (Bool -&gt; FixedAttr -&gt; Attr -&gt; DisplayAttrDiff -&gt; Write)
+-&gt; (Bool -&gt; Write)
+-&gt; Write
+-&gt; IO ()
+-&gt; DisplayContext
+</span><a href="Graphics.Vty.Output.Interface.html#DisplayContext"><span class="hs-identifier hs-type">DisplayContext</span></a></span><span>
+</span><span id="line-65"></span><span>                </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">contextRegion :: DisplayRegion
+</span><a href="Graphics.Vty.Output.Interface.html#contextRegion"><span class="hs-identifier hs-var">contextRegion</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DisplayRegion
+</span><a href="#local-6989586621679368816"><span class="hs-identifier hs-var">rActual</span></a></span><span>
+</span><span id="line-66"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">contextDevice :: Output
+</span><a href="Graphics.Vty.Output.Interface.html#contextDevice"><span class="hs-identifier hs-var">contextDevice</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Output
+</span><a href="#local-6989586621679368817"><span class="hs-identifier hs-var">tActual</span></a></span><span>
+</span><span id="line-67"></span><span>                </span><span class="hs-comment">-- A cursor move is always visualized as the single</span><span>
+</span><span id="line-68"></span><span>                </span><span class="hs-comment">-- character 'M'</span><span>
+</span><span id="line-69"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">writeMoveCursor :: Int -&gt; Int -&gt; Write
+</span><a href="Graphics.Vty.Output.Interface.html#writeMoveCursor"><span class="hs-identifier hs-var">writeMoveCursor</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679368811"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368811"><span class="hs-identifier hs-var">_x</span></a></span></span><span> </span><span id="local-6989586621679368810"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368810"><span class="hs-identifier hs-var">_y</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Write
+</span><span class="hs-identifier hs-var">writeWord8</span></span><span> </span><span class="annot"><span class="annottext">(Word8 -&gt; Write) -&gt; Word8 -&gt; Write
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Word8
+forall a. Enum a =&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">toEnum</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Word8) -&gt; Int -&gt; Word8
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Char -&gt; Int
+forall a. Enum a =&gt; a -&gt; Int
+</span><span class="hs-identifier hs-var">fromEnum</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'M'</span></span><span>
+</span><span id="line-70"></span><span>                </span><span class="hs-comment">-- Show cursor is always visualized as the single</span><span>
+</span><span id="line-71"></span><span>                </span><span class="hs-comment">-- character 'S'</span><span>
+</span><span id="line-72"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">writeShowCursor :: Write
+</span><a href="Graphics.Vty.Output.Interface.html#writeShowCursor"><span class="hs-identifier hs-var">writeShowCursor</span></a></span><span> </span><span class="hs-glyph">=</span><span>  </span><span class="annot"><span class="annottext">Word8 -&gt; Write
+</span><span class="hs-identifier hs-var">writeWord8</span></span><span> </span><span class="annot"><span class="annottext">(Word8 -&gt; Write) -&gt; Word8 -&gt; Write
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Word8
+forall a. Enum a =&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">toEnum</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Word8) -&gt; Int -&gt; Word8
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Char -&gt; Int
+forall a. Enum a =&gt; a -&gt; Int
+</span><span class="hs-identifier hs-var">fromEnum</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'S'</span></span><span>
+</span><span id="line-73"></span><span>                </span><span class="hs-comment">-- Hide cursor is always visualized as the single</span><span>
+</span><span id="line-74"></span><span>                </span><span class="hs-comment">-- character 'H'</span><span>
+</span><span id="line-75"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">writeHideCursor :: Write
+</span><a href="Graphics.Vty.Output.Interface.html#writeHideCursor"><span class="hs-identifier hs-var">writeHideCursor</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Write
+</span><span class="hs-identifier hs-var">writeWord8</span></span><span> </span><span class="annot"><span class="annottext">(Word8 -&gt; Write) -&gt; Word8 -&gt; Write
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Word8
+forall a. Enum a =&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">toEnum</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Word8) -&gt; Int -&gt; Word8
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Char -&gt; Int
+forall a. Enum a =&gt; a -&gt; Int
+</span><span class="hs-identifier hs-var">fromEnum</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'H'</span></span><span>
+</span><span id="line-76"></span><span>                </span><span class="hs-comment">-- An attr change is always visualized as the single</span><span>
+</span><span id="line-77"></span><span>                </span><span class="hs-comment">-- character 'A'</span><span>
+</span><span id="line-78"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">writeSetAttr :: Bool -&gt; FixedAttr -&gt; Attr -&gt; DisplayAttrDiff -&gt; Write
+</span><a href="Graphics.Vty.Output.Interface.html#writeSetAttr"><span class="hs-identifier hs-var">writeSetAttr</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-glyph">\</span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679368804"><span class="annot"><span class="annottext">FixedAttr
+</span><a href="#local-6989586621679368804"><span class="hs-identifier hs-var">_fattr</span></a></span></span><span> </span><span id="local-6989586621679368803"><span class="annot"><span class="annottext">Attr
+</span><a href="#local-6989586621679368803"><span class="hs-identifier hs-var">_diffs</span></a></span></span><span> </span><span id="local-6989586621679368802"><span class="annot"><span class="annottext">DisplayAttrDiff
+</span><a href="#local-6989586621679368802"><span class="hs-identifier hs-var">_attr</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Write
+</span><span class="hs-identifier hs-var">writeWord8</span></span><span> </span><span class="annot"><span class="annottext">(Word8 -&gt; Write) -&gt; Word8 -&gt; Write
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Word8
+forall a. Enum a =&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">toEnum</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Word8) -&gt; Int -&gt; Word8
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Char -&gt; Int
+forall a. Enum a =&gt; a -&gt; Int
+</span><span class="hs-identifier hs-var">fromEnum</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'A'</span></span><span>
+</span><span id="line-79"></span><span>                </span><span class="hs-comment">-- default attr is always visualized as the single</span><span>
+</span><span id="line-80"></span><span>                </span><span class="hs-comment">-- character 'D'</span><span>
+</span><span id="line-81"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">writeDefaultAttr :: Bool -&gt; Write
+</span><a href="#local-6989586621679368801"><span class="hs-identifier hs-var">writeDefaultAttr</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Write -&gt; Bool -&gt; Write
+forall a b. a -&gt; b -&gt; a
+</span><span class="hs-identifier hs-var">const</span></span><span> </span><span class="annot"><span class="annottext">(Write -&gt; Bool -&gt; Write) -&gt; Write -&gt; Bool -&gt; Write
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Write
+</span><span class="hs-identifier hs-var">writeWord8</span></span><span> </span><span class="annot"><span class="annottext">(Word8 -&gt; Write) -&gt; Word8 -&gt; Write
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Word8
+forall a. Enum a =&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">toEnum</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Word8) -&gt; Int -&gt; Word8
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Char -&gt; Int
+forall a. Enum a =&gt; a -&gt; Int
+</span><span class="hs-identifier hs-var">fromEnum</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'D'</span></span><span>
+</span><span id="line-82"></span><span>                </span><span class="hs-comment">-- row end is always visualized as the single character</span><span>
+</span><span id="line-83"></span><span>                </span><span class="hs-comment">-- 'E'</span><span>
+</span><span id="line-84"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">writeRowEnd :: Write
+</span><a href="#local-6989586621679368800"><span class="hs-identifier hs-var">writeRowEnd</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Write
+</span><span class="hs-identifier hs-var">writeWord8</span></span><span> </span><span class="annot"><span class="annottext">(Word8 -&gt; Write) -&gt; Word8 -&gt; Write
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Word8
+forall a. Enum a =&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">toEnum</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Word8) -&gt; Int -&gt; Word8
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Char -&gt; Int
+forall a. Enum a =&gt; a -&gt; Int
+</span><span class="hs-identifier hs-var">fromEnum</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'E'</span></span><span>
+</span><span id="line-85"></span><span>                </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">inlineHack :: IO ()
+</span><a href="#local-6989586621679368799"><span class="hs-identifier hs-var">inlineHack</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">() -&gt; IO ()
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-86"></span><span>                </span><span class="hs-special">}</span><span>
+</span><span id="line-87"></span><span>            </span><span class="hs-special">}</span><span>
+</span><span id="line-88"></span><span>    </span><span class="annot"><span class="annottext">(MockData, Output) -&gt; IO (MockData, Output)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">MockData
+</span><a href="#local-6989586621679368849"><span class="hs-identifier hs-var">outRef</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Output
+</span><a href="#local-6989586621679368844"><span class="hs-identifier hs-var">t</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-89"></span><span>
+</span><span id="line-90"></span></pre></body></html>

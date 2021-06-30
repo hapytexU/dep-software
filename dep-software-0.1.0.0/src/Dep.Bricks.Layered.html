@@ -1,0 +1,75 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">{-|
+Module      : Dep.Bricks.Layered
+Description : A module to combine several 'Image' layers to one 'Layer'.
+Maintainer  : hapytexeu+gh@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+This module exports the 'mergeLayers' function that combine multiple 'Layer's in a single
+layer. This is used if writing several layers is easier than writing a single image.
+-}</span><span>
+</span><span id="line-11"></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Dep.Bricks.Layered</span><span> </span><span class="hs-special">(</span><span>
+</span><span id="line-13"></span><span>    </span><span class="annot"><span class="hs-comment">-- * A type synoniem for one layer.</span></span><span>
+</span><span id="line-14"></span><span>    </span><span class="annot"><a href="Dep.Bricks.Layered.html#Layer"><span class="hs-identifier">Layer</span></a></span><span>
+</span><span id="line-15"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Merge several layers to one layer.</span></span><span>
+</span><span id="line-16"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Bricks.Layered.html#createImage"><span class="hs-identifier">createImage</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Bricks.Layered.html#mergeLayers"><span class="hs-identifier">mergeLayers</span></a></span><span>
+</span><span id="line-17"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-18"></span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Dep.Utils.html"><span class="hs-identifier">Dep.Utils</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Utils.html#flatRaster"><span class="hs-identifier">flatRaster</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-20"></span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Graphics.Vty.Image</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Image</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-operator">(&lt;-&gt;)</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-operator">(&lt;|&gt;)</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">char</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">emptyImage</span></span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Graphics.Vty.Attributes</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Attr</span></span><span class="hs-special">)</span><span>
+</span><span id="line-23"></span><span>
+</span><span id="line-24"></span><span class="hs-comment">-- | A raster is a list of lists of characters.</span><span>
+</span><span id="line-25"></span><span class="hs-keyword">type</span><span> </span><span id="Layer"><span class="annot"><a href="Dep.Bricks.Layered.html#Layer"><span class="hs-identifier hs-var">Layer</span></a></span></span><span> </span><span id="local-6989586621679128294"><span class="annot"><a href="#local-6989586621679128294"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679128294"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span><span class="hs-special">]</span><span>
+</span><span id="line-26"></span><span>
+</span><span id="line-27"></span><span class="hs-comment">-- | Merge the given 'Layer's with the corresponding 'Attr'ibutes</span><span>
+</span><span id="line-28"></span><span class="hs-comment">-- to a single 'Image'.</span><span>
+</span><span id="line-29"></span><span class="annot"><a href="Dep.Bricks.Layered.html#mergeLayers"><span class="hs-identifier hs-type">mergeLayers</span></a></span><span>
+</span><span id="line-30"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span>  </span><span class="hs-comment">-- ^ The predicate that determines if the upper layer will override the layer directly below.</span><span>
+</span><span id="line-31"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Attr</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Bricks.Layered.html#Layer"><span class="hs-identifier hs-type">Layer</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span class="hs-special">)</span><span class="hs-special">]</span><span>  </span><span class="hs-comment">-- ^ The list of 'Layer's, the first item is the top item and the last item is the bottom layer.</span><span>
+</span><span id="line-32"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Image</span></span><span>  </span><span class="hs-comment">-- ^ An image that we create by merging the different layers together.</span><span>
+</span><span id="line-33"></span><span id="mergeLayers"><span class="annot"><span class="annottext">mergeLayers :: (Char -&gt; Bool) -&gt; [(Attr, Layer Char)] -&gt; Image
+</span><a href="Dep.Bricks.Layered.html#mergeLayers"><span class="hs-identifier hs-var hs-var">mergeLayers</span></a></span></span><span> </span><span id="local-6989586621679128293"><span class="annot"><span class="annottext">Char -&gt; Bool
+</span><a href="#local-6989586621679128293"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[[(Attr, Char)]] -&gt; Image
+</span><a href="Dep.Bricks.Layered.html#createImage"><span class="hs-identifier hs-var">createImage</span></a></span><span> </span><span class="annot"><span class="annottext">([[(Attr, Char)]] -&gt; Image)
+-&gt; ([(Attr, Layer Char)] -&gt; [[(Attr, Char)]])
+-&gt; [(Attr, Layer Char)]
+-&gt; Image
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(Char -&gt; Bool) -&gt; [(Attr, Layer Char)] -&gt; [[(Attr, Char)]]
+forall b a. (b -&gt; Bool) -&gt; [(a, Raster b)] -&gt; Raster (a, b)
+</span><a href="Dep.Utils.html#flatRaster"><span class="hs-identifier hs-var">flatRaster</span></a></span><span> </span><span class="annot"><span class="annottext">Char -&gt; Bool
+</span><a href="#local-6989586621679128293"><span class="hs-identifier hs-var">p</span></a></span><span>
+</span><span id="line-34"></span><span>
+</span><span id="line-35"></span><span class="hs-comment">-- | Convert a list of lists of 2-tuples that contain an 'Attr'ibutes and a 'Char' to an 'Image'.</span><span>
+</span><span id="line-36"></span><span class="annot"><a href="Dep.Bricks.Layered.html#createImage"><span class="hs-identifier hs-type">createImage</span></a></span><span>
+</span><span id="line-37"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Attr</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span class="hs-special">)</span><span class="hs-special">]</span><span class="hs-special">]</span><span>  </span><span class="hs-comment">-- ^ The given list of lists of 'Char's</span><span>
+</span><span id="line-38"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Image</span></span><span>
+</span><span id="line-39"></span><span id="createImage"><span class="annot"><span class="annottext">createImage :: [[(Attr, Char)]] -&gt; Image
+</span><a href="Dep.Bricks.Layered.html#createImage"><span class="hs-identifier hs-var hs-var">createImage</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">([(Attr, Char)] -&gt; Image -&gt; Image)
+-&gt; Image -&gt; [[(Attr, Char)]] -&gt; Image
+forall (t :: * -&gt; *) a b.
+Foldable t =&gt;
+(a -&gt; b -&gt; b) -&gt; b -&gt; t a -&gt; b
+</span><span class="hs-identifier hs-var">foldr</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Image -&gt; Image -&gt; Image
+</span><span class="hs-operator hs-var">(&lt;-&gt;)</span></span><span> </span><span class="annot"><span class="annottext">(Image -&gt; Image -&gt; Image)
+-&gt; ([(Attr, Char)] -&gt; Image) -&gt; [(Attr, Char)] -&gt; Image -&gt; Image
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">((Attr, Char) -&gt; Image -&gt; Image)
+-&gt; Image -&gt; [(Attr, Char)] -&gt; Image
+forall (t :: * -&gt; *) a b.
+Foldable t =&gt;
+(a -&gt; b -&gt; b) -&gt; b -&gt; t a -&gt; b
+</span><span class="hs-identifier hs-var">foldr</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Image -&gt; Image -&gt; Image
+</span><span class="hs-operator hs-var">(&lt;|&gt;)</span></span><span> </span><span class="annot"><span class="annottext">(Image -&gt; Image -&gt; Image)
+-&gt; ((Attr, Char) -&gt; Image) -&gt; (Attr, Char) -&gt; Image -&gt; Image
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(Attr -&gt; Char -&gt; Image) -&gt; (Attr, Char) -&gt; Image
+forall a b c. (a -&gt; b -&gt; c) -&gt; (a, b) -&gt; c
+</span><span class="hs-identifier hs-var">uncurry</span></span><span> </span><span class="annot"><span class="annottext">Attr -&gt; Char -&gt; Image
+</span><span class="hs-identifier hs-var">char</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Image
+</span><span class="hs-identifier hs-var">emptyImage</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Image
+</span><span class="hs-identifier hs-var">emptyImage</span></span><span>
+</span><span id="line-40"></span></pre></body></html>

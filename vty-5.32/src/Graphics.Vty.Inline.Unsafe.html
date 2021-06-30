@@ -1,0 +1,177 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# OPTIONS_HADDOCK hide #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Graphics.Vty.Inline.Unsafe</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-4"></span><span>
+</span><span id="line-5"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Graphics.Vty.html"><span class="hs-identifier">Graphics.Vty</span></a></span><span>
+</span><span id="line-6"></span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.IORef</span></span><span>
+</span><span id="line-8"></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">GHC.IO.Handle</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">hDuplicate</span></span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">System.IO</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">stdin</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">stdout</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">hSetBuffering</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">BufferMode</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">NoBuffering</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-12"></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">System.IO.Unsafe</span></span><span>
+</span><span id="line-14"></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">System.Posix.IO</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">handleToFd</span></span><span class="hs-special">)</span><span>
+</span><span id="line-16"></span><span>
+</span><span id="line-17"></span><span class="annot"><a href="Graphics.Vty.Inline.Unsafe.html#globalVty"><span class="hs-identifier hs-type">globalVty</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IORef</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Graphics.Vty.html#Vty"><span class="hs-identifier hs-type">Vty</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-18"></span><span class="hs-pragma">{-# NOINLINE</span><span> </span><span class="annot"><a href="Graphics.Vty.Inline.Unsafe.html#globalVty"><span class="hs-pragma hs-type">globalVty</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-19"></span><span id="globalVty"><span class="annot"><span class="annottext">globalVty :: IORef (Maybe Vty)
+</span><a href="Graphics.Vty.Inline.Unsafe.html#globalVty"><span class="hs-identifier hs-var hs-var">globalVty</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IO (IORef (Maybe Vty)) -&gt; IORef (Maybe Vty)
+forall a. IO a -&gt; a
+</span><span class="hs-identifier hs-var">unsafePerformIO</span></span><span> </span><span class="annot"><span class="annottext">(IO (IORef (Maybe Vty)) -&gt; IORef (Maybe Vty))
+-&gt; IO (IORef (Maybe Vty)) -&gt; IORef (Maybe Vty)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Maybe Vty -&gt; IO (IORef (Maybe Vty))
+forall a. a -&gt; IO (IORef a)
+</span><span class="hs-identifier hs-var">newIORef</span></span><span> </span><span class="annot"><span class="annottext">Maybe Vty
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-20"></span><span>
+</span><span id="line-21"></span><span class="annot"><a href="Graphics.Vty.Inline.Unsafe.html#globalOutput"><span class="hs-identifier hs-type">globalOutput</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IORef</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Graphics.Vty.Output.Interface.html#Output"><span class="hs-identifier hs-type">Output</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span class="hs-pragma">{-# NOINLINE</span><span> </span><span class="annot"><a href="Graphics.Vty.Inline.Unsafe.html#globalOutput"><span class="hs-pragma hs-type">globalOutput</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-23"></span><span id="globalOutput"><span class="annot"><span class="annottext">globalOutput :: IORef (Maybe Output)
+</span><a href="Graphics.Vty.Inline.Unsafe.html#globalOutput"><span class="hs-identifier hs-var hs-var">globalOutput</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IO (IORef (Maybe Output)) -&gt; IORef (Maybe Output)
+forall a. IO a -&gt; a
+</span><span class="hs-identifier hs-var">unsafePerformIO</span></span><span> </span><span class="annot"><span class="annottext">(IO (IORef (Maybe Output)) -&gt; IORef (Maybe Output))
+-&gt; IO (IORef (Maybe Output)) -&gt; IORef (Maybe Output)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Maybe Output -&gt; IO (IORef (Maybe Output))
+forall a. a -&gt; IO (IORef a)
+</span><span class="hs-identifier hs-var">newIORef</span></span><span> </span><span class="annot"><span class="annottext">Maybe Output
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-24"></span><span>
+</span><span id="line-25"></span><span class="annot"><a href="Graphics.Vty.Inline.Unsafe.html#mkDupeConfig"><span class="hs-identifier hs-type">mkDupeConfig</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="annot"><a href="Graphics.Vty.Config.html#Config"><span class="hs-identifier hs-type">Config</span></a></span><span>
+</span><span id="line-26"></span><span id="mkDupeConfig"><span class="annot"><span class="annottext">mkDupeConfig :: IO Config
+</span><a href="Graphics.Vty.Inline.Unsafe.html#mkDupeConfig"><span class="hs-identifier hs-var hs-var">mkDupeConfig</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-27"></span><span>    </span><span class="annot"><span class="annottext">Handle -&gt; BufferMode -&gt; IO ()
+</span><span class="hs-identifier hs-var">hSetBuffering</span></span><span> </span><span class="annot"><span class="annottext">Handle
+</span><span class="hs-identifier hs-var">stdout</span></span><span> </span><span class="annot"><span class="annottext">BufferMode
+</span><span class="hs-identifier hs-var">NoBuffering</span></span><span>
+</span><span id="line-28"></span><span>    </span><span class="annot"><span class="annottext">Handle -&gt; BufferMode -&gt; IO ()
+</span><span class="hs-identifier hs-var">hSetBuffering</span></span><span> </span><span class="annot"><span class="annottext">Handle
+</span><span class="hs-identifier hs-var">stdin</span></span><span> </span><span class="annot"><span class="annottext">BufferMode
+</span><span class="hs-identifier hs-var">NoBuffering</span></span><span>
+</span><span id="line-29"></span><span>    </span><span id="local-6989586621679369755"><span class="annot"><span class="annottext">Fd
+</span><a href="#local-6989586621679369755"><span class="hs-identifier hs-var">stdinDupe</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Handle -&gt; IO Handle
+</span><span class="hs-identifier hs-var">hDuplicate</span></span><span> </span><span class="annot"><span class="annottext">Handle
+</span><span class="hs-identifier hs-var">stdin</span></span><span> </span><span class="annot"><span class="annottext">IO Handle -&gt; (Handle -&gt; IO Fd) -&gt; IO Fd
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="annot"><span class="annottext">Handle -&gt; IO Fd
+</span><span class="hs-identifier hs-var">handleToFd</span></span><span>
+</span><span id="line-30"></span><span>    </span><span id="local-6989586621679369754"><span class="annot"><span class="annottext">Fd
+</span><a href="#local-6989586621679369754"><span class="hs-identifier hs-var">stdoutDupe</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Handle -&gt; IO Handle
+</span><span class="hs-identifier hs-var">hDuplicate</span></span><span> </span><span class="annot"><span class="annottext">Handle
+</span><span class="hs-identifier hs-var">stdout</span></span><span> </span><span class="annot"><span class="annottext">IO Handle -&gt; (Handle -&gt; IO Fd) -&gt; IO Fd
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="annot"><span class="annottext">Handle -&gt; IO Fd
+</span><span class="hs-identifier hs-var">handleToFd</span></span><span>
+</span><span id="line-31"></span><span>    </span><span class="annot"><span class="annottext">Config -&gt; IO Config
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(Config -&gt; IO Config) -&gt; Config -&gt; IO Config
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Config
+</span><a href="Graphics.Vty.Config.html#defaultConfig"><span class="hs-identifier hs-var">defaultConfig</span></a></span><span> </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">inputFd :: Maybe Fd
+</span><a href="Graphics.Vty.Config.html#inputFd"><span class="hs-identifier hs-var">inputFd</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Fd -&gt; Maybe Fd
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">Fd
+</span><a href="#local-6989586621679369755"><span class="hs-identifier hs-var">stdinDupe</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">outputFd :: Maybe Fd
+</span><a href="Graphics.Vty.Config.html#outputFd"><span class="hs-identifier hs-var">outputFd</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Fd -&gt; Maybe Fd
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">Fd
+</span><a href="#local-6989586621679369754"><span class="hs-identifier hs-var">stdoutDupe</span></a></span><span> </span><span class="hs-special">}</span><span>
+</span><span id="line-32"></span><span>
+</span><span id="line-33"></span><span class="hs-comment">-- | This will create a Vty instance using 'mkVty' and execute an IO</span><span>
+</span><span id="line-34"></span><span class="hs-comment">-- action provided that instance. The created Vty instance will be</span><span>
+</span><span id="line-35"></span><span class="hs-comment">-- stored to the unsafe 'IORef' 'globalVty'.</span><span>
+</span><span id="line-36"></span><span class="hs-comment">--</span><span>
+</span><span id="line-37"></span><span class="hs-comment">-- This instance will use duplicates of the stdin and stdout Handles.</span><span>
+</span><span id="line-38"></span><span id="local-6989586621679369750"><span class="annot"><a href="Graphics.Vty.Inline.Unsafe.html#withVty"><span class="hs-identifier hs-type">withVty</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Graphics.Vty.html#Vty"><span class="hs-identifier hs-type">Vty</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="annot"><a href="#local-6989586621679369750"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="annot"><a href="#local-6989586621679369750"><span class="hs-identifier hs-type">b</span></a></span></span><span>
+</span><span id="line-39"></span><span id="withVty"><span class="annot"><span class="annottext">withVty :: (Vty -&gt; IO b) -&gt; IO b
+</span><a href="Graphics.Vty.Inline.Unsafe.html#withVty"><span class="hs-identifier hs-var hs-var">withVty</span></a></span></span><span> </span><span id="local-6989586621679369748"><span class="annot"><span class="annottext">Vty -&gt; IO b
+</span><a href="#local-6989586621679369748"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-40"></span><span>    </span><span id="local-6989586621679369747"><span class="annot"><span class="annottext">Maybe Vty
+</span><a href="#local-6989586621679369747"><span class="hs-identifier hs-var">mvty</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">IORef (Maybe Vty) -&gt; IO (Maybe Vty)
+forall a. IORef a -&gt; IO a
+</span><span class="hs-identifier hs-var">readIORef</span></span><span> </span><span class="annot"><span class="annottext">IORef (Maybe Vty)
+</span><a href="Graphics.Vty.Inline.Unsafe.html#globalVty"><span class="hs-identifier hs-var">globalVty</span></a></span><span>
+</span><span id="line-41"></span><span>    </span><span id="local-6989586621679369745"><span class="annot"><span class="annottext">Vty
+</span><a href="#local-6989586621679369745"><span class="hs-identifier hs-var">vty</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Maybe Vty
+</span><a href="#local-6989586621679369747"><span class="hs-identifier hs-var">mvty</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-42"></span><span>        </span><span class="annot"><span class="annottext">Maybe Vty
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-43"></span><span>            </span><span id="local-6989586621679369744"><span class="annot"><span class="annottext">Vty
+</span><a href="#local-6989586621679369744"><span class="hs-identifier hs-var">vty</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">IO Config
+</span><a href="Graphics.Vty.Inline.Unsafe.html#mkDupeConfig"><span class="hs-identifier hs-var">mkDupeConfig</span></a></span><span> </span><span class="annot"><span class="annottext">IO Config -&gt; (Config -&gt; IO Vty) -&gt; IO Vty
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="annot"><span class="annottext">Config -&gt; IO Vty
+</span><a href="Graphics.Vty.html#mkVty"><span class="hs-identifier hs-var">mkVty</span></a></span><span>
+</span><span id="line-44"></span><span>            </span><span class="annot"><span class="annottext">IORef (Maybe Vty) -&gt; Maybe Vty -&gt; IO ()
+forall a. IORef a -&gt; a -&gt; IO ()
+</span><span class="hs-identifier hs-var">writeIORef</span></span><span> </span><span class="annot"><span class="annottext">IORef (Maybe Vty)
+</span><a href="Graphics.Vty.Inline.Unsafe.html#globalVty"><span class="hs-identifier hs-var">globalVty</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Vty -&gt; Maybe Vty
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">Vty
+</span><a href="#local-6989586621679369744"><span class="hs-identifier hs-var">vty</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-45"></span><span>            </span><span class="annot"><span class="annottext">Vty -&gt; IO Vty
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Vty
+</span><a href="#local-6989586621679369744"><span class="hs-identifier hs-var">vty</span></a></span><span>
+</span><span id="line-46"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679369741"><span class="annot"><span class="annottext">Vty
+</span><a href="#local-6989586621679369741"><span class="hs-identifier hs-var">vty</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Vty -&gt; IO Vty
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Vty
+</span><a href="#local-6989586621679369741"><span class="hs-identifier hs-var">vty</span></a></span><span>
+</span><span id="line-47"></span><span>    </span><span class="annot"><span class="annottext">Vty -&gt; IO b
+</span><a href="#local-6989586621679369748"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">Vty
+</span><a href="#local-6989586621679369745"><span class="hs-identifier hs-var">vty</span></a></span><span>
+</span><span id="line-48"></span><span>
+</span><span id="line-49"></span><span id="local-6989586621679369740"><span class="annot"><a href="Graphics.Vty.Inline.Unsafe.html#withOutput"><span class="hs-identifier hs-type">withOutput</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Graphics.Vty.Output.Interface.html#Output"><span class="hs-identifier hs-type">Output</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="annot"><a href="#local-6989586621679369740"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="annot"><a href="#local-6989586621679369740"><span class="hs-identifier hs-type">b</span></a></span></span><span>
+</span><span id="line-50"></span><span id="withOutput"><span class="annot"><span class="annottext">withOutput :: (Output -&gt; IO b) -&gt; IO b
+</span><a href="Graphics.Vty.Inline.Unsafe.html#withOutput"><span class="hs-identifier hs-var hs-var">withOutput</span></a></span></span><span> </span><span id="local-6989586621679369738"><span class="annot"><span class="annottext">Output -&gt; IO b
+</span><a href="#local-6989586621679369738"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-51"></span><span>    </span><span id="local-6989586621679369737"><span class="annot"><span class="annottext">Maybe Output
+</span><a href="#local-6989586621679369737"><span class="hs-identifier hs-var">mout</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">IORef (Maybe Output) -&gt; IO (Maybe Output)
+forall a. IORef a -&gt; IO a
+</span><span class="hs-identifier hs-var">readIORef</span></span><span> </span><span class="annot"><span class="annottext">IORef (Maybe Output)
+</span><a href="Graphics.Vty.Inline.Unsafe.html#globalOutput"><span class="hs-identifier hs-var">globalOutput</span></a></span><span>
+</span><span id="line-52"></span><span>    </span><span id="local-6989586621679369736"><span class="annot"><span class="annottext">Output
+</span><a href="#local-6989586621679369736"><span class="hs-identifier hs-var">out</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Maybe Output
+</span><a href="#local-6989586621679369737"><span class="hs-identifier hs-var">mout</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-53"></span><span>        </span><span class="annot"><span class="annottext">Maybe Output
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-54"></span><span>            </span><span id="local-6989586621679369735"><span class="annot"><span class="annottext">Config
+</span><a href="#local-6989586621679369735"><span class="hs-identifier hs-var">config</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Config -&gt; Config -&gt; Config
+forall a. Monoid a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">mappend</span></span><span> </span><span class="annot"><span class="annottext">(Config -&gt; Config -&gt; Config) -&gt; IO Config -&gt; IO (Config -&gt; Config)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">IO Config
+</span><a href="Graphics.Vty.Config.html#userConfig"><span class="hs-identifier hs-var">userConfig</span></a></span><span> </span><span class="annot"><span class="annottext">IO (Config -&gt; Config) -&gt; IO Config -&gt; IO Config
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">IO Config
+</span><a href="Graphics.Vty.Inline.Unsafe.html#mkDupeConfig"><span class="hs-identifier hs-var">mkDupeConfig</span></a></span><span>
+</span><span id="line-55"></span><span>            </span><span id="local-6989586621679369732"><span class="annot"><span class="annottext">Output
+</span><a href="#local-6989586621679369732"><span class="hs-identifier hs-var">out</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Config -&gt; IO Output
+</span><a href="Graphics.Vty.Output.html#outputForConfig"><span class="hs-identifier hs-var">outputForConfig</span></a></span><span> </span><span class="annot"><span class="annottext">Config
+</span><a href="#local-6989586621679369735"><span class="hs-identifier hs-var">config</span></a></span><span>
+</span><span id="line-56"></span><span>            </span><span class="annot"><span class="annottext">IORef (Maybe Output) -&gt; Maybe Output -&gt; IO ()
+forall a. IORef a -&gt; a -&gt; IO ()
+</span><span class="hs-identifier hs-var">writeIORef</span></span><span> </span><span class="annot"><span class="annottext">IORef (Maybe Output)
+</span><a href="Graphics.Vty.Inline.Unsafe.html#globalOutput"><span class="hs-identifier hs-var">globalOutput</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Output -&gt; Maybe Output
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">Output
+</span><a href="#local-6989586621679369732"><span class="hs-identifier hs-var">out</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-57"></span><span>            </span><span class="annot"><span class="annottext">Output -&gt; IO Output
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Output
+</span><a href="#local-6989586621679369732"><span class="hs-identifier hs-var">out</span></a></span><span>
+</span><span id="line-58"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679369730"><span class="annot"><span class="annottext">Output
+</span><a href="#local-6989586621679369730"><span class="hs-identifier hs-var">out</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Output -&gt; IO Output
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Output
+</span><a href="#local-6989586621679369730"><span class="hs-identifier hs-var">out</span></a></span><span>
+</span><span id="line-59"></span><span>    </span><span class="annot"><span class="annottext">Output -&gt; IO b
+</span><a href="#local-6989586621679369738"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">Output
+</span><a href="#local-6989586621679369736"><span class="hs-identifier hs-var">out</span></a></span><span>
+</span><span id="line-60"></span></pre></body></html>

@@ -1,0 +1,466 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE TemplateHaskell #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE OverloadedStrings #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE CPP #-}</span><span>
+</span><span id="line-4"></span><span class="hs-comment">-- | This module provides a simple dialog widget. You get to pick the</span><span>
+</span><span id="line-5"></span><span class="hs-comment">-- dialog title, if any, as well as its body and buttons.</span><span>
+</span><span id="line-6"></span><span class="hs-comment">--</span><span>
+</span><span id="line-7"></span><span class="hs-comment">-- Note that this dialog is really for simple use cases where you want</span><span>
+</span><span id="line-8"></span><span class="hs-comment">-- to get the user's answer to a question, such as &quot;Would you like</span><span>
+</span><span id="line-9"></span><span class="hs-comment">-- to save changes before quitting?&quot; If you require something more</span><span>
+</span><span id="line-10"></span><span class="hs-comment">-- sophisticated, you'll need to build it yourself. You might also</span><span>
+</span><span id="line-11"></span><span class="hs-comment">-- consider seeing the 'Brick.Forms' module for help with input</span><span>
+</span><span id="line-12"></span><span class="hs-comment">-- management, and see the implementation of this module to see how to</span><span>
+</span><span id="line-13"></span><span class="hs-comment">-- reproduce a dialog-style UI.</span><span>
+</span><span id="line-14"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Brick.Widgets.Dialog</span><span>
+</span><span id="line-15"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Brick.Widgets.Dialog.html#Dialog"><span class="hs-identifier">Dialog</span></a></span><span>
+</span><span id="line-16"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Widgets.Dialog.html#dialogTitle"><span class="hs-identifier">dialogTitle</span></a></span><span>
+</span><span id="line-17"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Widgets.Dialog.html#dialogButtons"><span class="hs-identifier">dialogButtons</span></a></span><span>
+</span><span id="line-18"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Widgets.Dialog.html#dialogSelectedIndex"><span class="hs-identifier">dialogSelectedIndex</span></a></span><span>
+</span><span id="line-19"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Widgets.Dialog.html#dialogWidth"><span class="hs-identifier">dialogWidth</span></a></span><span>
+</span><span id="line-20"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Construction and rendering</span></span><span>
+</span><span id="line-21"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Widgets.Dialog.html#dialog"><span class="hs-identifier">dialog</span></a></span><span>
+</span><span id="line-22"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Widgets.Dialog.html#renderDialog"><span class="hs-identifier">renderDialog</span></a></span><span>
+</span><span id="line-23"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Handling events</span></span><span>
+</span><span id="line-24"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Widgets.Dialog.html#handleDialogEvent"><span class="hs-identifier">handleDialogEvent</span></a></span><span>
+</span><span id="line-25"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Getting a dialog's current value</span></span><span>
+</span><span id="line-26"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Widgets.Dialog.html#dialogSelection"><span class="hs-identifier">dialogSelection</span></a></span><span>
+</span><span id="line-27"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Attributes</span></span><span>
+</span><span id="line-28"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Widgets.Dialog.html#dialogAttr"><span class="hs-identifier">dialogAttr</span></a></span><span>
+</span><span id="line-29"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Widgets.Dialog.html#buttonAttr"><span class="hs-identifier">buttonAttr</span></a></span><span>
+</span><span id="line-30"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Widgets.Dialog.html#buttonSelectedAttr"><span class="hs-identifier">buttonSelectedAttr</span></a></span><span>
+</span><span id="line-31"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Lenses</span></span><span>
+</span><span id="line-32"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Widgets.Dialog.html#dialogButtonsL"><span class="hs-identifier">dialogButtonsL</span></a></span><span>
+</span><span id="line-33"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Widgets.Dialog.html#dialogSelectedIndexL"><span class="hs-identifier">dialogSelectedIndexL</span></a></span><span>
+</span><span id="line-34"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Widgets.Dialog.html#dialogWidthL"><span class="hs-identifier">dialogWidthL</span></a></span><span>
+</span><span id="line-35"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Widgets.Dialog.html#dialogTitleL"><span class="hs-identifier">dialogTitleL</span></a></span><span>
+</span><span id="line-36"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-37"></span><span class="hs-keyword">where</span><span class="hs-cpp">
+
+#if !MIN_VERSION_base(4,8,0)
+</span><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Control.Applicative</span><span class="hs-cpp">
+#endif
+</span><span>
+</span><span id="line-43"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Lens.Micro</span></span><span class="hs-cpp">
+#if !(MIN_VERSION_base(4,11,0))
+</span><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Data.Monoid</span><span class="hs-cpp">
+#endif
+</span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.List</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">intersperse</span></span><span class="hs-special">)</span><span>
+</span><span id="line-48"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Graphics.Vty.Input</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Event</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">Key</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-49"></span><span>
+</span><span id="line-50"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Brick.Util.html"><span class="hs-identifier">Brick.Util</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Brick.Util.html#clamp"><span class="hs-identifier">clamp</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-51"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Brick.Types.html"><span class="hs-identifier">Brick.Types</span></a></span><span>
+</span><span id="line-52"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Brick.Widgets.Core.html"><span class="hs-identifier">Brick.Widgets.Core</span></a></span><span>
+</span><span id="line-53"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Brick.Widgets.Center.html"><span class="hs-identifier">Brick.Widgets.Center</span></a></span><span>
+</span><span id="line-54"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Brick.Widgets.Border.html"><span class="hs-identifier">Brick.Widgets.Border</span></a></span><span>
+</span><span id="line-55"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Brick.AttrMap.html"><span class="hs-identifier">Brick.AttrMap</span></a></span><span>
+</span><span id="line-56"></span><span>
+</span><span id="line-57"></span><span class="hs-comment">-- | Dialogs present a window with a title (optional), a body, and</span><span>
+</span><span id="line-58"></span><span class="hs-comment">-- buttons (optional). Dialog buttons are labeled with strings and map</span><span>
+</span><span id="line-59"></span><span class="hs-comment">-- to values of type 'a', which you choose.</span><span>
+</span><span id="line-60"></span><span class="hs-comment">--</span><span>
+</span><span id="line-61"></span><span class="hs-comment">-- Dialogs handle the following events by default with</span><span>
+</span><span id="line-62"></span><span class="hs-comment">-- handleDialogEvent:</span><span>
+</span><span id="line-63"></span><span class="hs-comment">--</span><span>
+</span><span id="line-64"></span><span class="hs-comment">-- * Tab or Right Arrow: select the next button</span><span>
+</span><span id="line-65"></span><span class="hs-comment">-- * Shift-tab or Left Arrow: select the previous button</span><span>
+</span><span id="line-66"></span><span class="hs-keyword">data</span><span> </span><span id="Dialog"><span class="annot"><a href="Brick.Widgets.Dialog.html#Dialog"><span class="hs-identifier hs-var">Dialog</span></a></span></span><span> </span><span id="local-6989586621679373375"><span class="annot"><a href="#local-6989586621679373375"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-67"></span><span>    </span><span id="Dialog"><span class="annot"><a href="Brick.Widgets.Dialog.html#Dialog"><span class="hs-identifier hs-var">Dialog</span></a></span></span><span> </span><span class="hs-special">{</span><span> </span><span id="dialogTitle"><span class="annot"><span class="annottext">Dialog a -&gt; Maybe String
+</span><a href="Brick.Widgets.Dialog.html#dialogTitle"><span class="hs-identifier hs-var hs-var">dialogTitle</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
+</span><span id="line-68"></span><span>           </span><span class="hs-comment">-- ^ The dialog title</span><span>
+</span><span id="line-69"></span><span>           </span><span class="hs-special">,</span><span> </span><span id="dialogButtons"><span class="annot"><span class="annottext">Dialog a -&gt; [(String, a)]
+</span><a href="Brick.Widgets.Dialog.html#dialogButtons"><span class="hs-identifier hs-var hs-var">dialogButtons</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679373375"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span><span>
+</span><span id="line-70"></span><span>           </span><span class="hs-comment">-- ^ The dialog button labels and values</span><span>
+</span><span id="line-71"></span><span>           </span><span class="hs-special">,</span><span> </span><span id="dialogSelectedIndex"><span class="annot"><span class="annottext">Dialog a -&gt; Maybe Int
+</span><a href="Brick.Widgets.Dialog.html#dialogSelectedIndex"><span class="hs-identifier hs-var hs-var">dialogSelectedIndex</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-72"></span><span>           </span><span class="hs-comment">-- ^ The currently selected dialog button index (if any)</span><span>
+</span><span id="line-73"></span><span>           </span><span class="hs-special">,</span><span> </span><span id="dialogWidth"><span class="annot"><span class="annottext">Dialog a -&gt; Int
+</span><a href="Brick.Widgets.Dialog.html#dialogWidth"><span class="hs-identifier hs-var hs-var">dialogWidth</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-74"></span><span>           </span><span class="hs-comment">-- ^ The maximum width of the dialog</span><span>
+</span><span id="line-75"></span><span>           </span><span class="hs-special">}</span><span>
+</span><span id="line-76"></span><span>
+</span><span id="line-77"></span><span id="dialogTitleL"><span id="dialogWidthL"><span id="dialogSelectedIndexL"><span id="dialogButtonsL"><span id="local-6989586621679373351"><span id="local-6989586621679373375"><span class="hs-identifier">suffixLenses</span><span> </span><span class="hs-special">''</span><span class="hs-identifier">Dialog</span></span></span></span></span></span></span><span>
+</span><span id="line-78"></span><span>
+</span><span id="line-79"></span><span id="local-6989586621679373306"><span id="local-6989586621679373307"><span class="annot"><a href="Brick.Widgets.Dialog.html#handleDialogEvent"><span class="hs-identifier hs-type">handleDialogEvent</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Event</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Widgets.Dialog.html#Dialog"><span class="hs-identifier hs-type">Dialog</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373307"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Types.html#EventM"><span class="hs-identifier hs-type">EventM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373306"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Brick.Widgets.Dialog.html#Dialog"><span class="hs-identifier hs-type">Dialog</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373307"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-80"></span><span id="handleDialogEvent"><span class="annot"><span class="annottext">handleDialogEvent :: Event -&gt; Dialog a -&gt; EventM n (Dialog a)
+</span><a href="Brick.Widgets.Dialog.html#handleDialogEvent"><span class="hs-identifier hs-var hs-var">handleDialogEvent</span></a></span></span><span> </span><span id="local-6989586621679373305"><span class="annot"><span class="annottext">Event
+</span><a href="#local-6989586621679373305"><span class="hs-identifier hs-var">ev</span></a></span></span><span> </span><span id="local-6989586621679373304"><span class="annot"><span class="annottext">Dialog a
+</span><a href="#local-6989586621679373304"><span class="hs-identifier hs-var">d</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-81"></span><span>    </span><span class="annot"><span class="annottext">Dialog a -&gt; EventM n (Dialog a)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">(Dialog a -&gt; EventM n (Dialog a))
+-&gt; Dialog a -&gt; EventM n (Dialog a)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Event
+</span><a href="#local-6989586621679373305"><span class="hs-identifier hs-var">ev</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-82"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">EvKey</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">KChar</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\t'</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Bool -&gt; Dialog a -&gt; Dialog a
+forall a. Int -&gt; Bool -&gt; Dialog a -&gt; Dialog a
+</span><a href="Brick.Widgets.Dialog.html#nextButtonBy"><span class="hs-identifier hs-var">nextButtonBy</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span> </span><span class="annot"><span class="annottext">Dialog a
+</span><a href="#local-6989586621679373304"><span class="hs-identifier hs-var">d</span></a></span><span>
+</span><span id="line-83"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">EvKey</span></span><span> </span><span class="annot"><span class="annottext">Key
+</span><span class="hs-identifier hs-var">KBackTab</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Bool -&gt; Dialog a -&gt; Dialog a
+forall a. Int -&gt; Bool -&gt; Dialog a -&gt; Dialog a
+</span><a href="Brick.Widgets.Dialog.html#nextButtonBy"><span class="hs-identifier hs-var">nextButtonBy</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">-</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span> </span><span class="annot"><span class="annottext">Dialog a
+</span><a href="#local-6989586621679373304"><span class="hs-identifier hs-var">d</span></a></span><span>
+</span><span id="line-84"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">EvKey</span></span><span> </span><span class="annot"><span class="annottext">Key
+</span><span class="hs-identifier hs-var">KRight</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Bool -&gt; Dialog a -&gt; Dialog a
+forall a. Int -&gt; Bool -&gt; Dialog a -&gt; Dialog a
+</span><a href="Brick.Widgets.Dialog.html#nextButtonBy"><span class="hs-identifier hs-var">nextButtonBy</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span> </span><span class="annot"><span class="annottext">Dialog a
+</span><a href="#local-6989586621679373304"><span class="hs-identifier hs-var">d</span></a></span><span>
+</span><span id="line-85"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">EvKey</span></span><span> </span><span class="annot"><span class="annottext">Key
+</span><span class="hs-identifier hs-var">KLeft</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Bool -&gt; Dialog a -&gt; Dialog a
+forall a. Int -&gt; Bool -&gt; Dialog a -&gt; Dialog a
+</span><a href="Brick.Widgets.Dialog.html#nextButtonBy"><span class="hs-identifier hs-var">nextButtonBy</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">-</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span> </span><span class="annot"><span class="annottext">Dialog a
+</span><a href="#local-6989586621679373304"><span class="hs-identifier hs-var">d</span></a></span><span>
+</span><span id="line-86"></span><span>        </span><span class="annot"><span class="annottext">Event
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Dialog a
+</span><a href="#local-6989586621679373304"><span class="hs-identifier hs-var">d</span></a></span><span>
+</span><span id="line-87"></span><span>
+</span><span id="line-88"></span><span class="hs-comment">-- | Create a dialog.</span><span>
+</span><span id="line-89"></span><span id="local-6989586621679373297"><span class="annot"><a href="Brick.Widgets.Dialog.html#dialog"><span class="hs-identifier hs-type">dialog</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
+</span><span id="line-90"></span><span>       </span><span class="hs-comment">-- ^ The dialog title</span><span>
+</span><span id="line-91"></span><span>       </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679373297"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-92"></span><span>       </span><span class="hs-comment">-- ^ The currently-selected button index (starting at zero) and</span><span>
+</span><span id="line-93"></span><span>       </span><span class="hs-comment">-- the button labels and values to use</span><span>
+</span><span id="line-94"></span><span>       </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-95"></span><span>       </span><span class="hs-comment">-- ^ The maximum width of the dialog</span><span>
+</span><span id="line-96"></span><span>       </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Widgets.Dialog.html#Dialog"><span class="hs-identifier hs-type">Dialog</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373297"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-97"></span><span id="dialog"><span class="annot"><span class="annottext">dialog :: Maybe String -&gt; Maybe (Int, [(String, a)]) -&gt; Int -&gt; Dialog a
+</span><a href="Brick.Widgets.Dialog.html#dialog"><span class="hs-identifier hs-var hs-var">dialog</span></a></span></span><span> </span><span id="local-6989586621679373296"><span class="annot"><span class="annottext">Maybe String
+</span><a href="#local-6989586621679373296"><span class="hs-identifier hs-var">title</span></a></span></span><span> </span><span id="local-6989586621679373295"><span class="annot"><span class="annottext">Maybe (Int, [(String, a)])
+</span><a href="#local-6989586621679373295"><span class="hs-identifier hs-var">buttonData</span></a></span></span><span> </span><span id="local-6989586621679373294"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679373294"><span class="hs-identifier hs-var">w</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-98"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679373293"><span class="annot"><span class="annottext">[(String, a)]
+</span><a href="#local-6989586621679373293"><span class="hs-identifier hs-var">buttons</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679373292"><span class="annot"><span class="annottext">Maybe Int
+</span><a href="#local-6989586621679373292"><span class="hs-identifier hs-var">idx</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Maybe (Int, [(String, a)])
+</span><a href="#local-6989586621679373295"><span class="hs-identifier hs-var">buttonData</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-99"></span><span>          </span><span class="annot"><span class="annottext">Maybe (Int, [(String, a)])
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Maybe Int
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span class="hs-special">)</span><span>
+</span><span id="line-100"></span><span>          </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-identifier">_</span></span><span class="hs-special">,</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Maybe Int
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span class="hs-special">)</span><span>
+</span><span id="line-101"></span><span>          </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679373291"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679373291"><span class="hs-identifier hs-var">i</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679373290"><span class="annot"><span class="annottext">[(String, a)]
+</span><a href="#local-6989586621679373290"><span class="hs-identifier hs-var">bs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[(String, a)]
+</span><a href="#local-6989586621679373290"><span class="hs-identifier hs-var">bs</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Maybe Int
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Maybe Int) -&gt; Int -&gt; Maybe Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int -&gt; Int
+forall a. Ord a =&gt; a -&gt; a -&gt; a -&gt; a
+</span><a href="Brick.Util.html#clamp"><span class="hs-identifier hs-var">clamp</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[(String, a)] -&gt; Int
+forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Int
+</span><span class="hs-identifier hs-var">length</span></span><span> </span><span class="annot"><span class="annottext">[(String, a)]
+</span><a href="#local-6989586621679373290"><span class="hs-identifier hs-var">bs</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679373291"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-102"></span><span>    </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">Maybe String -&gt; [(String, a)] -&gt; Maybe Int -&gt; Int -&gt; Dialog a
+forall a.
+Maybe String -&gt; [(String, a)] -&gt; Maybe Int -&gt; Int -&gt; Dialog a
+</span><a href="Brick.Widgets.Dialog.html#Dialog"><span class="hs-identifier hs-var">Dialog</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe String
+</span><a href="#local-6989586621679373296"><span class="hs-identifier hs-var">title</span></a></span><span> </span><span class="annot"><span class="annottext">[(String, a)]
+</span><a href="#local-6989586621679373293"><span class="hs-identifier hs-var">buttons</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe Int
+</span><a href="#local-6989586621679373292"><span class="hs-identifier hs-var">idx</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679373294"><span class="hs-identifier hs-var">w</span></a></span><span>
+</span><span id="line-103"></span><span>
+</span><span id="line-104"></span><span class="hs-comment">-- | The default attribute of the dialog</span><span>
+</span><span id="line-105"></span><span class="annot"><a href="Brick.Widgets.Dialog.html#dialogAttr"><span class="hs-identifier hs-type">dialogAttr</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.AttrMap.html#AttrName"><span class="hs-identifier hs-type">AttrName</span></a></span><span>
+</span><span id="line-106"></span><span id="dialogAttr"><span class="annot"><span class="annottext">dialogAttr :: AttrName
+</span><a href="Brick.Widgets.Dialog.html#dialogAttr"><span class="hs-identifier hs-var hs-var">dialogAttr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">AttrName
+</span><span class="hs-string">&quot;dialog&quot;</span></span><span>
+</span><span id="line-107"></span><span>
+</span><span id="line-108"></span><span class="hs-comment">-- | The default attribute for all dialog buttons</span><span>
+</span><span id="line-109"></span><span class="annot"><a href="Brick.Widgets.Dialog.html#buttonAttr"><span class="hs-identifier hs-type">buttonAttr</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.AttrMap.html#AttrName"><span class="hs-identifier hs-type">AttrName</span></a></span><span>
+</span><span id="line-110"></span><span id="buttonAttr"><span class="annot"><span class="annottext">buttonAttr :: AttrName
+</span><a href="Brick.Widgets.Dialog.html#buttonAttr"><span class="hs-identifier hs-var hs-var">buttonAttr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">AttrName
+</span><span class="hs-string">&quot;button&quot;</span></span><span>
+</span><span id="line-111"></span><span>
+</span><span id="line-112"></span><span class="hs-comment">-- | The attribute for the selected dialog button (extends 'dialogAttr')</span><span>
+</span><span id="line-113"></span><span class="annot"><a href="Brick.Widgets.Dialog.html#buttonSelectedAttr"><span class="hs-identifier hs-type">buttonSelectedAttr</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.AttrMap.html#AttrName"><span class="hs-identifier hs-type">AttrName</span></a></span><span>
+</span><span id="line-114"></span><span id="buttonSelectedAttr"><span class="annot"><span class="annottext">buttonSelectedAttr :: AttrName
+</span><a href="Brick.Widgets.Dialog.html#buttonSelectedAttr"><span class="hs-identifier hs-var hs-var">buttonSelectedAttr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">AttrName
+</span><a href="Brick.Widgets.Dialog.html#buttonAttr"><span class="hs-identifier hs-var">buttonAttr</span></a></span><span> </span><span class="annot"><span class="annottext">AttrName -&gt; AttrName -&gt; AttrName
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">AttrName
+</span><span class="hs-string">&quot;selected&quot;</span></span><span>
+</span><span id="line-115"></span><span>
+</span><span id="line-116"></span><span class="hs-comment">-- | Render a dialog with the specified body widget. This renders the</span><span>
+</span><span id="line-117"></span><span class="hs-comment">-- dialog as a layer, which makes this suitable as a top-level layer in</span><span>
+</span><span id="line-118"></span><span class="hs-comment">-- your rendering function to be rendered on top of the rest of your</span><span>
+</span><span id="line-119"></span><span class="hs-comment">-- interface.</span><span>
+</span><span id="line-120"></span><span id="local-6989586621679373287"><span id="local-6989586621679373288"><span class="annot"><a href="Brick.Widgets.Dialog.html#renderDialog"><span class="hs-identifier hs-type">renderDialog</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Widgets.Dialog.html#Dialog"><span class="hs-identifier hs-type">Dialog</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373288"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-type">Widget</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373287"><span class="hs-identifier hs-type">n</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-type">Widget</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373287"><span class="hs-identifier hs-type">n</span></a></span></span></span><span>
+</span><span id="line-121"></span><span id="renderDialog"><span class="annot"><span class="annottext">renderDialog :: Dialog a -&gt; Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Dialog.html#renderDialog"><span class="hs-identifier hs-var hs-var">renderDialog</span></a></span></span><span> </span><span id="local-6989586621679373286"><span class="annot"><span class="annottext">Dialog a
+</span><a href="#local-6989586621679373286"><span class="hs-identifier hs-var">d</span></a></span></span><span> </span><span id="local-6989586621679373285"><span class="annot"><span class="annottext">Widget n
+</span><a href="#local-6989586621679373285"><span class="hs-identifier hs-var">body</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-122"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679373284"><span class="annot"><span class="annottext">buttonPadding :: Widget n
+</span><a href="#local-6989586621679373284"><span class="hs-identifier hs-var hs-var">buttonPadding</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String -&gt; Widget n
+forall n. String -&gt; Widget n
+</span><a href="Brick.Widgets.Core.html#str"><span class="hs-identifier hs-var">str</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;   &quot;</span></span><span>
+</span><span id="line-123"></span><span>        </span><span id="local-6989586621679373282"><span class="annot"><span class="annottext">mkButton :: (Int, (String, b)) -&gt; Widget n
+</span><a href="#local-6989586621679373282"><span class="hs-identifier hs-var hs-var">mkButton</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679373281"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679373281"><span class="hs-identifier hs-var">i</span></a></span></span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679373280"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679373280"><span class="hs-identifier hs-var">s</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">b
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679373279"><span class="annot"><span class="annottext">att :: AttrName
+</span><a href="#local-6989586621679373279"><span class="hs-identifier hs-var hs-var">att</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Maybe Int
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679373281"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe Int -&gt; Maybe Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Dialog a
+</span><a href="#local-6989586621679373286"><span class="hs-identifier hs-var">d</span></a></span><span class="annot"><span class="annottext">Dialog a -&gt; Getting (Maybe Int) (Dialog a) (Maybe Int) -&gt; Maybe Int
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting (Maybe Int) (Dialog a) (Maybe Int)
+forall a. Lens' (Dialog a) (Maybe Int)
+</span><a href="Brick.Widgets.Dialog.html#dialogSelectedIndexL"><span class="hs-identifier hs-var">dialogSelectedIndexL</span></a></span><span>
+</span><span id="line-124"></span><span>                                         </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">AttrName
+</span><a href="Brick.Widgets.Dialog.html#buttonSelectedAttr"><span class="hs-identifier hs-var">buttonSelectedAttr</span></a></span><span>
+</span><span id="line-125"></span><span>                                         </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">AttrName
+</span><a href="Brick.Widgets.Dialog.html#buttonAttr"><span class="hs-identifier hs-var">buttonAttr</span></a></span><span>
+</span><span id="line-126"></span><span>                               </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">AttrName -&gt; Widget n -&gt; Widget n
+forall n. AttrName -&gt; Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Core.html#withAttr"><span class="hs-identifier hs-var">withAttr</span></a></span><span> </span><span class="annot"><span class="annottext">AttrName
+</span><a href="#local-6989586621679373279"><span class="hs-identifier hs-var">att</span></a></span><span> </span><span class="annot"><span class="annottext">(Widget n -&gt; Widget n) -&gt; Widget n -&gt; Widget n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; Widget n
+forall n. String -&gt; Widget n
+</span><a href="Brick.Widgets.Core.html#str"><span class="hs-identifier hs-var">str</span></a></span><span> </span><span class="annot"><span class="annottext">(String -&gt; Widget n) -&gt; String -&gt; Widget n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;  &quot;</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; String -&gt; String
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679373280"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="annot"><span class="annottext">String -&gt; String -&gt; String
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;  &quot;</span></span><span>
+</span><span id="line-127"></span><span>        </span><span id="local-6989586621679373276"><span class="annot"><span class="annottext">buttons :: Widget n
+</span><a href="#local-6989586621679373276"><span class="hs-identifier hs-var hs-var">buttons</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Widget n] -&gt; Widget n
+forall n. [Widget n] -&gt; Widget n
+</span><a href="Brick.Widgets.Core.html#hBox"><span class="hs-identifier hs-var">hBox</span></a></span><span> </span><span class="annot"><span class="annottext">([Widget n] -&gt; Widget n) -&gt; [Widget n] -&gt; Widget n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Widget n -&gt; [Widget n] -&gt; [Widget n]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">intersperse</span></span><span> </span><span class="annot"><span class="annottext">Widget n
+forall n. Widget n
+</span><a href="#local-6989586621679373284"><span class="hs-identifier hs-var">buttonPadding</span></a></span><span> </span><span class="annot"><span class="annottext">([Widget n] -&gt; [Widget n]) -&gt; [Widget n] -&gt; [Widget n]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-128"></span><span>                         </span><span class="annot"><span class="annottext">(Int, (String, a)) -&gt; Widget n
+forall b n. (Int, (String, b)) -&gt; Widget n
+</span><a href="#local-6989586621679373282"><span class="hs-identifier hs-var">mkButton</span></a></span><span> </span><span class="annot"><span class="annottext">((Int, (String, a)) -&gt; Widget n)
+-&gt; [(Int, (String, a))] -&gt; [Widget n]
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[Int] -&gt; [(String, a)] -&gt; [(Int, (String, a))]
+forall a b. [a] -&gt; [b] -&gt; [(a, b)]
+</span><span class="hs-identifier hs-var">zip</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-glyph">..</span><span class="hs-special">]</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Dialog a
+</span><a href="#local-6989586621679373286"><span class="hs-identifier hs-var">d</span></a></span><span class="annot"><span class="annottext">Dialog a
+-&gt; Getting [(String, a)] (Dialog a) [(String, a)] -&gt; [(String, a)]
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting [(String, a)] (Dialog a) [(String, a)]
+forall a a. Lens (Dialog a) (Dialog a) [(String, a)] [(String, a)]
+</span><a href="Brick.Widgets.Dialog.html#dialogButtonsL"><span class="hs-identifier hs-var">dialogButtonsL</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-129"></span><span>
+</span><span id="line-130"></span><span>        </span><span id="local-6989586621679373273"><span class="annot"><span class="annottext">doBorder :: Widget n -&gt; Widget n
+</span><a href="#local-6989586621679373273"><span class="hs-identifier hs-var hs-var">doBorder</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Widget n -&gt; Widget n)
+-&gt; (Widget n -&gt; Widget n -&gt; Widget n)
+-&gt; Maybe (Widget n)
+-&gt; Widget n
+-&gt; Widget n
+forall b a. b -&gt; (a -&gt; b) -&gt; Maybe a -&gt; b
+</span><span class="hs-identifier hs-var">maybe</span></span><span> </span><span class="annot"><span class="annottext">Widget n -&gt; Widget n
+forall n. Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Border.html#border"><span class="hs-identifier hs-var">border</span></a></span><span> </span><span class="annot"><span class="annottext">Widget n -&gt; Widget n -&gt; Widget n
+forall n. Widget n -&gt; Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Border.html#borderWithLabel"><span class="hs-identifier hs-var">borderWithLabel</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; Widget n
+forall n. String -&gt; Widget n
+</span><a href="Brick.Widgets.Core.html#str"><span class="hs-identifier hs-var">str</span></a></span><span> </span><span class="annot"><span class="annottext">(String -&gt; Widget n) -&gt; Maybe String -&gt; Maybe (Widget n)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Dialog a
+</span><a href="#local-6989586621679373286"><span class="hs-identifier hs-var">d</span></a></span><span class="annot"><span class="annottext">Dialog a
+-&gt; Getting (Maybe String) (Dialog a) (Maybe String) -&gt; Maybe String
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting (Maybe String) (Dialog a) (Maybe String)
+forall a. Lens' (Dialog a) (Maybe String)
+</span><a href="Brick.Widgets.Dialog.html#dialogTitleL"><span class="hs-identifier hs-var">dialogTitleL</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-131"></span><span>    </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">Widget n -&gt; Widget n
+forall n. Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Center.html#centerLayer"><span class="hs-identifier hs-var">centerLayer</span></a></span><span> </span><span class="annot"><span class="annottext">(Widget n -&gt; Widget n) -&gt; Widget n -&gt; Widget n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-132"></span><span>       </span><span class="annot"><span class="annottext">AttrName -&gt; Widget n -&gt; Widget n
+forall n. AttrName -&gt; Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Core.html#withDefAttr"><span class="hs-identifier hs-var">withDefAttr</span></a></span><span> </span><span class="annot"><span class="annottext">AttrName
+</span><a href="Brick.Widgets.Dialog.html#dialogAttr"><span class="hs-identifier hs-var">dialogAttr</span></a></span><span> </span><span class="annot"><span class="annottext">(Widget n -&gt; Widget n) -&gt; Widget n -&gt; Widget n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-133"></span><span>       </span><span class="annot"><span class="annottext">Int -&gt; Widget n -&gt; Widget n
+forall n. Int -&gt; Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Core.html#hLimit"><span class="hs-identifier hs-var">hLimit</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Dialog a
+</span><a href="#local-6989586621679373286"><span class="hs-identifier hs-var">d</span></a></span><span class="annot"><span class="annottext">Dialog a -&gt; Getting Int (Dialog a) Int -&gt; Int
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting Int (Dialog a) Int
+forall a. Lens' (Dialog a) Int
+</span><a href="Brick.Widgets.Dialog.html#dialogWidthL"><span class="hs-identifier hs-var">dialogWidthL</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Widget n -&gt; Widget n) -&gt; Widget n -&gt; Widget n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-134"></span><span>       </span><span class="annot"><span class="annottext">Widget n -&gt; Widget n
+forall n. Widget n -&gt; Widget n
+</span><a href="#local-6989586621679373273"><span class="hs-identifier hs-var">doBorder</span></a></span><span> </span><span class="annot"><span class="annottext">(Widget n -&gt; Widget n) -&gt; Widget n -&gt; Widget n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-135"></span><span>       </span><span class="annot"><span class="annottext">[Widget n] -&gt; Widget n
+forall n. [Widget n] -&gt; Widget n
+</span><a href="Brick.Widgets.Core.html#vBox"><span class="hs-identifier hs-var">vBox</span></a></span><span> </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">Widget n
+</span><a href="#local-6989586621679373285"><span class="hs-identifier hs-var">body</span></a></span><span>
+</span><span id="line-136"></span><span>            </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Widget n -&gt; Widget n
+forall n. Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Center.html#hCenter"><span class="hs-identifier hs-var">hCenter</span></a></span><span> </span><span class="annot"><span class="annottext">Widget n
+forall n. Widget n
+</span><a href="#local-6989586621679373276"><span class="hs-identifier hs-var">buttons</span></a></span><span>
+</span><span id="line-137"></span><span>            </span><span class="hs-special">]</span><span>
+</span><span id="line-138"></span><span>
+</span><span id="line-139"></span><span id="local-6989586621679373382"><span class="annot"><a href="Brick.Widgets.Dialog.html#nextButtonBy"><span class="hs-identifier hs-type">nextButtonBy</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Widgets.Dialog.html#Dialog"><span class="hs-identifier hs-type">Dialog</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373382"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Widgets.Dialog.html#Dialog"><span class="hs-identifier hs-type">Dialog</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373382"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-140"></span><span id="nextButtonBy"><span class="annot"><span class="annottext">nextButtonBy :: Int -&gt; Bool -&gt; Dialog a -&gt; Dialog a
+</span><a href="Brick.Widgets.Dialog.html#nextButtonBy"><span class="hs-identifier hs-var hs-var">nextButtonBy</span></a></span></span><span> </span><span id="local-6989586621679373264"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679373264"><span class="hs-identifier hs-var">amt</span></a></span></span><span> </span><span id="local-6989586621679373263"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679373263"><span class="hs-identifier hs-var">wrapCycle</span></a></span></span><span> </span><span id="local-6989586621679373262"><span class="annot"><span class="annottext">Dialog a
+</span><a href="#local-6989586621679373262"><span class="hs-identifier hs-var">d</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-141"></span><span>    </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679373261"><span class="annot"><span class="annottext">numButtons :: Int
+</span><a href="#local-6989586621679373261"><span class="hs-identifier hs-var hs-var">numButtons</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(String, a)] -&gt; Int
+forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Int
+</span><span class="hs-identifier hs-var">length</span></span><span> </span><span class="annot"><span class="annottext">([(String, a)] -&gt; Int) -&gt; [(String, a)] -&gt; Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Dialog a
+</span><a href="#local-6989586621679373262"><span class="hs-identifier hs-var">d</span></a></span><span class="annot"><span class="annottext">Dialog a
+-&gt; Getting [(String, a)] (Dialog a) [(String, a)] -&gt; [(String, a)]
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting [(String, a)] (Dialog a) [(String, a)]
+forall a a. Lens (Dialog a) (Dialog a) [(String, a)] [(String, a)]
+</span><a href="Brick.Widgets.Dialog.html#dialogButtonsL"><span class="hs-identifier hs-var">dialogButtonsL</span></a></span><span>
+</span><span id="line-142"></span><span>    </span><span class="hs-keyword">in</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679373261"><span class="hs-identifier hs-var">numButtons</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Dialog a
+</span><a href="#local-6989586621679373262"><span class="hs-identifier hs-var">d</span></a></span><span>
+</span><span id="line-143"></span><span>       </span><span class="hs-keyword">else</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Dialog a
+</span><a href="#local-6989586621679373262"><span class="hs-identifier hs-var">d</span></a></span><span class="annot"><span class="annottext">Dialog a -&gt; Getting (Maybe Int) (Dialog a) (Maybe Int) -&gt; Maybe Int
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting (Maybe Int) (Dialog a) (Maybe Int)
+forall a. Lens' (Dialog a) (Maybe Int)
+</span><a href="Brick.Widgets.Dialog.html#dialogSelectedIndexL"><span class="hs-identifier hs-var">dialogSelectedIndexL</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-144"></span><span>           </span><span class="annot"><span class="annottext">Maybe Int
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Dialog a
+</span><a href="#local-6989586621679373262"><span class="hs-identifier hs-var">d</span></a></span><span> </span><span class="annot"><span class="annottext">Dialog a -&gt; (Dialog a -&gt; Dialog a) -&gt; Dialog a
+forall a b. a -&gt; (a -&gt; b) -&gt; b
+</span><span class="hs-operator hs-var">&amp;</span></span><span> </span><span class="annot"><span class="annottext">(Maybe Int -&gt; Identity (Maybe Int))
+-&gt; Dialog a -&gt; Identity (Dialog a)
+forall a. Lens' (Dialog a) (Maybe Int)
+</span><a href="Brick.Widgets.Dialog.html#dialogSelectedIndexL"><span class="hs-identifier hs-var">dialogSelectedIndexL</span></a></span><span> </span><span class="annot"><span class="annottext">((Maybe Int -&gt; Identity (Maybe Int))
+ -&gt; Dialog a -&gt; Identity (Dialog a))
+-&gt; Maybe Int -&gt; Dialog a -&gt; Dialog a
+forall s t a b. ASetter s t a b -&gt; b -&gt; s -&gt; t
+</span><span class="hs-operator hs-var">.~</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Maybe Int
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span>
+</span><span id="line-145"></span><span>           </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679373258"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679373258"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Dialog a
+</span><a href="#local-6989586621679373262"><span class="hs-identifier hs-var">d</span></a></span><span> </span><span class="annot"><span class="annottext">Dialog a -&gt; (Dialog a -&gt; Dialog a) -&gt; Dialog a
+forall a b. a -&gt; (a -&gt; b) -&gt; b
+</span><span class="hs-operator hs-var">&amp;</span></span><span> </span><span class="annot"><span class="annottext">(Maybe Int -&gt; Identity (Maybe Int))
+-&gt; Dialog a -&gt; Identity (Dialog a)
+forall a. Lens' (Dialog a) (Maybe Int)
+</span><a href="Brick.Widgets.Dialog.html#dialogSelectedIndexL"><span class="hs-identifier hs-var">dialogSelectedIndexL</span></a></span><span> </span><span class="annot"><span class="annottext">((Maybe Int -&gt; Identity (Maybe Int))
+ -&gt; Dialog a -&gt; Identity (Dialog a))
+-&gt; Maybe Int -&gt; Dialog a -&gt; Dialog a
+forall s t a b. ASetter s t a b -&gt; b -&gt; s -&gt; t
+</span><span class="hs-operator hs-var">.~</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Maybe Int
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679373257"><span class="hs-identifier hs-var">newIndex</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-146"></span><span>               </span><span class="hs-keyword">where</span><span>
+</span><span id="line-147"></span><span>                   </span><span id="local-6989586621679373256"><span class="annot"><span class="annottext">addedIndex :: Int
+</span><a href="#local-6989586621679373256"><span class="hs-identifier hs-var hs-var">addedIndex</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679373258"><span class="hs-identifier hs-var">i</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679373264"><span class="hs-identifier hs-var">amt</span></a></span><span>
+</span><span id="line-148"></span><span>                   </span><span id="local-6989586621679373257"><span class="annot"><span class="annottext">newIndex :: Int
+</span><a href="#local-6989586621679373257"><span class="hs-identifier hs-var hs-var">newIndex</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679373263"><span class="hs-identifier hs-var">wrapCycle</span></a></span><span>
+</span><span id="line-149"></span><span>                              </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679373256"><span class="hs-identifier hs-var">addedIndex</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Integral a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">`mod`</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679373261"><span class="hs-identifier hs-var">numButtons</span></a></span><span>
+</span><span id="line-150"></span><span>                              </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">max</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Int) -&gt; Int -&gt; Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">min</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679373256"><span class="hs-identifier hs-var">addedIndex</span></a></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Int) -&gt; Int -&gt; Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679373261"><span class="hs-identifier hs-var">numButtons</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span>
+</span><span id="line-151"></span><span>
+</span><span id="line-152"></span><span class="hs-comment">-- | Obtain the value associated with the dialog's currently-selected</span><span>
+</span><span id="line-153"></span><span class="hs-comment">-- button, if any. This function is probably what you want when someone</span><span>
+</span><span id="line-154"></span><span class="hs-comment">-- presses 'Enter' in a dialog.</span><span>
+</span><span id="line-155"></span><span id="local-6989586621679373251"><span class="annot"><a href="Brick.Widgets.Dialog.html#dialogSelection"><span class="hs-identifier hs-type">dialogSelection</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.Widgets.Dialog.html#Dialog"><span class="hs-identifier hs-type">Dialog</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679373251"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679373251"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-156"></span><span id="dialogSelection"><span class="annot"><span class="annottext">dialogSelection :: Dialog a -&gt; Maybe a
+</span><a href="Brick.Widgets.Dialog.html#dialogSelection"><span class="hs-identifier hs-var hs-var">dialogSelection</span></a></span></span><span> </span><span id="local-6989586621679373250"><span class="annot"><span class="annottext">Dialog a
+</span><a href="#local-6989586621679373250"><span class="hs-identifier hs-var">d</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-157"></span><span>    </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Dialog a
+</span><a href="#local-6989586621679373250"><span class="hs-identifier hs-var">d</span></a></span><span class="annot"><span class="annottext">Dialog a -&gt; Getting (Maybe Int) (Dialog a) (Maybe Int) -&gt; Maybe Int
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting (Maybe Int) (Dialog a) (Maybe Int)
+forall a. Lens' (Dialog a) (Maybe Int)
+</span><a href="Brick.Widgets.Dialog.html#dialogSelectedIndexL"><span class="hs-identifier hs-var">dialogSelectedIndexL</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-158"></span><span>        </span><span class="annot"><span class="annottext">Maybe Int
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe a
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-159"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679373249"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679373249"><span class="hs-identifier hs-var">i</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">a -&gt; Maybe a
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">(a -&gt; Maybe a) -&gt; a -&gt; Maybe a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="annottext">Dialog a
+</span><a href="#local-6989586621679373250"><span class="hs-identifier hs-var">d</span></a></span><span class="annot"><span class="annottext">Dialog a
+-&gt; Getting [(String, a)] (Dialog a) [(String, a)] -&gt; [(String, a)]
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting [(String, a)] (Dialog a) [(String, a)]
+forall a a. Lens (Dialog a) (Dialog a) [(String, a)] [(String, a)]
+</span><a href="Brick.Widgets.Dialog.html#dialogButtonsL"><span class="hs-identifier hs-var">dialogButtonsL</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[(String, a)] -&gt; Int -&gt; (String, a)
+forall a. [a] -&gt; Int -&gt; a
+</span><span class="hs-operator hs-var">!!</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679373249"><span class="hs-identifier hs-var">i</span></a></span><span class="hs-special">)</span><span class="annot"><span class="annottext">(String, a) -&gt; Getting a (String, a) a -&gt; a
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting a (String, a) a
+forall s t a b. Field2 s t a b =&gt; Lens s t a b
+</span><span class="hs-identifier hs-var">_2</span></span><span>
+</span><span id="line-160"></span></pre></body></html>

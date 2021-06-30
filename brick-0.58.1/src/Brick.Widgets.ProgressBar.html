@@ -1,0 +1,194 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE OverloadedStrings #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE CPP #-}</span><span>
+</span><span id="line-3"></span><span class="hs-comment">-- | This module provides a progress bar widget.</span><span>
+</span><span id="line-4"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Brick.Widgets.ProgressBar</span><span>
+</span><span id="line-5"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Brick.Widgets.ProgressBar.html#progressBar"><span class="hs-identifier">progressBar</span></a></span><span>
+</span><span id="line-6"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Attributes</span></span><span>
+</span><span id="line-7"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Widgets.ProgressBar.html#progressCompleteAttr"><span class="hs-identifier">progressCompleteAttr</span></a></span><span>
+</span><span id="line-8"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.Widgets.ProgressBar.html#progressIncompleteAttr"><span class="hs-identifier">progressIncompleteAttr</span></a></span><span>
+</span><span id="line-9"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-11"></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Lens.Micro</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-operator">(^.)</span></span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.List</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">splitAt</span></span><span class="hs-special">)</span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">fromMaybe</span></span><span class="hs-special">)</span><span class="hs-cpp">
+#if !(MIN_VERSION_base(4,11,0))
+</span><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Data.Monoid</span><span class="hs-cpp">
+#endif
+</span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Graphics.Vty</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">safeWcswidth</span></span><span class="hs-special">)</span><span>
+</span><span id="line-19"></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Brick.Types.html"><span class="hs-identifier">Brick.Types</span></a></span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Brick.AttrMap.html"><span class="hs-identifier">Brick.AttrMap</span></a></span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Brick.Widgets.Core.html"><span class="hs-identifier">Brick.Widgets.Core</span></a></span><span>
+</span><span id="line-23"></span><span>
+</span><span id="line-24"></span><span class="hs-comment">-- | The attribute of the completed portion of the progress bar.</span><span>
+</span><span id="line-25"></span><span class="annot"><a href="Brick.Widgets.ProgressBar.html#progressCompleteAttr"><span class="hs-identifier hs-type">progressCompleteAttr</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.AttrMap.html#AttrName"><span class="hs-identifier hs-type">AttrName</span></a></span><span>
+</span><span id="line-26"></span><span id="progressCompleteAttr"><span class="annot"><span class="annottext">progressCompleteAttr :: AttrName
+</span><a href="Brick.Widgets.ProgressBar.html#progressCompleteAttr"><span class="hs-identifier hs-var hs-var">progressCompleteAttr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">AttrName
+</span><span class="hs-string">&quot;progressComplete&quot;</span></span><span>
+</span><span id="line-27"></span><span>
+</span><span id="line-28"></span><span class="hs-comment">-- | The attribute of the incomplete portion of the progress bar.</span><span>
+</span><span id="line-29"></span><span class="annot"><a href="Brick.Widgets.ProgressBar.html#progressIncompleteAttr"><span class="hs-identifier hs-type">progressIncompleteAttr</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.AttrMap.html#AttrName"><span class="hs-identifier hs-type">AttrName</span></a></span><span>
+</span><span id="line-30"></span><span id="progressIncompleteAttr"><span class="annot"><span class="annottext">progressIncompleteAttr :: AttrName
+</span><a href="Brick.Widgets.ProgressBar.html#progressIncompleteAttr"><span class="hs-identifier hs-var hs-var">progressIncompleteAttr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">AttrName
+</span><span class="hs-string">&quot;progressIncomplete&quot;</span></span><span>
+</span><span id="line-31"></span><span>
+</span><span id="line-32"></span><span class="hs-comment">-- | Draw a progress bar with the specified (optional) label and</span><span>
+</span><span id="line-33"></span><span class="hs-comment">-- progress value. This fills available horizontal space and is one row</span><span>
+</span><span id="line-34"></span><span class="hs-comment">-- high.</span><span>
+</span><span id="line-35"></span><span id="local-6989586621679372590"><span class="annot"><a href="Brick.Widgets.ProgressBar.html#progressBar"><span class="hs-identifier hs-type">progressBar</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
+</span><span id="line-36"></span><span>            </span><span class="hs-comment">-- ^ The label. If specified, this is shown in the center of</span><span>
+</span><span id="line-37"></span><span>            </span><span class="hs-comment">-- the progress bar.</span><span>
+</span><span id="line-38"></span><span>            </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Float</span></span><span>
+</span><span id="line-39"></span><span>            </span><span class="hs-comment">-- ^ The progress value. Should be between 0 and 1 inclusive.</span><span>
+</span><span id="line-40"></span><span>            </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-type">Widget</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679372590"><span class="hs-identifier hs-type">n</span></a></span></span><span>
+</span><span id="line-41"></span><span id="progressBar"><span class="annot"><span class="annottext">progressBar :: Maybe String -&gt; Float -&gt; Widget n
+</span><a href="Brick.Widgets.ProgressBar.html#progressBar"><span class="hs-identifier hs-var hs-var">progressBar</span></a></span></span><span> </span><span id="local-6989586621679372589"><span class="annot"><span class="annottext">Maybe String
+</span><a href="#local-6989586621679372589"><span class="hs-identifier hs-var">mLabel</span></a></span></span><span> </span><span id="local-6989586621679372588"><span class="annot"><span class="annottext">Float
+</span><a href="#local-6989586621679372588"><span class="hs-identifier hs-var">progress</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-42"></span><span>    </span><span class="annot"><span class="annottext">Size -&gt; Size -&gt; RenderM n (Result n) -&gt; Widget n
+forall n. Size -&gt; Size -&gt; RenderM n (Result n) -&gt; Widget n
+</span><a href="Brick.Types.html#Widget"><span class="hs-identifier hs-var">Widget</span></a></span><span> </span><span class="annot"><span class="annottext">Size
+</span><a href="Brick.Types.html#Greedy"><span class="hs-identifier hs-var">Greedy</span></a></span><span> </span><span class="annot"><span class="annottext">Size
+</span><a href="Brick.Types.html#Fixed"><span class="hs-identifier hs-var">Fixed</span></a></span><span> </span><span class="annot"><span class="annottext">(RenderM n (Result n) -&gt; Widget n)
+-&gt; RenderM n (Result n) -&gt; Widget n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-43"></span><span>        </span><span id="local-6989586621679372584"><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679372584"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">RenderM n Context
+forall n. RenderM n Context
+</span><a href="Brick.Types.html#getContext"><span class="hs-identifier hs-var">getContext</span></a></span><span>
+</span><span id="line-44"></span><span>        </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679372582"><span class="annot"><span class="annottext">barWidth :: Int
+</span><a href="#local-6989586621679372582"><span class="hs-identifier hs-var hs-var">barWidth</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Context
+</span><a href="#local-6989586621679372584"><span class="hs-identifier hs-var">c</span></a></span><span class="annot"><span class="annottext">Context -&gt; Getting Int Context Int -&gt; Int
+forall s a. s -&gt; Getting a s a -&gt; a
+</span><span class="hs-operator hs-var">^.</span></span><span class="annot"><span class="annottext">Getting Int Context Int
+Lens' Context Int
+</span><a href="Brick.Types.html#availWidthL"><span class="hs-identifier hs-var">availWidthL</span></a></span><span>
+</span><span id="line-45"></span><span>            </span><span id="local-6989586621679372580"><span class="annot"><span class="annottext">label :: String
+</span><a href="#local-6989586621679372580"><span class="hs-keyword hs-var hs-var">label</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String -&gt; Maybe String -&gt; String
+forall a. a -&gt; Maybe a -&gt; a
+</span><span class="hs-identifier hs-var">fromMaybe</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;&quot;</span></span><span> </span><span class="annot"><span class="annottext">Maybe String
+</span><a href="#local-6989586621679372589"><span class="hs-identifier hs-var">mLabel</span></a></span><span>
+</span><span id="line-46"></span><span>            </span><span id="local-6989586621679372579"><span class="annot"><span class="annottext">labelWidth :: Int
+</span><a href="#local-6989586621679372579"><span class="hs-identifier hs-var hs-var">labelWidth</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String -&gt; Int
+</span><span class="hs-identifier hs-var">safeWcswidth</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679372580"><span class="hs-keyword hs-var">label</span></a></span><span>
+</span><span id="line-47"></span><span>            </span><span id="local-6989586621679372578"><span class="annot"><span class="annottext">spacesWidth :: Int
+</span><a href="#local-6989586621679372578"><span class="hs-identifier hs-var hs-var">spacesWidth</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372582"><span class="hs-identifier hs-var">barWidth</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372579"><span class="hs-identifier hs-var">labelWidth</span></a></span><span>
+</span><span id="line-48"></span><span>            </span><span id="local-6989586621679372577"><span class="annot"><span class="annottext">leftPart :: String
+</span><a href="#local-6989586621679372577"><span class="hs-identifier hs-var hs-var">leftPart</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Char -&gt; String
+forall a. Int -&gt; a -&gt; [a]
+</span><span class="hs-identifier hs-var">replicate</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372578"><span class="hs-identifier hs-var">spacesWidth</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Integral a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">`div`</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">2</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">' '</span></span><span>
+</span><span id="line-49"></span><span>            </span><span id="local-6989586621679372574"><span class="annot"><span class="annottext">rightPart :: String
+</span><a href="#local-6989586621679372574"><span class="hs-identifier hs-var hs-var">rightPart</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Char -&gt; String
+forall a. Int -&gt; a -&gt; [a]
+</span><span class="hs-identifier hs-var">replicate</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372582"><span class="hs-identifier hs-var">barWidth</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372579"><span class="hs-identifier hs-var">labelWidth</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; Int
+forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Int
+</span><span class="hs-identifier hs-var">length</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679372577"><span class="hs-identifier hs-var">leftPart</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">' '</span></span><span>
+</span><span id="line-50"></span><span>            </span><span id="local-6989586621679372571"><span class="annot"><span class="annottext">fullBar :: String
+</span><a href="#local-6989586621679372571"><span class="hs-identifier hs-var hs-var">fullBar</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679372577"><span class="hs-identifier hs-var">leftPart</span></a></span><span> </span><span class="annot"><span class="annottext">String -&gt; String -&gt; String
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679372580"><span class="hs-keyword hs-var">label</span></a></span><span> </span><span class="annot"><span class="annottext">String -&gt; String -&gt; String
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679372574"><span class="hs-identifier hs-var">rightPart</span></a></span><span>
+</span><span id="line-51"></span><span>            </span><span id="local-6989586621679372570"><span class="annot"><span class="annottext">completeWidth :: Int
+</span><a href="#local-6989586621679372570"><span class="hs-identifier hs-var hs-var">completeWidth</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Float -&gt; Int
+forall a b. (RealFrac a, Integral b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">round</span></span><span> </span><span class="annot"><span class="annottext">(Float -&gt; Int) -&gt; Float -&gt; Int
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Float
+</span><a href="#local-6989586621679372588"><span class="hs-identifier hs-var">progress</span></a></span><span> </span><span class="annot"><span class="annottext">Float -&gt; Float -&gt; Float
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">*</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Float
+forall a. Enum a =&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">toEnum</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; Int
+forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Int
+</span><span class="hs-identifier hs-var">length</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679372571"><span class="hs-identifier hs-var">fullBar</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-52"></span><span>            </span><span id="local-6989586621679372566"><span class="annot"><span class="annottext">adjustedCompleteWidth :: Int
+</span><a href="#local-6989586621679372566"><span class="hs-identifier hs-var hs-var">adjustedCompleteWidth</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372570"><span class="hs-identifier hs-var">completeWidth</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; Int
+forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Int
+</span><span class="hs-identifier hs-var">length</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679372571"><span class="hs-identifier hs-var">fullBar</span></a></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="annot"><span class="annottext">Float
+</span><a href="#local-6989586621679372588"><span class="hs-identifier hs-var">progress</span></a></span><span> </span><span class="annot"><span class="annottext">Float -&gt; Float -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Float
+</span><span class="hs-number">1.0</span></span><span>
+</span><span id="line-53"></span><span>                                    </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372570"><span class="hs-identifier hs-var">completeWidth</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span>
+</span><span id="line-54"></span><span>                                    </span><span class="hs-keyword">else</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372570"><span class="hs-identifier hs-var">completeWidth</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="annot"><span class="annottext">Float
+</span><a href="#local-6989586621679372588"><span class="hs-identifier hs-var">progress</span></a></span><span> </span><span class="annot"><span class="annottext">Float -&gt; Float -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="annottext">Float
+</span><span class="hs-number">0.0</span></span><span>
+</span><span id="line-55"></span><span>                                         </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span>
+</span><span id="line-56"></span><span>                                         </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372570"><span class="hs-identifier hs-var">completeWidth</span></a></span><span>
+</span><span id="line-57"></span><span>            </span><span class="hs-special">(</span><span id="local-6989586621679372562"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679372562"><span class="hs-identifier hs-var">completePart</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679372561"><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679372561"><span class="hs-identifier hs-var">incompletePart</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; String -&gt; (String, String)
+forall a. Int -&gt; [a] -&gt; ([a], [a])
+</span><span class="hs-identifier hs-var">splitAt</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679372566"><span class="hs-identifier hs-var">adjustedCompleteWidth</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679372571"><span class="hs-identifier hs-var">fullBar</span></a></span><span>
+</span><span id="line-58"></span><span>        </span><span class="annot"><span class="annottext">Widget n -&gt; RenderM n (Result n)
+forall n. Widget n -&gt; RenderM n (Result n)
+</span><a href="Brick.Types.html#render"><span class="hs-identifier hs-var hs-var">render</span></a></span><span> </span><span class="annot"><span class="annottext">(Widget n -&gt; RenderM n (Result n))
+-&gt; Widget n -&gt; RenderM n (Result n)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">AttrName -&gt; Widget n -&gt; Widget n
+forall n. AttrName -&gt; Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Core.html#withAttr"><span class="hs-identifier hs-var">withAttr</span></a></span><span> </span><span class="annot"><span class="annottext">AttrName
+</span><a href="Brick.Widgets.ProgressBar.html#progressCompleteAttr"><span class="hs-identifier hs-var">progressCompleteAttr</span></a></span><span> </span><span class="annot"><span class="annottext">(Widget n -&gt; Widget n) -&gt; Widget n -&gt; Widget n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; Widget n
+forall n. String -&gt; Widget n
+</span><a href="Brick.Widgets.Core.html#str"><span class="hs-identifier hs-var">str</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679372562"><span class="hs-identifier hs-var">completePart</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Widget n -&gt; Widget n -&gt; Widget n
+forall n. Widget n -&gt; Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Core.html#%3C%2B%3E"><span class="hs-operator hs-var">&lt;+&gt;</span></a></span><span>
+</span><span id="line-59"></span><span>                 </span><span class="hs-special">(</span><span class="annot"><span class="annottext">AttrName -&gt; Widget n -&gt; Widget n
+forall n. AttrName -&gt; Widget n -&gt; Widget n
+</span><a href="Brick.Widgets.Core.html#withAttr"><span class="hs-identifier hs-var">withAttr</span></a></span><span> </span><span class="annot"><span class="annottext">AttrName
+</span><a href="Brick.Widgets.ProgressBar.html#progressIncompleteAttr"><span class="hs-identifier hs-var">progressIncompleteAttr</span></a></span><span> </span><span class="annot"><span class="annottext">(Widget n -&gt; Widget n) -&gt; Widget n -&gt; Widget n
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; Widget n
+forall n. String -&gt; Widget n
+</span><a href="Brick.Widgets.Core.html#str"><span class="hs-identifier hs-var">str</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><a href="#local-6989586621679372561"><span class="hs-identifier hs-var">incompletePart</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-60"></span></pre></body></html>

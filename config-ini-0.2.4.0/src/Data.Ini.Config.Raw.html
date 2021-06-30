@@ -1,0 +1,912 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">{-|
+Module     : Data.Ini.Config.Raw
+Copyright  : (c) Getty Ritter, 2017
+License    : BSD
+Maintainer : Getty Ritter &lt;config-ini@infinitenegativeutility.com&gt;
+Stability  : experimental
+
+__Warning!__ This module is subject to change in the future, and therefore should
+not be relied upon to have a consistent API.
+
+-}</span><span>
+</span><span id="line-12"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Data.Ini.Config.Raw</span><span>
+</span><span id="line-13"></span><span class="hs-special">(</span><span> </span><span class="annot"><span class="hs-comment">-- * INI types</span></span><span>
+</span><span id="line-14"></span><span>  </span><span class="annot"><a href="Data.Ini.Config.Raw.html#RawIni"><span class="hs-identifier">RawIni</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#IniSection"><span class="hs-identifier">IniSection</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-16"></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#IniValue"><span class="hs-identifier">IniValue</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-17"></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#BlankLine"><span class="hs-identifier">BlankLine</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-18"></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#NormalizedText"><span class="hs-identifier">NormalizedText</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-19"></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#normalize"><span class="hs-identifier">normalize</span></a></span><span>
+</span><span id="line-20"></span><span>  </span><span class="annot"><span class="hs-comment">-- * serializing and deserializing</span></span><span>
+</span><span id="line-21"></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#parseRawIni"><span class="hs-identifier">parseRawIni</span></a></span><span>
+</span><span id="line-22"></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#printRawIni"><span class="hs-identifier">printRawIni</span></a></span><span>
+</span><span id="line-23"></span><span>  </span><span class="annot"><span class="hs-comment">-- * inspection</span></span><span>
+</span><span id="line-24"></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#lookupInSection"><span class="hs-identifier">lookupInSection</span></a></span><span>
+</span><span id="line-25"></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#lookupSection"><span class="hs-identifier">lookupSection</span></a></span><span>
+</span><span id="line-26"></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#lookupValue"><span class="hs-identifier">lookupValue</span></a></span><span>
+</span><span id="line-27"></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-28"></span><span>
+</span><span id="line-29"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">void</span></span><span class="hs-special">)</span><span>
+</span><span id="line-30"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Foldable</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">F</span></span><span>
+</span><span id="line-31"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Monoid</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-operator">(&lt;&gt;)</span></span><span class="hs-special">)</span><span>
+</span><span id="line-32"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Sequence</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Seq</span></span><span class="hs-special">)</span><span>
+</span><span id="line-33"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Sequence</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Seq</span></span><span>
+</span><span id="line-34"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Text</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Text</span></span><span class="hs-special">)</span><span>
+</span><span id="line-35"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Text</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">T</span></span><span>
+</span><span id="line-36"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Text.Lazy</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">LazyText</span></span><span>
+</span><span id="line-37"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Text.Lazy.Builder</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Builder</span></span><span>
+</span><span id="line-38"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Void</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Void</span></span><span class="hs-special">)</span><span>
+</span><span id="line-39"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Text.Megaparsec</span></span><span>
+</span><span id="line-40"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Text.Megaparsec.Char</span></span><span>
+</span><span id="line-41"></span><span>
+</span><span id="line-42"></span><span class="hs-keyword">type</span><span> </span><span id="Parser"><span class="annot"><a href="Data.Ini.Config.Raw.html#Parser"><span class="hs-identifier hs-var">Parser</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Parsec</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Void</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-43"></span><span>
+</span><span id="line-44"></span><span class="hs-comment">-- | The 'NormalizedText' type is an abstract representation of text</span><span>
+</span><span id="line-45"></span><span class="hs-comment">-- which has had leading and trailing whitespace removed and been</span><span>
+</span><span id="line-46"></span><span class="hs-comment">-- normalized to lower-case, but from which we can still extract the</span><span>
+</span><span id="line-47"></span><span class="hs-comment">-- original, non-normalized version. This acts like the normalized</span><span>
+</span><span id="line-48"></span><span class="hs-comment">-- text for the purposes of 'Eq' and 'Ord' operations, so</span><span>
+</span><span id="line-49"></span><span class="hs-comment">--</span><span>
+</span><span id="line-50"></span><span class="hs-comment">-- @</span><span>
+</span><span id="line-51"></span><span class="hs-comment">--   'normalize' &quot;  x  &quot; == 'normalize' \&quot;X\&quot;</span><span>
+</span><span id="line-52"></span><span class="hs-comment">-- @</span><span>
+</span><span id="line-53"></span><span class="hs-comment">--</span><span>
+</span><span id="line-54"></span><span class="hs-comment">-- This type is used to store section and key names in the</span><span>
+</span><span id="line-55"></span><span class="hs-keyword">data</span><span> </span><span id="NormalizedText"><span class="annot"><a href="Data.Ini.Config.Raw.html#NormalizedText"><span class="hs-identifier hs-var">NormalizedText</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="NormalizedText"><span class="annot"><a href="Data.Ini.Config.Raw.html#NormalizedText"><span class="hs-identifier hs-var">NormalizedText</span></a></span></span><span>
+</span><span id="line-56"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="actualText"><span class="annot"><span class="annottext">NormalizedText -&gt; Text
+</span><a href="Data.Ini.Config.Raw.html#actualText"><span class="hs-identifier hs-var hs-var">actualText</span></a></span></span><span>     </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-57"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="normalizedText"><span class="annot"><span class="annottext">NormalizedText -&gt; Text
+</span><a href="Data.Ini.Config.Raw.html#normalizedText"><span class="hs-identifier hs-var hs-var">normalizedText</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-58"></span><span>  </span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679054192"><span id="local-6989586621679054194"><span id="local-6989586621679054196"><span class="annot"><span class="annottext">Int -&gt; NormalizedText -&gt; ShowS
+[NormalizedText] -&gt; ShowS
+NormalizedText -&gt; String
+(Int -&gt; NormalizedText -&gt; ShowS)
+-&gt; (NormalizedText -&gt; String)
+-&gt; ([NormalizedText] -&gt; ShowS)
+-&gt; Show NormalizedText
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [NormalizedText] -&gt; ShowS
+$cshowList :: [NormalizedText] -&gt; ShowS
+show :: NormalizedText -&gt; String
+$cshow :: NormalizedText -&gt; String
+showsPrec :: Int -&gt; NormalizedText -&gt; ShowS
+$cshowsPrec :: Int -&gt; NormalizedText -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-59"></span><span>
+</span><span id="line-60"></span><span class="hs-comment">-- | The constructor function to build a 'NormalizedText' value. You</span><span>
+</span><span id="line-61"></span><span class="hs-comment">-- probably shouldn't be using this module directly, but if for some</span><span>
+</span><span id="line-62"></span><span class="hs-comment">-- reason you are using it, then you should be using this function to</span><span>
+</span><span id="line-63"></span><span class="hs-comment">-- create 'NormalizedText' values.</span><span>
+</span><span id="line-64"></span><span class="annot"><a href="Data.Ini.Config.Raw.html#normalize"><span class="hs-identifier hs-type">normalize</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#NormalizedText"><span class="hs-identifier hs-type">NormalizedText</span></a></span><span>
+</span><span id="line-65"></span><span id="normalize"><span class="annot"><span class="annottext">normalize :: Text -&gt; NormalizedText
+</span><a href="Data.Ini.Config.Raw.html#normalize"><span class="hs-identifier hs-var hs-var">normalize</span></a></span></span><span> </span><span id="local-6989586621679054190"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679054190"><span class="hs-identifier hs-var">t</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Text -&gt; NormalizedText
+</span><a href="Data.Ini.Config.Raw.html#NormalizedText"><span class="hs-identifier hs-var">NormalizedText</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679054190"><span class="hs-identifier hs-var">t</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Text -&gt; Text
+</span><span class="hs-identifier hs-var">T.toLower</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Text -&gt; Text
+</span><span class="hs-identifier hs-var">T.strip</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679054190"><span class="hs-identifier hs-var">t</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-66"></span><span>
+</span><span id="line-67"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679054185"><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#NormalizedText"><span class="hs-identifier hs-type">NormalizedText</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-68"></span><span>  </span><span class="annot"><a href="Data.Ini.Config.Raw.html#NormalizedText"><span class="hs-identifier hs-type">NormalizedText</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679054183"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679054183"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span id="local-6989586621679054182"><span class="annot"><span class="annottext">== :: NormalizedText -&gt; NormalizedText -&gt; Bool
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">==</span></span></span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#NormalizedText"><span class="hs-identifier hs-type">NormalizedText</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679054181"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679054181"><span class="hs-identifier hs-var">y</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-69"></span><span>    </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679054183"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Text -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679054181"><span class="hs-identifier hs-var">y</span></a></span><span>
+</span><span id="line-70"></span><span>
+</span><span id="line-71"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679054167"><span id="local-6989586621679054169"><span id="local-6989586621679054171"><span id="local-6989586621679054173"><span id="local-6989586621679054175"><span id="local-6989586621679054177"><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#NormalizedText"><span class="hs-identifier hs-type">NormalizedText</span></a></span></span></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-72"></span><span>  </span><span class="annot"><a href="Data.Ini.Config.Raw.html#NormalizedText"><span class="hs-identifier hs-type">NormalizedText</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679054165"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679054165"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span id="local-6989586621679054164"><span class="annot"><span class="annottext">compare :: NormalizedText -&gt; NormalizedText -&gt; Ordering
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">`compare`</span></span></span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#NormalizedText"><span class="hs-identifier hs-type">NormalizedText</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679054162"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679054162"><span class="hs-identifier hs-var">y</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-73"></span><span>    </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679054165"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Text -&gt; Ordering
+forall a. Ord a =&gt; a -&gt; a -&gt; Ordering
+</span><span class="hs-operator hs-var">`compare`</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679054162"><span class="hs-identifier hs-var">y</span></a></span><span>
+</span><span id="line-74"></span><span>
+</span><span id="line-75"></span><span class="hs-comment">-- | An 'Ini' value is a mapping from section names to</span><span>
+</span><span id="line-76"></span><span class="hs-comment">--   'IniSection' values. The section names in this mapping are</span><span>
+</span><span id="line-77"></span><span class="hs-comment">--   normalized to lower-case and stripped of whitespace. This</span><span>
+</span><span id="line-78"></span><span class="hs-comment">--   sequence retains the ordering of the original source file.</span><span>
+</span><span id="line-79"></span><span class="hs-keyword">newtype</span><span> </span><span id="RawIni"><span class="annot"><a href="Data.Ini.Config.Raw.html#RawIni"><span class="hs-identifier hs-var">RawIni</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="RawIni"><span class="annot"><a href="Data.Ini.Config.Raw.html#RawIni"><span class="hs-identifier hs-var">RawIni</span></a></span></span><span>
+</span><span id="line-80"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="fromRawIni"><span class="annot"><span class="annottext">RawIni -&gt; Seq (NormalizedText, IniSection)
+</span><a href="Data.Ini.Config.Raw.html#fromRawIni"><span class="hs-identifier hs-var hs-var">fromRawIni</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Seq</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Ini.Config.Raw.html#NormalizedText"><span class="hs-identifier hs-type">NormalizedText</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#IniSection"><span class="hs-identifier hs-type">IniSection</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-81"></span><span>  </span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679054156"><span id="local-6989586621679054158"><span class="annot"><span class="annottext">RawIni -&gt; RawIni -&gt; Bool
+(RawIni -&gt; RawIni -&gt; Bool)
+-&gt; (RawIni -&gt; RawIni -&gt; Bool) -&gt; Eq RawIni
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: RawIni -&gt; RawIni -&gt; Bool
+$c/= :: RawIni -&gt; RawIni -&gt; Bool
+== :: RawIni -&gt; RawIni -&gt; Bool
+$c== :: RawIni -&gt; RawIni -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679054150"><span id="local-6989586621679054152"><span id="local-6989586621679054154"><span class="annot"><span class="annottext">Int -&gt; RawIni -&gt; ShowS
+[RawIni] -&gt; ShowS
+RawIni -&gt; String
+(Int -&gt; RawIni -&gt; ShowS)
+-&gt; (RawIni -&gt; String) -&gt; ([RawIni] -&gt; ShowS) -&gt; Show RawIni
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [RawIni] -&gt; ShowS
+$cshowList :: [RawIni] -&gt; ShowS
+show :: RawIni -&gt; String
+$cshow :: RawIni -&gt; String
+showsPrec :: Int -&gt; RawIni -&gt; ShowS
+$cshowsPrec :: Int -&gt; RawIni -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-82"></span><span>
+</span><span id="line-83"></span><span class="hs-comment">-- | An 'IniSection' consists of a name, a mapping of key-value pairs,</span><span>
+</span><span id="line-84"></span><span class="hs-comment">--   and metadata about where the section starts and ends in the</span><span>
+</span><span id="line-85"></span><span class="hs-comment">--   file. The section names found in 'isName' are __not__ normalized</span><span>
+</span><span id="line-86"></span><span class="hs-comment">--   to lower-case or stripped of whitespace, and thus should appear</span><span>
+</span><span id="line-87"></span><span class="hs-comment">--   exactly as they appear in the original source file.</span><span>
+</span><span id="line-88"></span><span class="hs-keyword">data</span><span> </span><span id="IniSection"><span class="annot"><a href="Data.Ini.Config.Raw.html#IniSection"><span class="hs-identifier hs-var">IniSection</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="IniSection"><span class="annot"><a href="Data.Ini.Config.Raw.html#IniSection"><span class="hs-identifier hs-var">IniSection</span></a></span></span><span>
+</span><span id="line-89"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="isName"><span class="annot"><span class="annottext">IniSection -&gt; Text
+</span><a href="Data.Ini.Config.Raw.html#isName"><span class="hs-identifier hs-var hs-var">isName</span></a></span></span><span>      </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-90"></span><span>                   </span><span class="hs-comment">-- ^ The name of the section, as it appears in the</span><span>
+</span><span id="line-91"></span><span>                   </span><span class="hs-comment">-- original INI source</span><span>
+</span><span id="line-92"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="isVals"><span class="annot"><span class="annottext">IniSection -&gt; Seq (NormalizedText, IniValue)
+</span><a href="Data.Ini.Config.Raw.html#isVals"><span class="hs-identifier hs-var hs-var">isVals</span></a></span></span><span>      </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Seq</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Ini.Config.Raw.html#NormalizedText"><span class="hs-identifier hs-type">NormalizedText</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#IniValue"><span class="hs-identifier hs-type">IniValue</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-93"></span><span>                   </span><span class="hs-comment">-- ^ The key-value mapping within that section. Key</span><span>
+</span><span id="line-94"></span><span>                   </span><span class="hs-comment">-- names here are normalized to lower-case and</span><span>
+</span><span id="line-95"></span><span>                   </span><span class="hs-comment">-- stripped of whitespace. This sequence retains</span><span>
+</span><span id="line-96"></span><span>                   </span><span class="hs-comment">-- the ordering of the original source file.</span><span>
+</span><span id="line-97"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="isStartLine"><span class="annot"><span class="annottext">IniSection -&gt; Int
+</span><a href="Data.Ini.Config.Raw.html#isStartLine"><span class="hs-identifier hs-var hs-var">isStartLine</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-98"></span><span>                   </span><span class="hs-comment">-- ^ The line on which the section begins. This</span><span>
+</span><span id="line-99"></span><span>                   </span><span class="hs-comment">-- field is ignored when serializing, and is only</span><span>
+</span><span id="line-100"></span><span>                   </span><span class="hs-comment">-- used for error messages produced when parsing</span><span>
+</span><span id="line-101"></span><span>                   </span><span class="hs-comment">-- and deserializing an INI structure.</span><span>
+</span><span id="line-102"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="isEndLine"><span class="annot"><span class="annottext">IniSection -&gt; Int
+</span><a href="Data.Ini.Config.Raw.html#isEndLine"><span class="hs-identifier hs-var hs-var">isEndLine</span></a></span></span><span>   </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-103"></span><span>                   </span><span class="hs-comment">-- ^ The line on which the section ends. This field</span><span>
+</span><span id="line-104"></span><span>                   </span><span class="hs-comment">-- is ignored when serializing, and is only used</span><span>
+</span><span id="line-105"></span><span>                   </span><span class="hs-comment">-- for error messages produced when parsing and</span><span>
+</span><span id="line-106"></span><span>                   </span><span class="hs-comment">-- deserializing an INI structure.</span><span>
+</span><span id="line-107"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="isComments"><span class="annot"><span class="annottext">IniSection -&gt; Seq BlankLine
+</span><a href="Data.Ini.Config.Raw.html#isComments"><span class="hs-identifier hs-var hs-var">isComments</span></a></span></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Seq</span></span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#BlankLine"><span class="hs-identifier hs-type">BlankLine</span></a></span><span>
+</span><span id="line-108"></span><span>                   </span><span class="hs-comment">-- ^ The blank lines and comments that appear prior</span><span>
+</span><span id="line-109"></span><span>                   </span><span class="hs-comment">-- to the section head declaration, retained for</span><span>
+</span><span id="line-110"></span><span>                   </span><span class="hs-comment">-- pretty-printing identical INI files.</span><span>
+</span><span id="line-111"></span><span>  </span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679054140"><span id="local-6989586621679054142"><span class="annot"><span class="annottext">IniSection -&gt; IniSection -&gt; Bool
+(IniSection -&gt; IniSection -&gt; Bool)
+-&gt; (IniSection -&gt; IniSection -&gt; Bool) -&gt; Eq IniSection
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: IniSection -&gt; IniSection -&gt; Bool
+$c/= :: IniSection -&gt; IniSection -&gt; Bool
+== :: IniSection -&gt; IniSection -&gt; Bool
+$c== :: IniSection -&gt; IniSection -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679054134"><span id="local-6989586621679054136"><span id="local-6989586621679054138"><span class="annot"><span class="annottext">Int -&gt; IniSection -&gt; ShowS
+[IniSection] -&gt; ShowS
+IniSection -&gt; String
+(Int -&gt; IniSection -&gt; ShowS)
+-&gt; (IniSection -&gt; String)
+-&gt; ([IniSection] -&gt; ShowS)
+-&gt; Show IniSection
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [IniSection] -&gt; ShowS
+$cshowList :: [IniSection] -&gt; ShowS
+show :: IniSection -&gt; String
+$cshow :: IniSection -&gt; String
+showsPrec :: Int -&gt; IniSection -&gt; ShowS
+$cshowsPrec :: Int -&gt; IniSection -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-112"></span><span>
+</span><span id="line-113"></span><span class="hs-comment">-- | An 'IniValue' represents a key-value mapping, and also stores the</span><span>
+</span><span id="line-114"></span><span class="hs-comment">--   line number where it appears. The key names and values found in</span><span>
+</span><span id="line-115"></span><span class="hs-comment">--   'vName' and 'vValue' respectively are _not_ normalized to</span><span>
+</span><span id="line-116"></span><span class="hs-comment">--   lower-case or stripped of whitespace, and thus should appear</span><span>
+</span><span id="line-117"></span><span class="hs-comment">--   exactly as they appear in the original source file.</span><span>
+</span><span id="line-118"></span><span class="hs-keyword">data</span><span> </span><span id="IniValue"><span class="annot"><a href="Data.Ini.Config.Raw.html#IniValue"><span class="hs-identifier hs-var">IniValue</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="IniValue"><span class="annot"><a href="Data.Ini.Config.Raw.html#IniValue"><span class="hs-identifier hs-var">IniValue</span></a></span></span><span>
+</span><span id="line-119"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="vLineNo"><span class="annot"><span class="annottext">IniValue -&gt; Int
+</span><a href="Data.Ini.Config.Raw.html#vLineNo"><span class="hs-identifier hs-var hs-var">vLineNo</span></a></span></span><span>       </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-120"></span><span>                     </span><span class="hs-comment">-- ^ The line on which the key/value mapping</span><span>
+</span><span id="line-121"></span><span>                     </span><span class="hs-comment">-- appears. This field is ignored when</span><span>
+</span><span id="line-122"></span><span>                     </span><span class="hs-comment">-- serializing, and is only used for error</span><span>
+</span><span id="line-123"></span><span>                     </span><span class="hs-comment">-- messages produced when parsing and</span><span>
+</span><span id="line-124"></span><span>                     </span><span class="hs-comment">-- deserializing an INI structure.</span><span>
+</span><span id="line-125"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="vName"><span class="annot"><span class="annottext">IniValue -&gt; Text
+</span><a href="Data.Ini.Config.Raw.html#vName"><span class="hs-identifier hs-var hs-var">vName</span></a></span></span><span>         </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-126"></span><span>                     </span><span class="hs-comment">-- ^ The name of the key, as it appears in the INI source.</span><span>
+</span><span id="line-127"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="vValue"><span class="annot"><span class="annottext">IniValue -&gt; Text
+</span><a href="Data.Ini.Config.Raw.html#vValue"><span class="hs-identifier hs-var hs-var">vValue</span></a></span></span><span>        </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-128"></span><span>                     </span><span class="hs-comment">-- ^ The value of the key</span><span>
+</span><span id="line-129"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="vComments"><span class="annot"><span class="annottext">IniValue -&gt; Seq BlankLine
+</span><a href="Data.Ini.Config.Raw.html#vComments"><span class="hs-identifier hs-var hs-var">vComments</span></a></span></span><span>     </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Seq</span></span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#BlankLine"><span class="hs-identifier hs-type">BlankLine</span></a></span><span>
+</span><span id="line-130"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="vCommentedOut"><span class="annot"><span class="annottext">IniValue -&gt; Bool
+</span><a href="Data.Ini.Config.Raw.html#vCommentedOut"><span class="hs-identifier hs-var hs-var">vCommentedOut</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-131"></span><span>    </span><span class="hs-comment">-- ^ Right now, this will never show up in a parsed INI file, but</span><span>
+</span><span id="line-132"></span><span>    </span><span class="hs-comment">--   it's used when emitting a default INI file: it causes the</span><span>
+</span><span id="line-133"></span><span>    </span><span class="hs-comment">--   key-value line to include a leading comment as well.</span><span>
+</span><span id="line-134"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="vDelimiter"><span class="annot"><span class="annottext">IniValue -&gt; Char
+</span><a href="Data.Ini.Config.Raw.html#vDelimiter"><span class="hs-identifier hs-var hs-var">vDelimiter</span></a></span></span><span>    </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>
+</span><span id="line-135"></span><span>  </span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679054123"><span id="local-6989586621679054125"><span class="annot"><span class="annottext">IniValue -&gt; IniValue -&gt; Bool
+(IniValue -&gt; IniValue -&gt; Bool)
+-&gt; (IniValue -&gt; IniValue -&gt; Bool) -&gt; Eq IniValue
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: IniValue -&gt; IniValue -&gt; Bool
+$c/= :: IniValue -&gt; IniValue -&gt; Bool
+== :: IniValue -&gt; IniValue -&gt; Bool
+$c== :: IniValue -&gt; IniValue -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679054117"><span id="local-6989586621679054119"><span id="local-6989586621679054121"><span class="annot"><span class="annottext">Int -&gt; IniValue -&gt; ShowS
+[IniValue] -&gt; ShowS
+IniValue -&gt; String
+(Int -&gt; IniValue -&gt; ShowS)
+-&gt; (IniValue -&gt; String) -&gt; ([IniValue] -&gt; ShowS) -&gt; Show IniValue
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [IniValue] -&gt; ShowS
+$cshowList :: [IniValue] -&gt; ShowS
+show :: IniValue -&gt; String
+$cshow :: IniValue -&gt; String
+showsPrec :: Int -&gt; IniValue -&gt; ShowS
+$cshowsPrec :: Int -&gt; IniValue -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-136"></span><span>
+</span><span id="line-137"></span><span class="hs-comment">-- | We want to keep track of the whitespace/comments in between KV</span><span>
+</span><span id="line-138"></span><span class="hs-comment">--   lines, so this allows us to track those lines in a reproducible</span><span>
+</span><span id="line-139"></span><span class="hs-comment">--   way.</span><span>
+</span><span id="line-140"></span><span class="hs-keyword">data</span><span> </span><span id="BlankLine"><span class="annot"><a href="Data.Ini.Config.Raw.html#BlankLine"><span class="hs-identifier hs-var">BlankLine</span></a></span></span><span>
+</span><span id="line-141"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span id="CommentLine"><span class="annot"><a href="Data.Ini.Config.Raw.html#CommentLine"><span class="hs-identifier hs-var">CommentLine</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-142"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="BlankLine"><span class="annot"><a href="Data.Ini.Config.Raw.html#BlankLine"><span class="hs-identifier hs-var">BlankLine</span></a></span></span><span>
+</span><span id="line-143"></span><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679054111"><span id="local-6989586621679054113"><span class="annot"><span class="annottext">BlankLine -&gt; BlankLine -&gt; Bool
+(BlankLine -&gt; BlankLine -&gt; Bool)
+-&gt; (BlankLine -&gt; BlankLine -&gt; Bool) -&gt; Eq BlankLine
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: BlankLine -&gt; BlankLine -&gt; Bool
+$c/= :: BlankLine -&gt; BlankLine -&gt; Bool
+== :: BlankLine -&gt; BlankLine -&gt; Bool
+$c== :: BlankLine -&gt; BlankLine -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679054105"><span id="local-6989586621679054107"><span id="local-6989586621679054109"><span class="annot"><span class="annottext">Int -&gt; BlankLine -&gt; ShowS
+[BlankLine] -&gt; ShowS
+BlankLine -&gt; String
+(Int -&gt; BlankLine -&gt; ShowS)
+-&gt; (BlankLine -&gt; String)
+-&gt; ([BlankLine] -&gt; ShowS)
+-&gt; Show BlankLine
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [BlankLine] -&gt; ShowS
+$cshowList :: [BlankLine] -&gt; ShowS
+show :: BlankLine -&gt; String
+$cshow :: BlankLine -&gt; String
+showsPrec :: Int -&gt; BlankLine -&gt; ShowS
+$cshowsPrec :: Int -&gt; BlankLine -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-144"></span><span>
+</span><span id="line-145"></span><span class="hs-comment">-- | Parse a 'Text' value into an 'Ini' value, retaining a maximal</span><span>
+</span><span id="line-146"></span><span class="hs-comment">-- amount of structure as needed to reconstruct the original INI file.</span><span>
+</span><span id="line-147"></span><span class="annot"><a href="Data.Ini.Config.Raw.html#parseRawIni"><span class="hs-identifier hs-type">parseRawIni</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#RawIni"><span class="hs-identifier hs-type">RawIni</span></a></span><span>
+</span><span id="line-148"></span><span id="parseRawIni"><span class="annot"><span class="annottext">parseRawIni :: Text -&gt; Either String RawIni
+</span><a href="Data.Ini.Config.Raw.html#parseRawIni"><span class="hs-identifier hs-var hs-var">parseRawIni</span></a></span></span><span> </span><span id="local-6989586621679054104"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679054104"><span class="hs-identifier hs-var">t</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Parsec Void Text RawIni
+-&gt; String -&gt; Text -&gt; Either (ParseErrorBundle Text Void) RawIni
+forall e s a.
+Parsec e s a -&gt; String -&gt; s -&gt; Either (ParseErrorBundle s e) a
+</span><span class="hs-identifier hs-var">runParser</span></span><span> </span><span class="annot"><span class="annottext">Parsec Void Text RawIni
+</span><a href="Data.Ini.Config.Raw.html#pIni"><span class="hs-identifier hs-var">pIni</span></a></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;ini file&quot;</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679054104"><span class="hs-identifier hs-var">t</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-149"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Left</span></span><span> </span><span id="local-6989586621679054101"><span class="annot"><span class="annottext">ParseErrorBundle Text Void
+</span><a href="#local-6989586621679054101"><span class="hs-identifier hs-var">err</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">String -&gt; Either String RawIni
+forall a b. a -&gt; Either a b
+</span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ParseErrorBundle Text Void -&gt; String
+forall s e.
+(VisualStream s, TraversableStream s, ShowErrorComponent e) =&gt;
+ParseErrorBundle s e -&gt; String
+</span><span class="hs-identifier hs-var">errorBundlePretty</span></span><span> </span><span class="annot"><span class="annottext">ParseErrorBundle Text Void
+</span><a href="#local-6989586621679054101"><span class="hs-identifier hs-var">err</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-150"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Right</span></span><span> </span><span id="local-6989586621679054099"><span class="annot"><span class="annottext">RawIni
+</span><a href="#local-6989586621679054099"><span class="hs-identifier hs-var">v</span></a></span></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">RawIni -&gt; Either String RawIni
+forall a b. b -&gt; Either a b
+</span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="annot"><span class="annottext">RawIni
+</span><a href="#local-6989586621679054099"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-151"></span><span>
+</span><span id="line-152"></span><span class="annot"><a href="Data.Ini.Config.Raw.html#pIni"><span class="hs-identifier hs-type">pIni</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#RawIni"><span class="hs-identifier hs-type">RawIni</span></a></span><span>
+</span><span id="line-153"></span><span id="pIni"><span class="annot"><span class="annottext">pIni :: Parsec Void Text RawIni
+</span><a href="Data.Ini.Config.Raw.html#pIni"><span class="hs-identifier hs-var hs-var">pIni</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-154"></span><span>  </span><span id="local-6989586621679054098"><span class="annot"><span class="annottext">Seq BlankLine
+</span><a href="#local-6989586621679054098"><span class="hs-identifier hs-var">leading</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Parser (Seq BlankLine)
+</span><a href="Data.Ini.Config.Raw.html#sBlanks"><span class="hs-identifier hs-var">sBlanks</span></a></span><span>
+</span><span id="line-155"></span><span>  </span><span class="annot"><span class="annottext">Seq BlankLine
+-&gt; Seq (NormalizedText, IniSection) -&gt; Parsec Void Text RawIni
+</span><a href="Data.Ini.Config.Raw.html#pSections"><span class="hs-identifier hs-var">pSections</span></a></span><span> </span><span class="annot"><span class="annottext">Seq BlankLine
+</span><a href="#local-6989586621679054098"><span class="hs-identifier hs-var">leading</span></a></span><span> </span><span class="annot"><span class="annottext">Seq (NormalizedText, IniSection)
+forall a. Seq a
+</span><span class="hs-identifier hs-var">Seq.empty</span></span><span>
+</span><span id="line-156"></span><span>
+</span><span id="line-157"></span><span class="annot"><a href="Data.Ini.Config.Raw.html#sBlanks"><span class="hs-identifier hs-type">sBlanks</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Seq</span></span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#BlankLine"><span class="hs-identifier hs-type">BlankLine</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-158"></span><span id="sBlanks"><span class="annot"><span class="annottext">sBlanks :: Parser (Seq BlankLine)
+</span><a href="Data.Ini.Config.Raw.html#sBlanks"><span class="hs-identifier hs-var hs-var">sBlanks</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[BlankLine] -&gt; Seq BlankLine
+forall a. [a] -&gt; Seq a
+</span><span class="hs-identifier hs-var">Seq.fromList</span></span><span> </span><span class="annot"><span class="annottext">([BlankLine] -&gt; Seq BlankLine)
+-&gt; ParsecT Void Text Identity [BlankLine] -&gt; Parser (Seq BlankLine)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">ParsecT Void Text Identity BlankLine
+-&gt; ParsecT Void Text Identity [BlankLine]
+forall (m :: * -&gt; *) a. MonadPlus m =&gt; m a -&gt; m [a]
+</span><span class="hs-identifier hs-var">many</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="annottext">BlankLine
+</span><a href="Data.Ini.Config.Raw.html#BlankLine"><span class="hs-identifier hs-var">BlankLine</span></a></span><span> </span><span class="annot"><span class="annottext">BlankLine
+-&gt; ParsecT Void Text Identity ()
+-&gt; ParsecT Void Text Identity BlankLine
+forall (f :: * -&gt; *) a b. Functor f =&gt; a -&gt; f b -&gt; f a
+</span><span class="hs-operator hs-var">&lt;$</span></span><span> </span><span class="annot"><span class="annottext">ParsecT Void Text Identity Text -&gt; ParsecT Void Text Identity ()
+forall (f :: * -&gt; *) a. Functor f =&gt; f a -&gt; f ()
+</span><span class="hs-identifier hs-var">void</span></span><span> </span><span class="annot"><span class="annottext">ParsecT Void Text Identity Text
+forall e s (m :: * -&gt; *).
+(MonadParsec e s m, Token s ~ Char) =&gt;
+m (Tokens s)
+</span><span class="hs-identifier hs-var">eol</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">ParsecT Void Text Identity BlankLine
+-&gt; ParsecT Void Text Identity BlankLine
+-&gt; ParsecT Void Text Identity BlankLine
+forall (f :: * -&gt; *) a. Alternative f =&gt; f a -&gt; f a -&gt; f a
+</span><span class="hs-operator hs-var">&lt;|&gt;</span></span><span> </span><span class="annot"><span class="annottext">ParsecT Void Text Identity BlankLine
+</span><a href="Data.Ini.Config.Raw.html#sComment"><span class="hs-identifier hs-var">sComment</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-159"></span><span>
+</span><span id="line-160"></span><span class="annot"><a href="Data.Ini.Config.Raw.html#sComment"><span class="hs-identifier hs-type">sComment</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#BlankLine"><span class="hs-identifier hs-type">BlankLine</span></a></span><span>
+</span><span id="line-161"></span><span id="sComment"><span class="annot"><span class="annottext">sComment :: ParsecT Void Text Identity BlankLine
+</span><a href="Data.Ini.Config.Raw.html#sComment"><span class="hs-identifier hs-var hs-var">sComment</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-162"></span><span>  </span><span id="local-6989586621679054087"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679054087"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[Token Text] -&gt; ParsecT Void Text Identity (Token Text)
+forall (f :: * -&gt; *) e s (m :: * -&gt; *).
+(Foldable f, MonadParsec e s m) =&gt;
+f (Token s) -&gt; m (Token s)
+</span><span class="hs-identifier hs-var">oneOf</span></span><span> </span><span class="annot"><span class="annottext">String
+[Token Text]
+</span><span class="hs-string">&quot;;#&quot;</span></span><span>
+</span><span id="line-163"></span><span>  </span><span id="local-6989586621679054085"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679054085"><span class="hs-identifier hs-var">txt</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">String -&gt; Text
+</span><span class="hs-identifier hs-var">T.pack</span></span><span> </span><span class="annot"><span class="annottext">(String -&gt; Text)
+-&gt; ParsecT Void Text Identity String
+-&gt; ParsecT Void Text Identity Text
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">`fmap`</span></span><span> </span><span class="annot"><span class="annottext">ParsecT Void Text Identity Char
+-&gt; ParsecT Void Text Identity Text
+-&gt; ParsecT Void Text Identity String
+forall (m :: * -&gt; *) a end. MonadPlus m =&gt; m a -&gt; m end -&gt; m [a]
+</span><span class="hs-identifier hs-var">manyTill</span></span><span> </span><span class="annot"><span class="annottext">ParsecT Void Text Identity Char
+forall e s (m :: * -&gt; *). MonadParsec e s m =&gt; m (Token s)
+</span><span class="hs-identifier hs-var">anySingle</span></span><span> </span><span class="annot"><span class="annottext">ParsecT Void Text Identity Text
+forall e s (m :: * -&gt; *).
+(MonadParsec e s m, Token s ~ Char) =&gt;
+m (Tokens s)
+</span><span class="hs-identifier hs-var">eol</span></span><span>
+</span><span id="line-164"></span><span>  </span><span class="annot"><span class="annottext">BlankLine -&gt; ParsecT Void Text Identity BlankLine
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Char -&gt; Text -&gt; BlankLine
+</span><a href="Data.Ini.Config.Raw.html#CommentLine"><span class="hs-identifier hs-var">CommentLine</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679054087"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679054085"><span class="hs-identifier hs-var">txt</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-165"></span><span>
+</span><span id="line-166"></span><span class="annot"><a href="Data.Ini.Config.Raw.html#pSections"><span class="hs-identifier hs-type">pSections</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Seq</span></span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#BlankLine"><span class="hs-identifier hs-type">BlankLine</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Seq</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Ini.Config.Raw.html#NormalizedText"><span class="hs-identifier hs-type">NormalizedText</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#IniSection"><span class="hs-identifier hs-type">IniSection</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#RawIni"><span class="hs-identifier hs-type">RawIni</span></a></span><span>
+</span><span id="line-167"></span><span id="pSections"><span class="annot"><span class="annottext">pSections :: Seq BlankLine
+-&gt; Seq (NormalizedText, IniSection) -&gt; Parsec Void Text RawIni
+</span><a href="Data.Ini.Config.Raw.html#pSections"><span class="hs-identifier hs-var hs-var">pSections</span></a></span></span><span> </span><span id="local-6989586621679054081"><span class="annot"><span class="annottext">Seq BlankLine
+</span><a href="#local-6989586621679054081"><span class="hs-identifier hs-var">leading</span></a></span></span><span> </span><span id="local-6989586621679054080"><span class="annot"><span class="annottext">Seq (NormalizedText, IniSection)
+</span><a href="#local-6989586621679054080"><span class="hs-identifier hs-var">prevs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-168"></span><span>  </span><span class="annot"><span class="annottext">Seq BlankLine
+-&gt; Seq (NormalizedText, IniSection) -&gt; Parsec Void Text RawIni
+</span><a href="Data.Ini.Config.Raw.html#pSection"><span class="hs-identifier hs-var">pSection</span></a></span><span> </span><span class="annot"><span class="annottext">Seq BlankLine
+</span><a href="#local-6989586621679054081"><span class="hs-identifier hs-var">leading</span></a></span><span> </span><span class="annot"><span class="annottext">Seq (NormalizedText, IniSection)
+</span><a href="#local-6989586621679054080"><span class="hs-identifier hs-var">prevs</span></a></span><span> </span><span class="annot"><span class="annottext">Parsec Void Text RawIni
+-&gt; Parsec Void Text RawIni -&gt; Parsec Void Text RawIni
+forall (f :: * -&gt; *) a. Alternative f =&gt; f a -&gt; f a -&gt; f a
+</span><span class="hs-operator hs-var">&lt;|&gt;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Seq (NormalizedText, IniSection) -&gt; RawIni
+</span><a href="Data.Ini.Config.Raw.html#RawIni"><span class="hs-identifier hs-var">RawIni</span></a></span><span> </span><span class="annot"><span class="annottext">Seq (NormalizedText, IniSection)
+</span><a href="#local-6989586621679054080"><span class="hs-identifier hs-var">prevs</span></a></span><span> </span><span class="annot"><span class="annottext">RawIni -&gt; ParsecT Void Text Identity () -&gt; Parsec Void Text RawIni
+forall (f :: * -&gt; *) a b. Functor f =&gt; a -&gt; f b -&gt; f a
+</span><span class="hs-operator hs-var">&lt;$</span></span><span> </span><span class="annot"><span class="annottext">ParsecT Void Text Identity () -&gt; ParsecT Void Text Identity ()
+forall (f :: * -&gt; *) a. Functor f =&gt; f a -&gt; f ()
+</span><span class="hs-identifier hs-var">void</span></span><span> </span><span class="annot"><span class="annottext">ParsecT Void Text Identity ()
+forall e s (m :: * -&gt; *). MonadParsec e s m =&gt; m ()
+</span><span class="hs-identifier hs-var">eof</span></span><span class="hs-special">)</span><span>
+</span><span id="line-169"></span><span>
+</span><span id="line-170"></span><span class="annot"><a href="Data.Ini.Config.Raw.html#pSection"><span class="hs-identifier hs-type">pSection</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Seq</span></span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#BlankLine"><span class="hs-identifier hs-type">BlankLine</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Seq</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Ini.Config.Raw.html#NormalizedText"><span class="hs-identifier hs-type">NormalizedText</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#IniSection"><span class="hs-identifier hs-type">IniSection</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#RawIni"><span class="hs-identifier hs-type">RawIni</span></a></span><span>
+</span><span id="line-171"></span><span id="pSection"><span class="annot"><span class="annottext">pSection :: Seq BlankLine
+-&gt; Seq (NormalizedText, IniSection) -&gt; Parsec Void Text RawIni
+</span><a href="Data.Ini.Config.Raw.html#pSection"><span class="hs-identifier hs-var hs-var">pSection</span></a></span></span><span> </span><span id="local-6989586621679054077"><span class="annot"><span class="annottext">Seq BlankLine
+</span><a href="#local-6989586621679054077"><span class="hs-identifier hs-var">leading</span></a></span></span><span> </span><span id="local-6989586621679054076"><span class="annot"><span class="annottext">Seq (NormalizedText, IniSection)
+</span><a href="#local-6989586621679054076"><span class="hs-identifier hs-var">prevs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-172"></span><span>  </span><span id="local-6989586621679054075"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679054075"><span class="hs-identifier hs-var">start</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Parser Int
+</span><a href="Data.Ini.Config.Raw.html#getCurrentLine"><span class="hs-identifier hs-var">getCurrentLine</span></a></span><span>
+</span><span id="line-173"></span><span>  </span><span class="annot"><span class="annottext">ParsecT Void Text Identity Char -&gt; ParsecT Void Text Identity ()
+forall (f :: * -&gt; *) a. Functor f =&gt; f a -&gt; f ()
+</span><span class="hs-identifier hs-var">void</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Token Text -&gt; ParsecT Void Text Identity (Token Text)
+forall e s (m :: * -&gt; *).
+(MonadParsec e s m, Token s ~ Char) =&gt;
+Token s -&gt; m (Token s)
+</span><span class="hs-identifier hs-var">char</span></span><span> </span><span class="annot"><span class="annottext">Char
+Token Text
+</span><span class="hs-char">'['</span></span><span class="hs-special">)</span><span>
+</span><span id="line-174"></span><span>  </span><span id="local-6989586621679054072"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679054072"><span class="hs-identifier hs-var">name</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">String -&gt; Text
+</span><span class="hs-identifier hs-var">T.pack</span></span><span> </span><span class="annot"><span class="annottext">(String -&gt; Text)
+-&gt; ParsecT Void Text Identity String
+-&gt; ParsecT Void Text Identity Text
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">`fmap`</span></span><span> </span><span class="annot"><span class="annottext">ParsecT Void Text Identity Char
+-&gt; ParsecT Void Text Identity String
+forall (m :: * -&gt; *) a. MonadPlus m =&gt; m a -&gt; m [a]
+</span><span class="hs-identifier hs-var">some</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[Token Text] -&gt; ParsecT Void Text Identity (Token Text)
+forall (f :: * -&gt; *) e s (m :: * -&gt; *).
+(Foldable f, MonadParsec e s m) =&gt;
+f (Token s) -&gt; m (Token s)
+</span><span class="hs-identifier hs-var">noneOf</span></span><span> </span><span class="annot"><span class="annottext">String
+[Token Text]
+</span><span class="hs-string">&quot;[]&quot;</span></span><span class="hs-special">)</span><span>
+</span><span id="line-175"></span><span>  </span><span class="annot"><span class="annottext">ParsecT Void Text Identity Char -&gt; ParsecT Void Text Identity ()
+forall (f :: * -&gt; *) a. Functor f =&gt; f a -&gt; f ()
+</span><span class="hs-identifier hs-var">void</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Token Text -&gt; ParsecT Void Text Identity (Token Text)
+forall e s (m :: * -&gt; *).
+(MonadParsec e s m, Token s ~ Char) =&gt;
+Token s -&gt; m (Token s)
+</span><span class="hs-identifier hs-var">char</span></span><span> </span><span class="annot"><span class="annottext">Char
+Token Text
+</span><span class="hs-char">']'</span></span><span class="hs-special">)</span><span>
+</span><span id="line-176"></span><span>  </span><span class="annot"><span class="annottext">ParsecT Void Text Identity Text -&gt; ParsecT Void Text Identity ()
+forall (f :: * -&gt; *) a. Functor f =&gt; f a -&gt; f ()
+</span><span class="hs-identifier hs-var">void</span></span><span> </span><span class="annot"><span class="annottext">ParsecT Void Text Identity Text
+forall e s (m :: * -&gt; *).
+(MonadParsec e s m, Token s ~ Char) =&gt;
+m (Tokens s)
+</span><span class="hs-identifier hs-var">eol</span></span><span>
+</span><span id="line-177"></span><span>  </span><span id="local-6989586621679054069"><span class="annot"><span class="annottext">Seq BlankLine
+</span><a href="#local-6989586621679054069"><span class="hs-identifier hs-var">comments</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Parser (Seq BlankLine)
+</span><a href="Data.Ini.Config.Raw.html#sBlanks"><span class="hs-identifier hs-var">sBlanks</span></a></span><span>
+</span><span id="line-178"></span><span>  </span><span class="annot"><span class="annottext">Text
+-&gt; Int
+-&gt; Seq BlankLine
+-&gt; Seq (NormalizedText, IniSection)
+-&gt; Seq BlankLine
+-&gt; Seq (NormalizedText, IniValue)
+-&gt; Parsec Void Text RawIni
+</span><a href="Data.Ini.Config.Raw.html#pPairs"><span class="hs-identifier hs-var">pPairs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Text -&gt; Text
+</span><span class="hs-identifier hs-var">T.strip</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679054072"><span class="hs-identifier hs-var">name</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679054075"><span class="hs-identifier hs-var">start</span></a></span><span> </span><span class="annot"><span class="annottext">Seq BlankLine
+</span><a href="#local-6989586621679054077"><span class="hs-identifier hs-var">leading</span></a></span><span> </span><span class="annot"><span class="annottext">Seq (NormalizedText, IniSection)
+</span><a href="#local-6989586621679054076"><span class="hs-identifier hs-var">prevs</span></a></span><span> </span><span class="annot"><span class="annottext">Seq BlankLine
+</span><a href="#local-6989586621679054069"><span class="hs-identifier hs-var">comments</span></a></span><span> </span><span class="annot"><span class="annottext">Seq (NormalizedText, IniValue)
+forall a. Seq a
+</span><span class="hs-identifier hs-var">Seq.empty</span></span><span>
+</span><span id="line-179"></span><span>
+</span><span id="line-180"></span><span class="annot"><a href="Data.Ini.Config.Raw.html#pPairs"><span class="hs-identifier hs-type">pPairs</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-181"></span><span>       </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-182"></span><span>       </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Seq</span></span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#BlankLine"><span class="hs-identifier hs-type">BlankLine</span></a></span><span>
+</span><span id="line-183"></span><span>       </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Seq</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Ini.Config.Raw.html#NormalizedText"><span class="hs-identifier hs-type">NormalizedText</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#IniSection"><span class="hs-identifier hs-type">IniSection</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-184"></span><span>       </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Seq</span></span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#BlankLine"><span class="hs-identifier hs-type">BlankLine</span></a></span><span>
+</span><span id="line-185"></span><span>       </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Seq</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Ini.Config.Raw.html#NormalizedText"><span class="hs-identifier hs-type">NormalizedText</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#IniValue"><span class="hs-identifier hs-type">IniValue</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-186"></span><span>       </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#RawIni"><span class="hs-identifier hs-type">RawIni</span></a></span><span>
+</span><span id="line-187"></span><span id="pPairs"><span class="annot"><span class="annottext">pPairs :: Text
+-&gt; Int
+-&gt; Seq BlankLine
+-&gt; Seq (NormalizedText, IniSection)
+-&gt; Seq BlankLine
+-&gt; Seq (NormalizedText, IniValue)
+-&gt; Parsec Void Text RawIni
+</span><a href="Data.Ini.Config.Raw.html#pPairs"><span class="hs-identifier hs-var hs-var">pPairs</span></a></span></span><span> </span><span id="local-6989586621679054067"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679054067"><span class="hs-identifier hs-var">name</span></a></span></span><span> </span><span id="local-6989586621679054066"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679054066"><span class="hs-identifier hs-var">start</span></a></span></span><span> </span><span id="local-6989586621679054065"><span class="annot"><span class="annottext">Seq BlankLine
+</span><a href="#local-6989586621679054065"><span class="hs-identifier hs-var">leading</span></a></span></span><span> </span><span id="local-6989586621679054064"><span class="annot"><span class="annottext">Seq (NormalizedText, IniSection)
+</span><a href="#local-6989586621679054064"><span class="hs-identifier hs-var">prevs</span></a></span></span><span> </span><span id="local-6989586621679054063"><span class="annot"><span class="annottext">Seq BlankLine
+</span><a href="#local-6989586621679054063"><span class="hs-identifier hs-var">comments</span></a></span></span><span> </span><span id="local-6989586621679054062"><span class="annot"><span class="annottext">Seq (NormalizedText, IniValue)
+</span><a href="#local-6989586621679054062"><span class="hs-identifier hs-var">pairs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Parsec Void Text RawIni
+</span><a href="#local-6989586621679054061"><span class="hs-identifier hs-var">newPair</span></a></span><span> </span><span class="annot"><span class="annottext">Parsec Void Text RawIni
+-&gt; Parsec Void Text RawIni -&gt; Parsec Void Text RawIni
+forall (f :: * -&gt; *) a. Alternative f =&gt; f a -&gt; f a -&gt; f a
+</span><span class="hs-operator hs-var">&lt;|&gt;</span></span><span> </span><span class="annot"><span class="annottext">Parsec Void Text RawIni
+</span><a href="#local-6989586621679054060"><span class="hs-identifier hs-var">finishedSection</span></a></span><span>
+</span><span id="line-188"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-189"></span><span>    </span><span id="local-6989586621679054061"><span class="annot"><span class="annottext">newPair :: Parsec Void Text RawIni
+</span><a href="#local-6989586621679054061"><span class="hs-identifier hs-var hs-var">newPair</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-190"></span><span>      </span><span class="hs-special">(</span><span id="local-6989586621679054059"><span class="annot"><span class="annottext">NormalizedText
+</span><a href="#local-6989586621679054059"><span class="hs-identifier hs-var">n</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679054058"><span class="annot"><span class="annottext">IniValue
+</span><a href="#local-6989586621679054058"><span class="hs-identifier hs-var">pair</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Seq BlankLine -&gt; Parser (NormalizedText, IniValue)
+</span><a href="Data.Ini.Config.Raw.html#pPair"><span class="hs-identifier hs-var">pPair</span></a></span><span> </span><span class="annot"><span class="annottext">Seq BlankLine
+</span><a href="#local-6989586621679054063"><span class="hs-identifier hs-var">comments</span></a></span><span>
+</span><span id="line-191"></span><span>      </span><span id="local-6989586621679054056"><span class="annot"><span class="annottext">Seq BlankLine
+</span><a href="#local-6989586621679054056"><span class="hs-identifier hs-var">rs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Parser (Seq BlankLine)
+</span><a href="Data.Ini.Config.Raw.html#sBlanks"><span class="hs-identifier hs-var">sBlanks</span></a></span><span>
+</span><span id="line-192"></span><span>      </span><span class="annot"><span class="annottext">Text
+-&gt; Int
+-&gt; Seq BlankLine
+-&gt; Seq (NormalizedText, IniSection)
+-&gt; Seq BlankLine
+-&gt; Seq (NormalizedText, IniValue)
+-&gt; Parsec Void Text RawIni
+</span><a href="Data.Ini.Config.Raw.html#pPairs"><span class="hs-identifier hs-var">pPairs</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679054067"><span class="hs-identifier hs-var">name</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679054066"><span class="hs-identifier hs-var">start</span></a></span><span> </span><span class="annot"><span class="annottext">Seq BlankLine
+</span><a href="#local-6989586621679054065"><span class="hs-identifier hs-var">leading</span></a></span><span> </span><span class="annot"><span class="annottext">Seq (NormalizedText, IniSection)
+</span><a href="#local-6989586621679054064"><span class="hs-identifier hs-var">prevs</span></a></span><span> </span><span class="annot"><span class="annottext">Seq BlankLine
+</span><a href="#local-6989586621679054056"><span class="hs-identifier hs-var">rs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Seq (NormalizedText, IniValue)
+</span><a href="#local-6989586621679054062"><span class="hs-identifier hs-var">pairs</span></a></span><span> </span><span class="annot"><span class="annottext">Seq (NormalizedText, IniValue)
+-&gt; (NormalizedText, IniValue) -&gt; Seq (NormalizedText, IniValue)
+forall a. Seq a -&gt; a -&gt; Seq a
+</span><span class="hs-operator hs-var">Seq.|&gt;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">NormalizedText
+</span><a href="#local-6989586621679054059"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">IniValue
+</span><a href="#local-6989586621679054058"><span class="hs-identifier hs-var">pair</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-193"></span><span>    </span><span id="local-6989586621679054060"><span class="annot"><span class="annottext">finishedSection :: Parsec Void Text RawIni
+</span><a href="#local-6989586621679054060"><span class="hs-identifier hs-var hs-var">finishedSection</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-194"></span><span>      </span><span id="local-6989586621679054054"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679054054"><span class="hs-identifier hs-var">end</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Parser Int
+</span><a href="Data.Ini.Config.Raw.html#getCurrentLine"><span class="hs-identifier hs-var">getCurrentLine</span></a></span><span>
+</span><span id="line-195"></span><span>      </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679054053"><span class="annot"><span class="annottext">newSection :: IniSection
+</span><a href="#local-6989586621679054053"><span class="hs-identifier hs-var hs-var">newSection</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IniSection :: Text
+-&gt; Seq (NormalizedText, IniValue)
+-&gt; Int
+-&gt; Int
+-&gt; Seq BlankLine
+-&gt; IniSection
+</span><a href="Data.Ini.Config.Raw.html#IniSection"><span class="hs-identifier hs-type">IniSection</span></a></span><span>
+</span><span id="line-196"></span><span>            </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">isName :: Text
+</span><a href="Data.Ini.Config.Raw.html#isName"><span class="hs-identifier hs-var">isName</span></a></span><span>      </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679054067"><span class="hs-identifier hs-var">name</span></a></span><span>
+</span><span id="line-197"></span><span>            </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">isVals :: Seq (NormalizedText, IniValue)
+</span><a href="Data.Ini.Config.Raw.html#isVals"><span class="hs-identifier hs-var">isVals</span></a></span><span>      </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Seq (NormalizedText, IniValue)
+</span><a href="#local-6989586621679054062"><span class="hs-identifier hs-var">pairs</span></a></span><span>
+</span><span id="line-198"></span><span>            </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">isStartLine :: Int
+</span><a href="Data.Ini.Config.Raw.html#isStartLine"><span class="hs-identifier hs-var">isStartLine</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679054066"><span class="hs-identifier hs-var">start</span></a></span><span>
+</span><span id="line-199"></span><span>            </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">isEndLine :: Int
+</span><a href="Data.Ini.Config.Raw.html#isEndLine"><span class="hs-identifier hs-var">isEndLine</span></a></span><span>   </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679054054"><span class="hs-identifier hs-var">end</span></a></span><span>
+</span><span id="line-200"></span><span>            </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">isComments :: Seq BlankLine
+</span><a href="Data.Ini.Config.Raw.html#isComments"><span class="hs-identifier hs-var">isComments</span></a></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Seq BlankLine
+</span><a href="#local-6989586621679054065"><span class="hs-identifier hs-var">leading</span></a></span><span>
+</span><span id="line-201"></span><span>            </span><span class="hs-special">}</span><span>
+</span><span id="line-202"></span><span>      </span><span class="annot"><span class="annottext">Seq BlankLine
+-&gt; Seq (NormalizedText, IniSection) -&gt; Parsec Void Text RawIni
+</span><a href="Data.Ini.Config.Raw.html#pSections"><span class="hs-identifier hs-var">pSections</span></a></span><span> </span><span class="annot"><span class="annottext">Seq BlankLine
+</span><a href="#local-6989586621679054063"><span class="hs-identifier hs-var">comments</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Seq (NormalizedText, IniSection)
+</span><a href="#local-6989586621679054064"><span class="hs-identifier hs-var">prevs</span></a></span><span> </span><span class="annot"><span class="annottext">Seq (NormalizedText, IniSection)
+-&gt; (NormalizedText, IniSection) -&gt; Seq (NormalizedText, IniSection)
+forall a. Seq a -&gt; a -&gt; Seq a
+</span><span class="hs-operator hs-var">Seq.|&gt;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Text -&gt; NormalizedText
+</span><a href="Data.Ini.Config.Raw.html#normalize"><span class="hs-identifier hs-var">normalize</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679054067"><span class="hs-identifier hs-var">name</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">IniSection
+</span><a href="#local-6989586621679054053"><span class="hs-identifier hs-var">newSection</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-203"></span><span>
+</span><span id="line-204"></span><span class="annot"><a href="Data.Ini.Config.Raw.html#pPair"><span class="hs-identifier hs-type">pPair</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Seq</span></span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#BlankLine"><span class="hs-identifier hs-type">BlankLine</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Ini.Config.Raw.html#NormalizedText"><span class="hs-identifier hs-type">NormalizedText</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#IniValue"><span class="hs-identifier hs-type">IniValue</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-205"></span><span id="pPair"><span class="annot"><span class="annottext">pPair :: Seq BlankLine -&gt; Parser (NormalizedText, IniValue)
+</span><a href="Data.Ini.Config.Raw.html#pPair"><span class="hs-identifier hs-var hs-var">pPair</span></a></span></span><span> </span><span id="local-6989586621679054052"><span class="annot"><span class="annottext">Seq BlankLine
+</span><a href="#local-6989586621679054052"><span class="hs-identifier hs-var">leading</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-206"></span><span>  </span><span id="local-6989586621679054051"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679054051"><span class="hs-identifier hs-var">pos</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Parser Int
+</span><a href="Data.Ini.Config.Raw.html#getCurrentLine"><span class="hs-identifier hs-var">getCurrentLine</span></a></span><span>
+</span><span id="line-207"></span><span>  </span><span id="local-6989586621679054050"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679054050"><span class="hs-identifier hs-var">key</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">String -&gt; Text
+</span><span class="hs-identifier hs-var">T.pack</span></span><span> </span><span class="annot"><span class="annottext">(String -&gt; Text)
+-&gt; ParsecT Void Text Identity String
+-&gt; ParsecT Void Text Identity Text
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">`fmap`</span></span><span> </span><span class="annot"><span class="annottext">ParsecT Void Text Identity Char
+-&gt; ParsecT Void Text Identity String
+forall (m :: * -&gt; *) a. MonadPlus m =&gt; m a -&gt; m [a]
+</span><span class="hs-identifier hs-var">some</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[Token Text] -&gt; ParsecT Void Text Identity (Token Text)
+forall (f :: * -&gt; *) e s (m :: * -&gt; *).
+(Foldable f, MonadParsec e s m) =&gt;
+f (Token s) -&gt; m (Token s)
+</span><span class="hs-identifier hs-var">noneOf</span></span><span> </span><span class="annot"><span class="annottext">String
+[Token Text]
+</span><span class="hs-string">&quot;[]=:&quot;</span></span><span class="hs-special">)</span><span>
+</span><span id="line-208"></span><span>  </span><span id="local-6989586621679054049"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679054049"><span class="hs-identifier hs-var">delim</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[Token Text] -&gt; ParsecT Void Text Identity (Token Text)
+forall (f :: * -&gt; *) e s (m :: * -&gt; *).
+(Foldable f, MonadParsec e s m) =&gt;
+f (Token s) -&gt; m (Token s)
+</span><span class="hs-identifier hs-var">oneOf</span></span><span> </span><span class="annot"><span class="annottext">String
+[Token Text]
+</span><span class="hs-string">&quot;:=&quot;</span></span><span>
+</span><span id="line-209"></span><span>  </span><span id="local-6989586621679054048"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679054048"><span class="hs-identifier hs-var">val</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">String -&gt; Text
+</span><span class="hs-identifier hs-var">T.pack</span></span><span> </span><span class="annot"><span class="annottext">(String -&gt; Text)
+-&gt; ParsecT Void Text Identity String
+-&gt; ParsecT Void Text Identity Text
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">`fmap`</span></span><span> </span><span class="annot"><span class="annottext">ParsecT Void Text Identity Char
+-&gt; ParsecT Void Text Identity Text
+-&gt; ParsecT Void Text Identity String
+forall (m :: * -&gt; *) a end. MonadPlus m =&gt; m a -&gt; m end -&gt; m [a]
+</span><span class="hs-identifier hs-var">manyTill</span></span><span> </span><span class="annot"><span class="annottext">ParsecT Void Text Identity Char
+forall e s (m :: * -&gt; *). MonadParsec e s m =&gt; m (Token s)
+</span><span class="hs-identifier hs-var">anySingle</span></span><span> </span><span class="annot"><span class="annottext">ParsecT Void Text Identity Text
+forall e s (m :: * -&gt; *).
+(MonadParsec e s m, Token s ~ Char) =&gt;
+m (Tokens s)
+</span><span class="hs-identifier hs-var">eol</span></span><span>
+</span><span id="line-210"></span><span>  </span><span class="annot"><span class="annottext">(NormalizedText, IniValue) -&gt; Parser (NormalizedText, IniValue)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">Text -&gt; NormalizedText
+</span><a href="Data.Ini.Config.Raw.html#normalize"><span class="hs-identifier hs-var">normalize</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679054050"><span class="hs-identifier hs-var">key</span></a></span><span>
+</span><span id="line-211"></span><span>         </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">IniValue :: Int -&gt; Text -&gt; Text -&gt; Seq BlankLine -&gt; Bool -&gt; Char -&gt; IniValue
+</span><a href="Data.Ini.Config.Raw.html#IniValue"><span class="hs-identifier hs-type">IniValue</span></a></span><span>
+</span><span id="line-212"></span><span>             </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">vLineNo :: Int
+</span><a href="Data.Ini.Config.Raw.html#vLineNo"><span class="hs-identifier hs-var">vLineNo</span></a></span><span>       </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679054051"><span class="hs-identifier hs-var">pos</span></a></span><span>
+</span><span id="line-213"></span><span>             </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">vName :: Text
+</span><a href="Data.Ini.Config.Raw.html#vName"><span class="hs-identifier hs-var">vName</span></a></span><span>         </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679054050"><span class="hs-identifier hs-var">key</span></a></span><span>
+</span><span id="line-214"></span><span>             </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">vValue :: Text
+</span><a href="Data.Ini.Config.Raw.html#vValue"><span class="hs-identifier hs-var">vValue</span></a></span><span>        </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679054048"><span class="hs-identifier hs-var">val</span></a></span><span>
+</span><span id="line-215"></span><span>             </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">vComments :: Seq BlankLine
+</span><a href="Data.Ini.Config.Raw.html#vComments"><span class="hs-identifier hs-var">vComments</span></a></span><span>     </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Seq BlankLine
+</span><a href="#local-6989586621679054052"><span class="hs-identifier hs-var">leading</span></a></span><span>
+</span><span id="line-216"></span><span>             </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">vCommentedOut :: Bool
+</span><a href="Data.Ini.Config.Raw.html#vCommentedOut"><span class="hs-identifier hs-var">vCommentedOut</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span>
+</span><span id="line-217"></span><span>             </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">vDelimiter :: Char
+</span><a href="Data.Ini.Config.Raw.html#vDelimiter"><span class="hs-identifier hs-var">vDelimiter</span></a></span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679054049"><span class="hs-identifier hs-var">delim</span></a></span><span>
+</span><span id="line-218"></span><span>             </span><span class="hs-special">}</span><span> </span><span class="hs-special">)</span><span>
+</span><span id="line-219"></span><span>
+</span><span id="line-220"></span><span class="annot"><a href="Data.Ini.Config.Raw.html#getCurrentLine"><span class="hs-identifier hs-type">getCurrentLine</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#Parser"><span class="hs-identifier hs-type">Parser</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-221"></span><span id="getCurrentLine"><span class="annot"><span class="annottext">getCurrentLine :: Parser Int
+</span><a href="Data.Ini.Config.Raw.html#getCurrentLine"><span class="hs-identifier hs-var hs-var">getCurrentLine</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Int) -&gt; (SourcePos -&gt; Int) -&gt; SourcePos -&gt; Int
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Pos -&gt; Int
+</span><span class="hs-identifier hs-var">unPos</span></span><span> </span><span class="annot"><span class="annottext">(Pos -&gt; Int) -&gt; (SourcePos -&gt; Pos) -&gt; SourcePos -&gt; Int
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">SourcePos -&gt; Pos
+</span><span class="hs-identifier hs-var hs-var">sourceLine</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(SourcePos -&gt; Int)
+-&gt; ParsecT Void Text Identity SourcePos -&gt; Parser Int
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">`fmap`</span></span><span> </span><span class="annot"><span class="annottext">ParsecT Void Text Identity SourcePos
+forall s e (m :: * -&gt; *).
+(TraversableStream s, MonadParsec e s m) =&gt;
+m SourcePos
+</span><span class="hs-identifier hs-var">getSourcePos</span></span><span>
+</span><span id="line-222"></span><span>
+</span><span id="line-223"></span><span>
+</span><span id="line-224"></span><span class="hs-comment">-- | Serialize an INI file to text, complete with any comments which</span><span>
+</span><span id="line-225"></span><span class="hs-comment">-- appear in the INI structure, and retaining the aesthetic details</span><span>
+</span><span id="line-226"></span><span class="hs-comment">-- which are present in the INI file.</span><span>
+</span><span id="line-227"></span><span class="annot"><a href="Data.Ini.Config.Raw.html#printRawIni"><span class="hs-identifier hs-type">printRawIni</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#RawIni"><span class="hs-identifier hs-type">RawIni</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-228"></span><span id="printRawIni"><span class="annot"><span class="annottext">printRawIni :: RawIni -&gt; Text
+</span><a href="Data.Ini.Config.Raw.html#printRawIni"><span class="hs-identifier hs-var hs-var">printRawIni</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Text
+</span><span class="hs-identifier hs-var">LazyText.toStrict</span></span><span> </span><span class="annot"><span class="annottext">(Text -&gt; Text) -&gt; (RawIni -&gt; Text) -&gt; RawIni -&gt; Text
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Builder -&gt; Text
+</span><span class="hs-identifier hs-var">Builder.toLazyText</span></span><span> </span><span class="annot"><span class="annottext">(Builder -&gt; Text) -&gt; (RawIni -&gt; Builder) -&gt; RawIni -&gt; Text
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">((NormalizedText, IniSection) -&gt; Builder)
+-&gt; Seq (NormalizedText, IniSection) -&gt; Builder
+forall (t :: * -&gt; *) m a.
+(Foldable t, Monoid m) =&gt;
+(a -&gt; m) -&gt; t a -&gt; m
+</span><span class="hs-identifier hs-var">F.foldMap</span></span><span> </span><span class="annot"><span class="annottext">(NormalizedText, IniSection) -&gt; Builder
+forall a. (a, IniSection) -&gt; Builder
+</span><a href="#local-6989586621679054040"><span class="hs-identifier hs-var">build</span></a></span><span> </span><span class="annot"><span class="annottext">(Seq (NormalizedText, IniSection) -&gt; Builder)
+-&gt; (RawIni -&gt; Seq (NormalizedText, IniSection))
+-&gt; RawIni
+-&gt; Builder
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">RawIni -&gt; Seq (NormalizedText, IniSection)
+</span><a href="Data.Ini.Config.Raw.html#fromRawIni"><span class="hs-identifier hs-var hs-var">fromRawIni</span></a></span><span>
+</span><span id="line-229"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-230"></span><span>    </span><span id="local-6989586621679054040"><span class="annot"><span class="annottext">build :: (a, IniSection) -&gt; Builder
+</span><a href="#local-6989586621679054040"><span class="hs-identifier hs-var hs-var">build</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+</span><span class="hs-identifier">_</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679054039"><span class="annot"><span class="annottext">IniSection
+</span><a href="#local-6989586621679054039"><span class="hs-identifier hs-var">ini</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-231"></span><span>      </span><span class="annot"><span class="annottext">(BlankLine -&gt; Builder) -&gt; Seq BlankLine -&gt; Builder
+forall (t :: * -&gt; *) m a.
+(Foldable t, Monoid m) =&gt;
+(a -&gt; m) -&gt; t a -&gt; m
+</span><span class="hs-identifier hs-var">F.foldMap</span></span><span> </span><span class="annot"><span class="annottext">BlankLine -&gt; Builder
+</span><a href="#local-6989586621679054038"><span class="hs-identifier hs-var">buildComment</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IniSection -&gt; Seq BlankLine
+</span><a href="Data.Ini.Config.Raw.html#isComments"><span class="hs-identifier hs-var hs-var">isComments</span></a></span><span> </span><span class="annot"><span class="annottext">IniSection
+</span><a href="#local-6989586621679054039"><span class="hs-identifier hs-var">ini</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Builder -&gt; Builder -&gt; Builder
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span>
+</span><span id="line-232"></span><span>      </span><span class="annot"><span class="annottext">Char -&gt; Builder
+</span><span class="hs-identifier hs-var">Builder.singleton</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'['</span></span><span> </span><span class="annot"><span class="annottext">Builder -&gt; Builder -&gt; Builder
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span>
+</span><span id="line-233"></span><span>      </span><span class="annot"><span class="annottext">Text -&gt; Builder
+</span><span class="hs-identifier hs-var">Builder.fromText</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IniSection -&gt; Text
+</span><a href="Data.Ini.Config.Raw.html#isName"><span class="hs-identifier hs-var hs-var">isName</span></a></span><span> </span><span class="annot"><span class="annottext">IniSection
+</span><a href="#local-6989586621679054039"><span class="hs-identifier hs-var">ini</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Builder -&gt; Builder -&gt; Builder
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span>
+</span><span id="line-234"></span><span>      </span><span class="annot"><span class="annottext">String -&gt; Builder
+</span><span class="hs-identifier hs-var">Builder.fromString</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;]\n&quot;</span></span><span> </span><span class="annot"><span class="annottext">Builder -&gt; Builder -&gt; Builder
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span>
+</span><span id="line-235"></span><span>      </span><span class="annot"><span class="annottext">((NormalizedText, IniValue) -&gt; Builder)
+-&gt; Seq (NormalizedText, IniValue) -&gt; Builder
+forall (t :: * -&gt; *) m a.
+(Foldable t, Monoid m) =&gt;
+(a -&gt; m) -&gt; t a -&gt; m
+</span><span class="hs-identifier hs-var">F.foldMap</span></span><span> </span><span class="annot"><span class="annottext">(NormalizedText, IniValue) -&gt; Builder
+forall a. (a, IniValue) -&gt; Builder
+</span><a href="#local-6989586621679054034"><span class="hs-identifier hs-var">buildKV</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IniSection -&gt; Seq (NormalizedText, IniValue)
+</span><a href="Data.Ini.Config.Raw.html#isVals"><span class="hs-identifier hs-var hs-var">isVals</span></a></span><span> </span><span class="annot"><span class="annottext">IniSection
+</span><a href="#local-6989586621679054039"><span class="hs-identifier hs-var">ini</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-236"></span><span>    </span><span id="local-6989586621679054038"><span class="annot"><span class="annottext">buildComment :: BlankLine -&gt; Builder
+</span><a href="#local-6989586621679054038"><span class="hs-identifier hs-var hs-var">buildComment</span></a></span></span><span> </span><span class="annot"><span class="annottext">BlankLine
+</span><a href="Data.Ini.Config.Raw.html#BlankLine"><span class="hs-identifier hs-var">BlankLine</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Builder
+</span><span class="hs-identifier hs-var">Builder.singleton</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\n'</span></span><span>
+</span><span id="line-237"></span><span>    </span><span class="annot"><a href="#local-6989586621679054038"><span class="hs-identifier hs-var">buildComment</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Ini.Config.Raw.html#CommentLine"><span class="hs-identifier hs-type">CommentLine</span></a></span><span> </span><span id="local-6989586621679054033"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679054033"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span id="local-6989586621679054032"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679054032"><span class="hs-identifier hs-var">txt</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-238"></span><span>      </span><span class="annot"><span class="annottext">Char -&gt; Builder
+</span><span class="hs-identifier hs-var">Builder.singleton</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679054033"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="annot"><span class="annottext">Builder -&gt; Builder -&gt; Builder
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Builder
+</span><span class="hs-identifier hs-var">Builder.fromText</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679054032"><span class="hs-identifier hs-var">txt</span></a></span><span> </span><span class="annot"><span class="annottext">Builder -&gt; Builder -&gt; Builder
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Char -&gt; Builder
+</span><span class="hs-identifier hs-var">Builder.singleton</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\n'</span></span><span>
+</span><span id="line-239"></span><span>    </span><span id="local-6989586621679054034"><span class="annot"><span class="annottext">buildKV :: (a, IniValue) -&gt; Builder
+</span><a href="#local-6989586621679054034"><span class="hs-identifier hs-var hs-var">buildKV</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+</span><span class="hs-identifier">_</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679054031"><span class="annot"><span class="annottext">IniValue
+</span><a href="#local-6989586621679054031"><span class="hs-identifier hs-var">val</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-240"></span><span>      </span><span class="annot"><span class="annottext">(BlankLine -&gt; Builder) -&gt; Seq BlankLine -&gt; Builder
+forall (t :: * -&gt; *) m a.
+(Foldable t, Monoid m) =&gt;
+(a -&gt; m) -&gt; t a -&gt; m
+</span><span class="hs-identifier hs-var">F.foldMap</span></span><span> </span><span class="annot"><span class="annottext">BlankLine -&gt; Builder
+</span><a href="#local-6989586621679054038"><span class="hs-identifier hs-var">buildComment</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IniValue -&gt; Seq BlankLine
+</span><a href="Data.Ini.Config.Raw.html#vComments"><span class="hs-identifier hs-var hs-var">vComments</span></a></span><span> </span><span class="annot"><span class="annottext">IniValue
+</span><a href="#local-6989586621679054031"><span class="hs-identifier hs-var">val</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Builder -&gt; Builder -&gt; Builder
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span>
+</span><span id="line-241"></span><span>      </span><span class="hs-special">(</span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">IniValue -&gt; Bool
+</span><a href="Data.Ini.Config.Raw.html#vCommentedOut"><span class="hs-identifier hs-var hs-var">vCommentedOut</span></a></span><span> </span><span class="annot"><span class="annottext">IniValue
+</span><a href="#local-6989586621679054031"><span class="hs-identifier hs-var">val</span></a></span><span> </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">String -&gt; Builder
+</span><span class="hs-identifier hs-var">Builder.fromString</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;# &quot;</span></span><span> </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Builder
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Builder -&gt; Builder -&gt; Builder
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span>
+</span><span id="line-242"></span><span>      </span><span class="annot"><span class="annottext">Text -&gt; Builder
+</span><span class="hs-identifier hs-var">Builder.fromText</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IniValue -&gt; Text
+</span><a href="Data.Ini.Config.Raw.html#vName"><span class="hs-identifier hs-var hs-var">vName</span></a></span><span> </span><span class="annot"><span class="annottext">IniValue
+</span><a href="#local-6989586621679054031"><span class="hs-identifier hs-var">val</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Builder -&gt; Builder -&gt; Builder
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span>
+</span><span id="line-243"></span><span>      </span><span class="annot"><span class="annottext">Char -&gt; Builder
+</span><span class="hs-identifier hs-var">Builder.singleton</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IniValue -&gt; Char
+</span><a href="Data.Ini.Config.Raw.html#vDelimiter"><span class="hs-identifier hs-var hs-var">vDelimiter</span></a></span><span> </span><span class="annot"><span class="annottext">IniValue
+</span><a href="#local-6989586621679054031"><span class="hs-identifier hs-var">val</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Builder -&gt; Builder -&gt; Builder
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span>
+</span><span id="line-244"></span><span>      </span><span class="annot"><span class="annottext">Text -&gt; Builder
+</span><span class="hs-identifier hs-var">Builder.fromText</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IniValue -&gt; Text
+</span><a href="Data.Ini.Config.Raw.html#vValue"><span class="hs-identifier hs-var hs-var">vValue</span></a></span><span> </span><span class="annot"><span class="annottext">IniValue
+</span><a href="#local-6989586621679054031"><span class="hs-identifier hs-var">val</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Builder -&gt; Builder -&gt; Builder
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span>
+</span><span id="line-245"></span><span>      </span><span class="annot"><span class="annottext">Char -&gt; Builder
+</span><span class="hs-identifier hs-var">Builder.singleton</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\n'</span></span><span>
+</span><span id="line-246"></span><span>
+</span><span id="line-247"></span><span class="hs-comment">-- | Look up an Ini value by section name and key. Returns the sequence</span><span>
+</span><span id="line-248"></span><span class="hs-comment">-- of matches.</span><span>
+</span><span id="line-249"></span><span class="annot"><a href="Data.Ini.Config.Raw.html#lookupInSection"><span class="hs-identifier hs-type">lookupInSection</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-250"></span><span>                </span><span class="hs-comment">-- ^ The section name. Will be normalized prior to</span><span>
+</span><span id="line-251"></span><span>                </span><span class="hs-comment">-- comparison.</span><span>
+</span><span id="line-252"></span><span>                </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-253"></span><span>                </span><span class="hs-comment">-- ^ The key. Will be normalized prior to comparison.</span><span>
+</span><span id="line-254"></span><span>                </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#RawIni"><span class="hs-identifier hs-type">RawIni</span></a></span><span>
+</span><span id="line-255"></span><span>                </span><span class="hs-comment">-- ^ The Ini to search.</span><span>
+</span><span id="line-256"></span><span>                </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Seq.Seq</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-257"></span><span id="lookupInSection"><span class="annot"><span class="annottext">lookupInSection :: Text -&gt; Text -&gt; RawIni -&gt; Seq Text
+</span><a href="Data.Ini.Config.Raw.html#lookupInSection"><span class="hs-identifier hs-var hs-var">lookupInSection</span></a></span></span><span> </span><span id="local-6989586621679054030"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679054030"><span class="hs-identifier hs-var">sec</span></a></span></span><span> </span><span id="local-6989586621679054029"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679054029"><span class="hs-identifier hs-var">opt</span></a></span></span><span> </span><span id="local-6989586621679054028"><span class="annot"><span class="annottext">RawIni
+</span><a href="#local-6989586621679054028"><span class="hs-identifier hs-var">ini</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-258"></span><span>    </span><span class="annot"><span class="annottext">IniValue -&gt; Text
+</span><a href="Data.Ini.Config.Raw.html#vValue"><span class="hs-identifier hs-var hs-var">vValue</span></a></span><span> </span><span class="annot"><span class="annottext">(IniValue -&gt; Text) -&gt; Seq IniValue -&gt; Seq Text
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Seq (Seq IniValue) -&gt; Seq IniValue
+forall (t :: * -&gt; *) (f :: * -&gt; *) a.
+(Foldable t, Alternative f) =&gt;
+t (f a) -&gt; f a
+</span><span class="hs-identifier hs-var">F.asum</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Text -&gt; IniSection -&gt; Seq IniValue
+</span><a href="Data.Ini.Config.Raw.html#lookupValue"><span class="hs-identifier hs-var">lookupValue</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679054029"><span class="hs-identifier hs-var">opt</span></a></span><span> </span><span class="annot"><span class="annottext">(IniSection -&gt; Seq IniValue)
+-&gt; Seq IniSection -&gt; Seq (Seq IniValue)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; RawIni -&gt; Seq IniSection
+</span><a href="Data.Ini.Config.Raw.html#lookupSection"><span class="hs-identifier hs-var">lookupSection</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679054030"><span class="hs-identifier hs-var">sec</span></a></span><span> </span><span class="annot"><span class="annottext">RawIni
+</span><a href="#local-6989586621679054028"><span class="hs-identifier hs-var">ini</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-259"></span><span>
+</span><span id="line-260"></span><span class="hs-comment">-- | Look up an Ini section by name. Returns a sequence of all matching</span><span>
+</span><span id="line-261"></span><span class="hs-comment">-- section records.</span><span>
+</span><span id="line-262"></span><span class="annot"><a href="Data.Ini.Config.Raw.html#lookupSection"><span class="hs-identifier hs-type">lookupSection</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-263"></span><span>              </span><span class="hs-comment">-- ^ The section name. Will be normalized prior to</span><span>
+</span><span id="line-264"></span><span>              </span><span class="hs-comment">-- comparison.</span><span>
+</span><span id="line-265"></span><span>              </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#RawIni"><span class="hs-identifier hs-type">RawIni</span></a></span><span>
+</span><span id="line-266"></span><span>              </span><span class="hs-comment">-- ^ The Ini to search.</span><span>
+</span><span id="line-267"></span><span>              </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Seq.Seq</span></span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#IniSection"><span class="hs-identifier hs-type">IniSection</span></a></span><span>
+</span><span id="line-268"></span><span id="lookupSection"><span class="annot"><span class="annottext">lookupSection :: Text -&gt; RawIni -&gt; Seq IniSection
+</span><a href="Data.Ini.Config.Raw.html#lookupSection"><span class="hs-identifier hs-var hs-var">lookupSection</span></a></span></span><span> </span><span id="local-6989586621679054026"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679054026"><span class="hs-identifier hs-var">name</span></a></span></span><span> </span><span id="local-6989586621679054025"><span class="annot"><span class="annottext">RawIni
+</span><a href="#local-6989586621679054025"><span class="hs-identifier hs-var">ini</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-269"></span><span>    </span><span class="annot"><span class="annottext">(NormalizedText, IniSection) -&gt; IniSection
+forall a b. (a, b) -&gt; b
+</span><span class="hs-identifier hs-var">snd</span></span><span> </span><span class="annot"><span class="annottext">((NormalizedText, IniSection) -&gt; IniSection)
+-&gt; Seq (NormalizedText, IniSection) -&gt; Seq IniSection
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">((NormalizedText, IniSection) -&gt; Bool)
+-&gt; Seq (NormalizedText, IniSection)
+-&gt; Seq (NormalizedText, IniSection)
+forall a. (a -&gt; Bool) -&gt; Seq a -&gt; Seq a
+</span><span class="hs-identifier hs-var">Seq.filter</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="annottext">NormalizedText -&gt; NormalizedText -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; NormalizedText
+</span><a href="Data.Ini.Config.Raw.html#normalize"><span class="hs-identifier hs-var">normalize</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679054026"><span class="hs-identifier hs-var">name</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(NormalizedText -&gt; Bool)
+-&gt; ((NormalizedText, IniSection) -&gt; NormalizedText)
+-&gt; (NormalizedText, IniSection)
+-&gt; Bool
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(NormalizedText, IniSection) -&gt; NormalizedText
+forall a b. (a, b) -&gt; a
+</span><span class="hs-identifier hs-var">fst</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Seq (NormalizedText, IniSection)
+ -&gt; Seq (NormalizedText, IniSection))
+-&gt; Seq (NormalizedText, IniSection)
+-&gt; Seq (NormalizedText, IniSection)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">RawIni -&gt; Seq (NormalizedText, IniSection)
+</span><a href="Data.Ini.Config.Raw.html#fromRawIni"><span class="hs-identifier hs-var hs-var">fromRawIni</span></a></span><span> </span><span class="annot"><span class="annottext">RawIni
+</span><a href="#local-6989586621679054025"><span class="hs-identifier hs-var">ini</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-270"></span><span>
+</span><span id="line-271"></span><span class="hs-comment">-- | Look up an Ini key's value in a given section by the key. Returns</span><span>
+</span><span id="line-272"></span><span class="hs-comment">-- the sequence of matches.</span><span>
+</span><span id="line-273"></span><span class="annot"><a href="Data.Ini.Config.Raw.html#lookupValue"><span class="hs-identifier hs-type">lookupValue</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-274"></span><span>            </span><span class="hs-comment">-- ^ The key. Will be normalized prior to comparison.</span><span>
+</span><span id="line-275"></span><span>            </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#IniSection"><span class="hs-identifier hs-type">IniSection</span></a></span><span>
+</span><span id="line-276"></span><span>            </span><span class="hs-comment">-- ^ The section to search.</span><span>
+</span><span id="line-277"></span><span>            </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Seq.Seq</span></span><span> </span><span class="annot"><a href="Data.Ini.Config.Raw.html#IniValue"><span class="hs-identifier hs-type">IniValue</span></a></span><span>
+</span><span id="line-278"></span><span id="lookupValue"><span class="annot"><span class="annottext">lookupValue :: Text -&gt; IniSection -&gt; Seq IniValue
+</span><a href="Data.Ini.Config.Raw.html#lookupValue"><span class="hs-identifier hs-var hs-var">lookupValue</span></a></span></span><span> </span><span id="local-6989586621679054023"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679054023"><span class="hs-identifier hs-var">name</span></a></span></span><span> </span><span id="local-6989586621679054022"><span class="annot"><span class="annottext">IniSection
+</span><a href="#local-6989586621679054022"><span class="hs-identifier hs-var">section</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-279"></span><span>    </span><span class="annot"><span class="annottext">(NormalizedText, IniValue) -&gt; IniValue
+forall a b. (a, b) -&gt; b
+</span><span class="hs-identifier hs-var">snd</span></span><span> </span><span class="annot"><span class="annottext">((NormalizedText, IniValue) -&gt; IniValue)
+-&gt; Seq (NormalizedText, IniValue) -&gt; Seq IniValue
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">((NormalizedText, IniValue) -&gt; Bool)
+-&gt; Seq (NormalizedText, IniValue) -&gt; Seq (NormalizedText, IniValue)
+forall a. (a -&gt; Bool) -&gt; Seq a -&gt; Seq a
+</span><span class="hs-identifier hs-var">Seq.filter</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="annottext">NormalizedText -&gt; NormalizedText -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; NormalizedText
+</span><a href="Data.Ini.Config.Raw.html#normalize"><span class="hs-identifier hs-var">normalize</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679054023"><span class="hs-identifier hs-var">name</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(NormalizedText -&gt; Bool)
+-&gt; ((NormalizedText, IniValue) -&gt; NormalizedText)
+-&gt; (NormalizedText, IniValue)
+-&gt; Bool
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(NormalizedText, IniValue) -&gt; NormalizedText
+forall a b. (a, b) -&gt; a
+</span><span class="hs-identifier hs-var">fst</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IniSection -&gt; Seq (NormalizedText, IniValue)
+</span><a href="Data.Ini.Config.Raw.html#isVals"><span class="hs-identifier hs-var hs-var">isVals</span></a></span><span> </span><span class="annot"><span class="annottext">IniSection
+</span><a href="#local-6989586621679054022"><span class="hs-identifier hs-var">section</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-280"></span></pre></body></html>

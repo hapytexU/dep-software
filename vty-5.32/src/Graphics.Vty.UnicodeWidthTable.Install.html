@@ -1,0 +1,258 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE CPP #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE ForeignFunctionInterface #-}</span><span>
+</span><span id="line-3"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Graphics.Vty.UnicodeWidthTable.Install</span><span>
+</span><span id="line-4"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Graphics.Vty.UnicodeWidthTable.Install.html#TableInstallException"><span class="hs-identifier">TableInstallException</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-5"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.UnicodeWidthTable.Install.html#installUnicodeWidthTable"><span class="hs-identifier">installUnicodeWidthTable</span></a></span><span>
+</span><span id="line-6"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.UnicodeWidthTable.Install.html#isCustomTableReady"><span class="hs-identifier">isCustomTableReady</span></a></span><span>
+</span><span id="line-7"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-8"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-9"></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">when</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">forM_</span></span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Control.Exception</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">E</span></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">GHC.Conc.Sync</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">withMVar</span></span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Concurrent.MVar</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">MVar</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">newMVar</span></span><span class="hs-special">)</span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Word</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Word8</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">Word32</span></span><span class="hs-special">)</span><span class="hs-cpp">
+#if !(MIN_VERSION_base(4,11,0))
+</span><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Data.Semigroup</span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="hs-operator">&lt;&gt;</span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-cpp">
+#endif
+</span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">System.IO.Unsafe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">unsafePerformIO</span></span><span class="hs-special">)</span><span>
+</span><span id="line-19"></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Graphics.Vty.UnicodeWidthTable.Types.html"><span class="hs-identifier">Graphics.Vty.UnicodeWidthTable.Types</span></a></span><span>
+</span><span id="line-21"></span><span>
+</span><span id="line-22"></span><span class="hs-comment">-- | The lock used to make functions in this module thread-safe.</span><span>
+</span><span id="line-23"></span><span class="annot"><a href="Graphics.Vty.UnicodeWidthTable.Install.html#installLock"><span class="hs-identifier hs-type">installLock</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MVar</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-24"></span><span class="hs-pragma">{-# NOINLINE</span><span> </span><span class="annot"><a href="Graphics.Vty.UnicodeWidthTable.Install.html#installLock"><span class="hs-pragma hs-type">installLock</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-25"></span><span id="installLock"><span class="annot"><span class="annottext">installLock :: MVar ()
+</span><a href="Graphics.Vty.UnicodeWidthTable.Install.html#installLock"><span class="hs-identifier hs-var hs-var">installLock</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IO (MVar ()) -&gt; MVar ()
+forall a. IO a -&gt; a
+</span><span class="hs-identifier hs-var">unsafePerformIO</span></span><span> </span><span class="annot"><span class="annottext">(IO (MVar ()) -&gt; MVar ()) -&gt; IO (MVar ()) -&gt; MVar ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">() -&gt; IO (MVar ())
+forall a. a -&gt; IO (MVar a)
+</span><span class="hs-identifier hs-var">newMVar</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-26"></span><span>
+</span><span id="line-27"></span><span class="hs-comment">-- | Returns True if and only if a custom table has been allocated and</span><span>
+</span><span id="line-28"></span><span class="hs-comment">-- marked as ready for use.</span><span>
+</span><span id="line-29"></span><span class="hs-comment">--</span><span>
+</span><span id="line-30"></span><span class="hs-comment">-- This function is thread-safe.</span><span>
+</span><span id="line-31"></span><span class="annot"><a href="Graphics.Vty.UnicodeWidthTable.Install.html#isCustomTableReady"><span class="hs-identifier hs-type">isCustomTableReady</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-32"></span><span id="isCustomTableReady"><span class="annot"><span class="annottext">isCustomTableReady :: IO Bool
+</span><a href="Graphics.Vty.UnicodeWidthTable.Install.html#isCustomTableReady"><span class="hs-identifier hs-var hs-var">isCustomTableReady</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IO Bool -&gt; IO Bool
+forall a. IO a -&gt; IO a
+</span><a href="Graphics.Vty.UnicodeWidthTable.Install.html#withInstallLock"><span class="hs-identifier hs-var">withInstallLock</span></a></span><span> </span><span class="annot"><span class="annottext">(IO Bool -&gt; IO Bool) -&gt; IO Bool -&gt; IO Bool
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Bool) -&gt; IO Int -&gt; IO Bool
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">IO Int
+</span><a href="Graphics.Vty.UnicodeWidthTable.Install.html#c_isCustomTableReady"><span class="hs-identifier hs-var">c_isCustomTableReady</span></a></span><span>
+</span><span id="line-33"></span><span>
+</span><span id="line-34"></span><span id="local-6989586621679369242"><span class="annot"><a href="Graphics.Vty.UnicodeWidthTable.Install.html#withInstallLock"><span class="hs-identifier hs-type">withInstallLock</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="annot"><a href="#local-6989586621679369242"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="annot"><a href="#local-6989586621679369242"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-35"></span><span id="withInstallLock"><span class="annot"><span class="annottext">withInstallLock :: IO a -&gt; IO a
+</span><a href="Graphics.Vty.UnicodeWidthTable.Install.html#withInstallLock"><span class="hs-identifier hs-var hs-var">withInstallLock</span></a></span></span><span> </span><span id="local-6989586621679369205"><span class="annot"><span class="annottext">IO a
+</span><a href="#local-6989586621679369205"><span class="hs-identifier hs-var">act</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">MVar () -&gt; (() -&gt; IO a) -&gt; IO a
+forall a b. MVar a -&gt; (a -&gt; IO b) -&gt; IO b
+</span><span class="hs-identifier hs-var">withMVar</span></span><span> </span><span class="annot"><span class="annottext">MVar ()
+</span><a href="Graphics.Vty.UnicodeWidthTable.Install.html#installLock"><span class="hs-identifier hs-var">installLock</span></a></span><span> </span><span class="annot"><span class="annottext">((() -&gt; IO a) -&gt; IO a) -&gt; (() -&gt; IO a) -&gt; IO a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">IO a -&gt; () -&gt; IO a
+forall a b. a -&gt; b -&gt; a
+</span><span class="hs-identifier hs-var">const</span></span><span> </span><span class="annot"><span class="annottext">IO a
+</span><a href="#local-6989586621679369205"><span class="hs-identifier hs-var">act</span></a></span><span>
+</span><span id="line-36"></span><span>
+</span><span id="line-37"></span><span class="hs-comment">-- This is the size of the allocated custom character width table, in</span><span>
+</span><span id="line-38"></span><span class="hs-comment">-- character slots. It's important that this be large enough to hold all</span><span>
+</span><span id="line-39"></span><span class="hs-comment">-- possible Unicode character values. At the time of this writing, the</span><span>
+</span><span id="line-40"></span><span class="hs-comment">-- valid Unicode range is 0 - 0x10ffff, hence this value.</span><span>
+</span><span id="line-41"></span><span class="annot"><a href="Graphics.Vty.UnicodeWidthTable.Install.html#tableSize"><span class="hs-identifier hs-type">tableSize</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-42"></span><span id="tableSize"><span class="annot"><span class="annottext">tableSize :: Int
+</span><a href="Graphics.Vty.UnicodeWidthTable.Install.html#tableSize"><span class="hs-identifier hs-var hs-var">tableSize</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0x110000</span></span><span>
+</span><span id="line-43"></span><span>
+</span><span id="line-44"></span><span class="hs-comment">-- | Exception type raised by 'installUnicodeWidthTable'.</span><span>
+</span><span id="line-45"></span><span class="hs-keyword">data</span><span> </span><span id="TableInstallException"><span class="annot"><a href="Graphics.Vty.UnicodeWidthTable.Install.html#TableInstallException"><span class="hs-identifier hs-var">TableInstallException</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-46"></span><span>    </span><span id="TableInitFailure"><span class="annot"><a href="Graphics.Vty.UnicodeWidthTable.Install.html#TableInitFailure"><span class="hs-identifier hs-var">TableInitFailure</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-47"></span><span>    </span><span class="hs-comment">-- ^ The width table could not be initialized. Args: failure status,</span><span>
+</span><span id="line-48"></span><span>    </span><span class="hs-comment">-- requested table size.</span><span>
+</span><span id="line-49"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span id="TableRangeFailure"><span class="annot"><a href="Graphics.Vty.UnicodeWidthTable.Install.html#TableRangeFailure"><span class="hs-identifier hs-var">TableRangeFailure</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="annot"><a href="Graphics.Vty.UnicodeWidthTable.Types.html#WidthTableRange"><span class="hs-identifier hs-type">WidthTableRange</span></a></span><span>
+</span><span id="line-50"></span><span>    </span><span class="hs-comment">-- ^ A code point range could not be configured. Args: failure</span><span>
+</span><span id="line-51"></span><span>    </span><span class="hs-comment">-- status, offending range.</span><span>
+</span><span id="line-52"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span id="TableActivationFailure"><span class="annot"><a href="Graphics.Vty.UnicodeWidthTable.Install.html#TableActivationFailure"><span class="hs-identifier hs-var">TableActivationFailure</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-53"></span><span>    </span><span class="hs-comment">-- ^ The table could not be activated. Args: failure status.</span><span>
+</span><span id="line-54"></span><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679369196"><span id="local-6989586621679369198"><span class="annot"><span class="annottext">TableInstallException -&gt; TableInstallException -&gt; Bool
+(TableInstallException -&gt; TableInstallException -&gt; Bool)
+-&gt; (TableInstallException -&gt; TableInstallException -&gt; Bool)
+-&gt; Eq TableInstallException
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: TableInstallException -&gt; TableInstallException -&gt; Bool
+$c/= :: TableInstallException -&gt; TableInstallException -&gt; Bool
+== :: TableInstallException -&gt; TableInstallException -&gt; Bool
+$c== :: TableInstallException -&gt; TableInstallException -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679369189"><span id="local-6989586621679369191"><span id="local-6989586621679369193"><span class="annot"><span class="annottext">Int -&gt; TableInstallException -&gt; ShowS
+[TableInstallException] -&gt; ShowS
+TableInstallException -&gt; String
+(Int -&gt; TableInstallException -&gt; ShowS)
+-&gt; (TableInstallException -&gt; String)
+-&gt; ([TableInstallException] -&gt; ShowS)
+-&gt; Show TableInstallException
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [TableInstallException] -&gt; ShowS
+$cshowList :: [TableInstallException] -&gt; ShowS
+show :: TableInstallException -&gt; String
+$cshow :: TableInstallException -&gt; String
+showsPrec :: Int -&gt; TableInstallException -&gt; ShowS
+$cshowsPrec :: Int -&gt; TableInstallException -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-55"></span><span>
+</span><span id="line-56"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679369180"><span id="local-6989586621679369182"><span id="local-6989586621679369184"><span class="annot"><span class="hs-identifier hs-type">E.Exception</span></span><span> </span><span class="annot"><a href="Graphics.Vty.UnicodeWidthTable.Install.html#TableInstallException"><span class="hs-identifier hs-type">TableInstallException</span></a></span></span></span></span><span>
+</span><span id="line-57"></span><span>
+</span><span id="line-58"></span><span class="hs-comment">-- | Install a custom unicode character width</span><span>
+</span><span id="line-59"></span><span class="hs-comment">-- table. Such tables are obtained with</span><span>
+</span><span id="line-60"></span><span class="hs-comment">-- 'Graphics.Vty.UnicodeWidthTable.Query.buildUnicodeWidthTable' and</span><span>
+</span><span id="line-61"></span><span class="hs-comment">-- 'Graphics.Vty.UnicodeWidthTable.IO.readUnicodeWidthTable'.</span><span>
+</span><span id="line-62"></span><span class="hs-comment">--</span><span>
+</span><span id="line-63"></span><span class="hs-comment">-- ALERT! This function is probably not what you want to use because</span><span>
+</span><span id="line-64"></span><span class="hs-comment">-- it is automatically called by 'Graphics.Vty.mkVty'. You will only</span><span>
+</span><span id="line-65"></span><span class="hs-comment">-- ever need to call this function if you want to use functions</span><span>
+</span><span id="line-66"></span><span class="hs-comment">-- in 'Graphics.Text.Width' without controlling the terminal with</span><span>
+</span><span id="line-67"></span><span class="hs-comment">-- 'Graphics.Vty.mkVty'.</span><span>
+</span><span id="line-68"></span><span class="hs-comment">--</span><span>
+</span><span id="line-69"></span><span class="hs-comment">-- This affects the behavior of the 'Graphics.Vty.Image.wcwidth'</span><span>
+</span><span id="line-70"></span><span class="hs-comment">-- function and functions that call it. It does so by</span><span>
+</span><span id="line-71"></span><span class="hs-comment">-- changing global state available to the C implementation</span><span>
+</span><span id="line-72"></span><span class="hs-comment">-- of 'Graphics.Vty.Image.wcwidth'. To ensure that your</span><span>
+</span><span id="line-73"></span><span class="hs-comment">-- program gets consistent results from evaluating calls to</span><span>
+</span><span id="line-74"></span><span class="hs-comment">-- 'Graphics.Vty.Image.wcwidth', the installation of a custom table</span><span>
+</span><span id="line-75"></span><span class="hs-comment">-- should be performed before you call 'Graphics.Vty.Image.wcwidth' in</span><span>
+</span><span id="line-76"></span><span class="hs-comment">-- your program.</span><span>
+</span><span id="line-77"></span><span class="hs-comment">--</span><span>
+</span><span id="line-78"></span><span class="hs-comment">-- This is best done at Vty startup, and if you use</span><span>
+</span><span id="line-79"></span><span class="hs-comment">-- 'Graphics.Vty.mkVty', that function calls this automatically based on</span><span>
+</span><span id="line-80"></span><span class="hs-comment">-- the Vty configuration's declared width tables. It is exposed as part</span><span>
+</span><span id="line-81"></span><span class="hs-comment">-- of the public API so that applications can call this as needed if</span><span>
+</span><span id="line-82"></span><span class="hs-comment">-- they don't want to control the terminal with 'mkVty' but do want to</span><span>
+</span><span id="line-83"></span><span class="hs-comment">-- make calls to 'Graphics.Vty.Image.wcwidth'.</span><span>
+</span><span id="line-84"></span><span class="hs-comment">--</span><span>
+</span><span id="line-85"></span><span class="hs-comment">-- It's also important to note that once a custom table has been</span><span>
+</span><span id="line-86"></span><span class="hs-comment">-- installed, it is permanent for the life of the process. No new table</span><span>
+</span><span id="line-87"></span><span class="hs-comment">-- can be installed, and the new custom table cannot be removed.</span><span>
+</span><span id="line-88"></span><span class="hs-comment">--</span><span>
+</span><span id="line-89"></span><span class="hs-comment">-- If this function fails for any reason -- if the table cannot be</span><span>
+</span><span id="line-90"></span><span class="hs-comment">-- installed or is invalid, or if a custom table already exists -- this</span><span>
+</span><span id="line-91"></span><span class="hs-comment">-- will raise a 'TableInstallException' exception.</span><span>
+</span><span id="line-92"></span><span class="hs-comment">--</span><span>
+</span><span id="line-93"></span><span class="hs-comment">-- This function is thread-safe.</span><span>
+</span><span id="line-94"></span><span class="annot"><a href="Graphics.Vty.UnicodeWidthTable.Install.html#installUnicodeWidthTable"><span class="hs-identifier hs-type">installUnicodeWidthTable</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.UnicodeWidthTable.Types.html#UnicodeWidthTable"><span class="hs-identifier hs-type">UnicodeWidthTable</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-95"></span><span id="installUnicodeWidthTable"><span class="annot"><span class="annottext">installUnicodeWidthTable :: UnicodeWidthTable -&gt; IO ()
+</span><a href="Graphics.Vty.UnicodeWidthTable.Install.html#installUnicodeWidthTable"><span class="hs-identifier hs-var hs-var">installUnicodeWidthTable</span></a></span></span><span> </span><span id="local-6989586621679369178"><span class="annot"><span class="annottext">UnicodeWidthTable
+</span><a href="#local-6989586621679369178"><span class="hs-identifier hs-var">table</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IO () -&gt; IO ()
+forall a. IO a -&gt; IO a
+</span><a href="Graphics.Vty.UnicodeWidthTable.Install.html#withInstallLock"><span class="hs-identifier hs-var">withInstallLock</span></a></span><span> </span><span class="annot"><span class="annottext">(IO () -&gt; IO ()) -&gt; IO () -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-96"></span><span>    </span><span id="local-6989586621679369177"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369177"><span class="hs-identifier hs-var">initResult</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Int -&gt; IO Int
+</span><a href="Graphics.Vty.UnicodeWidthTable.Install.html#initCustomTable"><span class="hs-identifier hs-var">initCustomTable</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="Graphics.Vty.UnicodeWidthTable.Install.html#tableSize"><span class="hs-identifier hs-var">tableSize</span></a></span><span>
+</span><span id="line-97"></span><span>    </span><span class="annot"><span class="annottext">Bool -&gt; IO () -&gt; IO ()
+forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
+</span><span class="hs-identifier hs-var">when</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369177"><span class="hs-identifier hs-var">initResult</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">/=</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(IO () -&gt; IO ()) -&gt; IO () -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-98"></span><span>        </span><span class="annot"><span class="annottext">TableInstallException -&gt; IO ()
+forall e a. Exception e =&gt; e -&gt; IO a
+</span><span class="hs-identifier hs-var">E.throwIO</span></span><span> </span><span class="annot"><span class="annottext">(TableInstallException -&gt; IO ()) -&gt; TableInstallException -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; TableInstallException
+</span><a href="Graphics.Vty.UnicodeWidthTable.Install.html#TableInitFailure"><span class="hs-identifier hs-var">TableInitFailure</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369177"><span class="hs-identifier hs-var">initResult</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="Graphics.Vty.UnicodeWidthTable.Install.html#tableSize"><span class="hs-identifier hs-var">tableSize</span></a></span><span>
+</span><span id="line-99"></span><span>
+</span><span id="line-100"></span><span>    </span><span class="annot"><span class="annottext">[WidthTableRange] -&gt; (WidthTableRange -&gt; IO ()) -&gt; IO ()
+forall (t :: * -&gt; *) (m :: * -&gt; *) a b.
+(Foldable t, Monad m) =&gt;
+t a -&gt; (a -&gt; m b) -&gt; m ()
+</span><span class="hs-identifier hs-var">forM_</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">UnicodeWidthTable -&gt; [WidthTableRange]
+</span><a href="Graphics.Vty.UnicodeWidthTable.Types.html#unicodeWidthTableRanges"><span class="hs-identifier hs-var hs-var">unicodeWidthTableRanges</span></a></span><span> </span><span class="annot"><span class="annottext">UnicodeWidthTable
+</span><a href="#local-6989586621679369178"><span class="hs-identifier hs-var">table</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">((WidthTableRange -&gt; IO ()) -&gt; IO ())
+-&gt; (WidthTableRange -&gt; IO ()) -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679369172"><span class="annot"><span class="annottext">WidthTableRange
+</span><a href="#local-6989586621679369172"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-101"></span><span>        </span><span id="local-6989586621679369171"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369171"><span class="hs-identifier hs-var">result</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Word32 -&gt; Word32 -&gt; Word8 -&gt; IO Int
+</span><a href="Graphics.Vty.UnicodeWidthTable.Install.html#setCustomTableRange"><span class="hs-identifier hs-var">setCustomTableRange</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">WidthTableRange -&gt; Word32
+</span><a href="Graphics.Vty.UnicodeWidthTable.Types.html#rangeStart"><span class="hs-identifier hs-var hs-var">rangeStart</span></a></span><span> </span><span class="annot"><span class="annottext">WidthTableRange
+</span><a href="#local-6989586621679369172"><span class="hs-identifier hs-var">r</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-102"></span><span>                                      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">WidthTableRange -&gt; Word32
+</span><a href="Graphics.Vty.UnicodeWidthTable.Types.html#rangeSize"><span class="hs-identifier hs-var hs-var">rangeSize</span></a></span><span> </span><span class="annot"><span class="annottext">WidthTableRange
+</span><a href="#local-6989586621679369172"><span class="hs-identifier hs-var">r</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-103"></span><span>                                      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">WidthTableRange -&gt; Word8
+</span><a href="Graphics.Vty.UnicodeWidthTable.Types.html#rangeColumns"><span class="hs-identifier hs-var hs-var">rangeColumns</span></a></span><span> </span><span class="annot"><span class="annottext">WidthTableRange
+</span><a href="#local-6989586621679369172"><span class="hs-identifier hs-var">r</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-104"></span><span>
+</span><span id="line-105"></span><span>        </span><span class="annot"><span class="annottext">Bool -&gt; IO () -&gt; IO ()
+forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
+</span><span class="hs-identifier hs-var">when</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369171"><span class="hs-identifier hs-var">result</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">/=</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(IO () -&gt; IO ()) -&gt; IO () -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-106"></span><span>            </span><span class="annot"><span class="annottext">IO ()
+</span><a href="Graphics.Vty.UnicodeWidthTable.Install.html#deallocateCustomTable"><span class="hs-identifier hs-var">deallocateCustomTable</span></a></span><span>
+</span><span id="line-107"></span><span>            </span><span class="annot"><span class="annottext">TableInstallException -&gt; IO ()
+forall e a. Exception e =&gt; e -&gt; IO a
+</span><span class="hs-identifier hs-var">E.throwIO</span></span><span> </span><span class="annot"><span class="annottext">(TableInstallException -&gt; IO ()) -&gt; TableInstallException -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; WidthTableRange -&gt; TableInstallException
+</span><a href="Graphics.Vty.UnicodeWidthTable.Install.html#TableRangeFailure"><span class="hs-identifier hs-var">TableRangeFailure</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369171"><span class="hs-identifier hs-var">result</span></a></span><span> </span><span class="annot"><span class="annottext">WidthTableRange
+</span><a href="#local-6989586621679369172"><span class="hs-identifier hs-var">r</span></a></span><span>
+</span><span id="line-108"></span><span>
+</span><span id="line-109"></span><span>    </span><span id="local-6989586621679369165"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369165"><span class="hs-identifier hs-var">actResult</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">IO Int
+</span><a href="Graphics.Vty.UnicodeWidthTable.Install.html#activateCustomTable"><span class="hs-identifier hs-var">activateCustomTable</span></a></span><span>
+</span><span id="line-110"></span><span>    </span><span class="annot"><span class="annottext">Bool -&gt; IO () -&gt; IO ()
+forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
+</span><span class="hs-identifier hs-var">when</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369165"><span class="hs-identifier hs-var">actResult</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">/=</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(IO () -&gt; IO ()) -&gt; IO () -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-111"></span><span>        </span><span class="annot"><span class="annottext">TableInstallException -&gt; IO ()
+forall e a. Exception e =&gt; e -&gt; IO a
+</span><span class="hs-identifier hs-var">E.throwIO</span></span><span> </span><span class="annot"><span class="annottext">(TableInstallException -&gt; IO ()) -&gt; TableInstallException -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; TableInstallException
+</span><a href="Graphics.Vty.UnicodeWidthTable.Install.html#TableActivationFailure"><span class="hs-identifier hs-var">TableActivationFailure</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369165"><span class="hs-identifier hs-var">actResult</span></a></span><span>
+</span><span id="line-112"></span><span>
+</span><span id="line-113"></span><span class="hs-comment">------------------------------------------------------------------------</span><span>
+</span><span id="line-114"></span><span class="hs-comment">-- C imports</span><span>
+</span><span id="line-115"></span><span>
+</span><span id="line-116"></span><span class="hs-keyword">foreign</span><span> </span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-keyword">ccall</span></span><span> </span><span class="annot"><span class="hs-keyword">unsafe</span></span><span> </span><span class="annot"><span class="hs-string">&quot;vty_init_custom_table&quot;</span></span><span>
+</span><span id="line-117"></span><span>    </span><span id="initCustomTable"><span class="annot"><a href="Graphics.Vty.UnicodeWidthTable.Install.html#initCustomTable"><span class="hs-identifier hs-var">initCustomTable</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-118"></span><span>
+</span><span id="line-119"></span><span class="hs-keyword">foreign</span><span> </span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-keyword">ccall</span></span><span> </span><span class="annot"><span class="hs-keyword">unsafe</span></span><span> </span><span class="annot"><span class="hs-string">&quot;vty_set_custom_table_range&quot;</span></span><span>
+</span><span id="line-120"></span><span>    </span><span id="setCustomTableRange"><span class="annot"><a href="Graphics.Vty.UnicodeWidthTable.Install.html#setCustomTableRange"><span class="hs-identifier hs-var">setCustomTableRange</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word32</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word32</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Word8</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-121"></span><span>
+</span><span id="line-122"></span><span class="hs-keyword">foreign</span><span> </span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-keyword">ccall</span></span><span> </span><span class="annot"><span class="hs-keyword">unsafe</span></span><span> </span><span class="annot"><span class="hs-string">&quot;vty_activate_custom_table&quot;</span></span><span>
+</span><span id="line-123"></span><span>    </span><span id="activateCustomTable"><span class="annot"><a href="Graphics.Vty.UnicodeWidthTable.Install.html#activateCustomTable"><span class="hs-identifier hs-var">activateCustomTable</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-124"></span><span>
+</span><span id="line-125"></span><span class="hs-keyword">foreign</span><span> </span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-keyword">ccall</span></span><span> </span><span class="annot"><span class="hs-keyword">unsafe</span></span><span> </span><span class="annot"><span class="hs-string">&quot;vty_custom_table_ready&quot;</span></span><span>
+</span><span id="line-126"></span><span>    </span><span id="c_isCustomTableReady"><span class="annot"><a href="Graphics.Vty.UnicodeWidthTable.Install.html#c_isCustomTableReady"><span class="hs-identifier hs-var">c_isCustomTableReady</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-127"></span><span>
+</span><span id="line-128"></span><span class="hs-keyword">foreign</span><span> </span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-keyword">ccall</span></span><span> </span><span class="annot"><span class="hs-keyword">unsafe</span></span><span> </span><span class="annot"><span class="hs-string">&quot;vty_deallocate_custom_table&quot;</span></span><span>
+</span><span id="line-129"></span><span>    </span><span id="deallocateCustomTable"><span class="annot"><a href="Graphics.Vty.UnicodeWidthTable.Install.html#deallocateCustomTable"><span class="hs-identifier hs-var">deallocateCustomTable</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-130"></span></pre></body></html>

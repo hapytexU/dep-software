@@ -1,0 +1,690 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span id="%24con2tag_5Ot7DltoWgU9Tdw1T2CcW1"><span id="%24maxtag_5Ot7DltoWgU9Tdw1T2CcW1"><span id="%24tag2con_5Ot7DltoWgU9Tdw1T2CcW1"></span></span></span><span class="hs-pragma">{-# LANGUAGE DeriveDataTypeable, DeriveGeneric, FlexibleContexts, Safe, TemplateHaskellQuotes #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-comment">{-|
+Module      : Dep.Data.ThreeValue
+Description : A module to define three-value logic.
+Maintainer  : hapytexeu+gh@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+A module that defines three-value logic, for example used in thruth tables, Karnaugh cards, etc.
+-}</span><span>
+</span><span id="line-12"></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Dep.Data.ThreeValue</span><span> </span><span class="hs-special">(</span><span>
+</span><span id="line-14"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Define three-value logic</span></span><span>
+</span><span id="line-15"></span><span>    </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier">ThreeValue</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.ThreeValue.html#DontCare"><span class="hs-identifier">DontCare</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#Zero"><span class="hs-identifier">Zero</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#One"><span class="hs-identifier">One</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-16"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Catamorphisms</span></span><span>
+</span><span id="line-17"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#threeValue"><span class="hs-identifier">threeValue</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#toMaybeBool"><span class="hs-identifier">toMaybeBool</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#toChar"><span class="hs-identifier">toChar</span></a></span><span>
+</span><span id="line-18"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Convert to and from a 'ThreeValue'</span></span><span>
+</span><span id="line-19"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#fromBool"><span class="hs-identifier">fromBool</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#fromMaybeBool"><span class="hs-identifier">fromMaybeBool</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#toUpper"><span class="hs-identifier">toUpper</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#toLower"><span class="hs-identifier">toLower</span></a></span><span>
+</span><span id="line-20"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Operators on 'ThreeValue'</span></span><span>
+</span><span id="line-21"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Class.Opposite.html#opposite"><span class="hs-identifier">opposite</span></a></span><span>
+</span><span id="line-22"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Type aliasses</span></span><span>
+</span><span id="line-23"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValues"><span class="hs-identifier">ThreeValues</span></a></span><span>
+</span><span id="line-24"></span><span>    </span><span class="hs-comment">-- Parsing a ThreeValue and ThreeValues</span><span>
+</span><span id="line-25"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#parseThreeValue"><span class="hs-identifier">parseThreeValue</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#parseThreeValues"><span class="hs-identifier">parseThreeValues</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#parseThreeValues1"><span class="hs-identifier">parseThreeValues1</span></a></span><span>
+</span><span id="line-26"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-27"></span><span>
+</span><span id="line-28"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Applicative</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-operator">(&lt;|&gt;)</span></span><span class="hs-special">)</span><span>
+</span><span id="line-29"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.DeepSeq</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">NFData</span></span><span class="hs-special">)</span><span>
+</span><span id="line-30"></span><span>
+</span><span id="line-31"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Bool</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">bool</span></span><span class="hs-special">)</span><span>
+</span><span id="line-32"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Binary</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Binary</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">put</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">get</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">getWord8</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">putWord8</span></span><span class="hs-special">)</span><span>
+</span><span id="line-33"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Data</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Data</span></span><span class="hs-special">)</span><span>
+</span><span id="line-34"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Default</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Default</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">def</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-35"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Hashable</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Hashable</span></span><span class="hs-special">)</span><span>
+</span><span id="line-36"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.List</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">find</span></span><span class="hs-special">)</span><span>
+</span><span id="line-37"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.List.NonEmpty</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">NonEmpty</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-operator">(:|)</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-38"></span><span>
+</span><span id="line-39"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Dep.Class.Mergeable.html"><span class="hs-identifier">Dep.Class.Mergeable</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Class.Mergeable.html#Mergeable"><span class="hs-identifier">Mergeable</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Class.Mergeable.html#merge"><span class="hs-identifier">merge</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-40"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Dep.Class.Opposite.html"><span class="hs-identifier">Dep.Class.Opposite</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Class.Opposite.html#Opposite"><span class="hs-identifier">Opposite</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Class.Opposite.html#opposite"><span class="hs-identifier">opposite</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-41"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Dep.Class.Renderable.html"><span class="hs-identifier">Dep.Class.Renderable</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Class.Renderable.html#Renderable"><span class="hs-identifier">Renderable</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Class.Renderable.html#CharRenderable"><span class="hs-identifier">CharRenderable</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Class.Renderable.html#charRenderItem"><span class="hs-identifier">charRenderItem</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-42"></span><span>
+</span><span id="line-43"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">GHC.Generics</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Generic</span></span><span class="hs-special">)</span><span>
+</span><span id="line-44"></span><span>
+</span><span id="line-45"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Language.Haskell.TH.Lib</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">conE</span></span><span class="hs-special">)</span><span>
+</span><span id="line-46"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Language.Haskell.TH.Syntax</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Lift</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">lift</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">liftTyped</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">TExp</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">TExp</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-47"></span><span>
+</span><span id="line-48"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Test.QuickCheck.Arbitrary</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Arbitrary</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">arbitrary</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">arbitraryBoundedEnum</span></span><span class="hs-special">)</span><span>
+</span><span id="line-49"></span><span>
+</span><span id="line-50"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Text.Parsec</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ParsecT</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">Stream</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">many</span></span><span class="hs-special">)</span><span>
+</span><span id="line-51"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Text.Parsec.Char</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">oneOf</span></span><span class="hs-special">)</span><span>
+</span><span id="line-52"></span><span>
+</span><span id="line-53"></span><span class="hs-comment">-- | A data type that is used if a value can present three logical values: /don't care/ (or don't know);</span><span>
+</span><span id="line-54"></span><span class="hs-comment">-- /zero/; and /one/.</span><span>
+</span><span id="line-55"></span><span id="local-6989586621679125409"><span id="local-6989586621679125410"></span></span><span class="hs-keyword">data</span><span> </span><span id="ThreeValue"><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-var">ThreeValue</span></a></span></span><span>
+</span><span id="line-56"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span id="Zero"><span class="annot"><a href="Dep.Data.ThreeValue.html#Zero"><span class="hs-identifier hs-var">Zero</span></a></span></span><span>  </span><span class="hs-comment">-- ^ The value is /zero/ or /false/.</span><span>
+</span><span id="line-57"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="One"><span class="annot"><a href="Dep.Data.ThreeValue.html#One"><span class="hs-identifier hs-var">One</span></a></span></span><span>  </span><span class="hs-comment">-- ^ The value is /one/ or /true/.</span><span>
+</span><span id="line-58"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="DontCare"><span class="annot"><a href="Dep.Data.ThreeValue.html#DontCare"><span class="hs-identifier hs-var">DontCare</span></a></span></span><span>  </span><span class="hs-comment">-- ^ We do not care or do not know the value.</span><span>
+</span><span id="line-59"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679125405"><span id="local-6989586621679125407"><span class="annot"><span class="annottext">ThreeValue
+ThreeValue -&gt; ThreeValue -&gt; Bounded ThreeValue
+forall a. a -&gt; a -&gt; Bounded a
+maxBound :: ThreeValue
+$cmaxBound :: ThreeValue
+minBound :: ThreeValue
+$cminBound :: ThreeValue
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Bounded</span></span></span></span><span class="hs-special">,</span><span> </span><span id="%24cDontCare"><span id="%24cOne"><span id="%24cZero"><span id="%24tThreeValue"><span id="local-6989586621679125375"><span id="local-6989586621679125377"><span id="local-6989586621679125379"><span id="local-6989586621679125381"><span id="local-6989586621679125383"><span id="local-6989586621679125385"><span id="local-6989586621679125387"><span id="local-6989586621679125389"><span id="local-6989586621679125391"><span id="local-6989586621679125393"><span id="local-6989586621679125395"><span id="local-6989586621679125397"><span id="local-6989586621679125399"><span id="local-6989586621679125401"><span class="annot"><span class="annottext">Typeable ThreeValue
+DataType
+Constr
+Typeable ThreeValue
+-&gt; (forall (c :: * -&gt; *).
+    (forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+    -&gt; (forall g. g -&gt; c g) -&gt; ThreeValue -&gt; c ThreeValue)
+-&gt; (forall (c :: * -&gt; *).
+    (forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+    -&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c ThreeValue)
+-&gt; (ThreeValue -&gt; Constr)
+-&gt; (ThreeValue -&gt; DataType)
+-&gt; (forall (t :: * -&gt; *) (c :: * -&gt; *).
+    Typeable t =&gt;
+    (forall d. Data d =&gt; c (t d)) -&gt; Maybe (c ThreeValue))
+-&gt; (forall (t :: * -&gt; * -&gt; *) (c :: * -&gt; *).
+    Typeable t =&gt;
+    (forall d e. (Data d, Data e) =&gt; c (t d e))
+    -&gt; Maybe (c ThreeValue))
+-&gt; ((forall b. Data b =&gt; b -&gt; b) -&gt; ThreeValue -&gt; ThreeValue)
+-&gt; (forall r r'.
+    (r -&gt; r' -&gt; r)
+    -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; ThreeValue -&gt; r)
+-&gt; (forall r r'.
+    (r' -&gt; r -&gt; r)
+    -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; ThreeValue -&gt; r)
+-&gt; (forall u. (forall d. Data d =&gt; d -&gt; u) -&gt; ThreeValue -&gt; [u])
+-&gt; (forall u.
+    Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; ThreeValue -&gt; u)
+-&gt; (forall (m :: * -&gt; *).
+    Monad m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; ThreeValue -&gt; m ThreeValue)
+-&gt; (forall (m :: * -&gt; *).
+    MonadPlus m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; ThreeValue -&gt; m ThreeValue)
+-&gt; (forall (m :: * -&gt; *).
+    MonadPlus m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; ThreeValue -&gt; m ThreeValue)
+-&gt; Data ThreeValue
+ThreeValue -&gt; DataType
+ThreeValue -&gt; Constr
+(forall b. Data b =&gt; b -&gt; b) -&gt; ThreeValue -&gt; ThreeValue
+(forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+-&gt; (forall g. g -&gt; c g) -&gt; ThreeValue -&gt; c ThreeValue
+(forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+-&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c ThreeValue
+forall a.
+Typeable a
+-&gt; (forall (c :: * -&gt; *).
+    (forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+    -&gt; (forall g. g -&gt; c g) -&gt; a -&gt; c a)
+-&gt; (forall (c :: * -&gt; *).
+    (forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+    -&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c a)
+-&gt; (a -&gt; Constr)
+-&gt; (a -&gt; DataType)
+-&gt; (forall (t :: * -&gt; *) (c :: * -&gt; *).
+    Typeable t =&gt;
+    (forall d. Data d =&gt; c (t d)) -&gt; Maybe (c a))
+-&gt; (forall (t :: * -&gt; * -&gt; *) (c :: * -&gt; *).
+    Typeable t =&gt;
+    (forall d e. (Data d, Data e) =&gt; c (t d e)) -&gt; Maybe (c a))
+-&gt; ((forall b. Data b =&gt; b -&gt; b) -&gt; a -&gt; a)
+-&gt; (forall r r'.
+    (r -&gt; r' -&gt; r) -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; a -&gt; r)
+-&gt; (forall r r'.
+    (r' -&gt; r -&gt; r) -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; a -&gt; r)
+-&gt; (forall u. (forall d. Data d =&gt; d -&gt; u) -&gt; a -&gt; [u])
+-&gt; (forall u. Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; a -&gt; u)
+-&gt; (forall (m :: * -&gt; *).
+    Monad m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; a -&gt; m a)
+-&gt; (forall (m :: * -&gt; *).
+    MonadPlus m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; a -&gt; m a)
+-&gt; (forall (m :: * -&gt; *).
+    MonadPlus m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; a -&gt; m a)
+-&gt; Data a
+forall u. Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; ThreeValue -&gt; u
+forall u. (forall d. Data d =&gt; d -&gt; u) -&gt; ThreeValue -&gt; [u]
+forall r r'.
+(r -&gt; r' -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; ThreeValue -&gt; r
+forall r r'.
+(r' -&gt; r -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; ThreeValue -&gt; r
+forall (m :: * -&gt; *).
+Monad m =&gt;
+(forall d. Data d =&gt; d -&gt; m d) -&gt; ThreeValue -&gt; m ThreeValue
+forall (m :: * -&gt; *).
+MonadPlus m =&gt;
+(forall d. Data d =&gt; d -&gt; m d) -&gt; ThreeValue -&gt; m ThreeValue
+forall (c :: * -&gt; *).
+(forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+-&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c ThreeValue
+forall (c :: * -&gt; *).
+(forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+-&gt; (forall g. g -&gt; c g) -&gt; ThreeValue -&gt; c ThreeValue
+forall (t :: * -&gt; *) (c :: * -&gt; *).
+Typeable t =&gt;
+(forall d. Data d =&gt; c (t d)) -&gt; Maybe (c ThreeValue)
+forall (t :: * -&gt; * -&gt; *) (c :: * -&gt; *).
+Typeable t =&gt;
+(forall d e. (Data d, Data e) =&gt; c (t d e)) -&gt; Maybe (c ThreeValue)
+$cDontCare :: Constr
+$cOne :: Constr
+$cZero :: Constr
+$tThreeValue :: DataType
+gmapMo :: (forall d. Data d =&gt; d -&gt; m d) -&gt; ThreeValue -&gt; m ThreeValue
+$cgmapMo :: forall (m :: * -&gt; *).
+MonadPlus m =&gt;
+(forall d. Data d =&gt; d -&gt; m d) -&gt; ThreeValue -&gt; m ThreeValue
+gmapMp :: (forall d. Data d =&gt; d -&gt; m d) -&gt; ThreeValue -&gt; m ThreeValue
+$cgmapMp :: forall (m :: * -&gt; *).
+MonadPlus m =&gt;
+(forall d. Data d =&gt; d -&gt; m d) -&gt; ThreeValue -&gt; m ThreeValue
+gmapM :: (forall d. Data d =&gt; d -&gt; m d) -&gt; ThreeValue -&gt; m ThreeValue
+$cgmapM :: forall (m :: * -&gt; *).
+Monad m =&gt;
+(forall d. Data d =&gt; d -&gt; m d) -&gt; ThreeValue -&gt; m ThreeValue
+gmapQi :: Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; ThreeValue -&gt; u
+$cgmapQi :: forall u. Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; ThreeValue -&gt; u
+gmapQ :: (forall d. Data d =&gt; d -&gt; u) -&gt; ThreeValue -&gt; [u]
+$cgmapQ :: forall u. (forall d. Data d =&gt; d -&gt; u) -&gt; ThreeValue -&gt; [u]
+gmapQr :: (r' -&gt; r -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; ThreeValue -&gt; r
+$cgmapQr :: forall r r'.
+(r' -&gt; r -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; ThreeValue -&gt; r
+gmapQl :: (r -&gt; r' -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; ThreeValue -&gt; r
+$cgmapQl :: forall r r'.
+(r -&gt; r' -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; ThreeValue -&gt; r
+gmapT :: (forall b. Data b =&gt; b -&gt; b) -&gt; ThreeValue -&gt; ThreeValue
+$cgmapT :: (forall b. Data b =&gt; b -&gt; b) -&gt; ThreeValue -&gt; ThreeValue
+dataCast2 :: (forall d e. (Data d, Data e) =&gt; c (t d e)) -&gt; Maybe (c ThreeValue)
+$cdataCast2 :: forall (t :: * -&gt; * -&gt; *) (c :: * -&gt; *).
+Typeable t =&gt;
+(forall d e. (Data d, Data e) =&gt; c (t d e)) -&gt; Maybe (c ThreeValue)
+dataCast1 :: (forall d. Data d =&gt; c (t d)) -&gt; Maybe (c ThreeValue)
+$cdataCast1 :: forall (t :: * -&gt; *) (c :: * -&gt; *).
+Typeable t =&gt;
+(forall d. Data d =&gt; c (t d)) -&gt; Maybe (c ThreeValue)
+dataTypeOf :: ThreeValue -&gt; DataType
+$cdataTypeOf :: ThreeValue -&gt; DataType
+toConstr :: ThreeValue -&gt; Constr
+$ctoConstr :: ThreeValue -&gt; Constr
+gunfold :: (forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+-&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c ThreeValue
+$cgunfold :: forall (c :: * -&gt; *).
+(forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+-&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c ThreeValue
+gfoldl :: (forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+-&gt; (forall g. g -&gt; c g) -&gt; ThreeValue -&gt; c ThreeValue
+$cgfoldl :: forall (c :: * -&gt; *).
+(forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+-&gt; (forall g. g -&gt; c g) -&gt; ThreeValue -&gt; c ThreeValue
+$cp1Data :: Typeable ThreeValue
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Data</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679125354"><span id="local-6989586621679125356"><span id="local-6989586621679125358"><span id="local-6989586621679125360"><span id="local-6989586621679125362"><span id="local-6989586621679125364"><span id="local-6989586621679125366"><span id="local-6989586621679125368"><span class="annot"><span class="annottext">Int -&gt; ThreeValue
+ThreeValue -&gt; Int
+ThreeValue -&gt; [ThreeValue]
+ThreeValue -&gt; ThreeValue
+ThreeValue -&gt; ThreeValue -&gt; [ThreeValue]
+ThreeValue -&gt; ThreeValue -&gt; ThreeValue -&gt; [ThreeValue]
+(ThreeValue -&gt; ThreeValue)
+-&gt; (ThreeValue -&gt; ThreeValue)
+-&gt; (Int -&gt; ThreeValue)
+-&gt; (ThreeValue -&gt; Int)
+-&gt; (ThreeValue -&gt; [ThreeValue])
+-&gt; (ThreeValue -&gt; ThreeValue -&gt; [ThreeValue])
+-&gt; (ThreeValue -&gt; ThreeValue -&gt; [ThreeValue])
+-&gt; (ThreeValue -&gt; ThreeValue -&gt; ThreeValue -&gt; [ThreeValue])
+-&gt; Enum ThreeValue
+forall a.
+(a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (Int -&gt; a)
+-&gt; (a -&gt; Int)
+-&gt; (a -&gt; [a])
+-&gt; (a -&gt; a -&gt; [a])
+-&gt; (a -&gt; a -&gt; [a])
+-&gt; (a -&gt; a -&gt; a -&gt; [a])
+-&gt; Enum a
+enumFromThenTo :: ThreeValue -&gt; ThreeValue -&gt; ThreeValue -&gt; [ThreeValue]
+$cenumFromThenTo :: ThreeValue -&gt; ThreeValue -&gt; ThreeValue -&gt; [ThreeValue]
+enumFromTo :: ThreeValue -&gt; ThreeValue -&gt; [ThreeValue]
+$cenumFromTo :: ThreeValue -&gt; ThreeValue -&gt; [ThreeValue]
+enumFromThen :: ThreeValue -&gt; ThreeValue -&gt; [ThreeValue]
+$cenumFromThen :: ThreeValue -&gt; ThreeValue -&gt; [ThreeValue]
+enumFrom :: ThreeValue -&gt; [ThreeValue]
+$cenumFrom :: ThreeValue -&gt; [ThreeValue]
+fromEnum :: ThreeValue -&gt; Int
+$cfromEnum :: ThreeValue -&gt; Int
+toEnum :: Int -&gt; ThreeValue
+$ctoEnum :: Int -&gt; ThreeValue
+pred :: ThreeValue -&gt; ThreeValue
+$cpred :: ThreeValue -&gt; ThreeValue
+succ :: ThreeValue -&gt; ThreeValue
+$csucc :: ThreeValue -&gt; ThreeValue
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Enum</span></span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679125349"><span id="local-6989586621679125351"><span class="annot"><span class="annottext">ThreeValue -&gt; ThreeValue -&gt; Bool
+(ThreeValue -&gt; ThreeValue -&gt; Bool)
+-&gt; (ThreeValue -&gt; ThreeValue -&gt; Bool) -&gt; Eq ThreeValue
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: ThreeValue -&gt; ThreeValue -&gt; Bool
+$c/= :: ThreeValue -&gt; ThreeValue -&gt; Bool
+== :: ThreeValue -&gt; ThreeValue -&gt; Bool
+$c== :: ThreeValue -&gt; ThreeValue -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(forall x. ThreeValue -&gt; Rep ThreeValue x)
+-&gt; (forall x. Rep ThreeValue x -&gt; ThreeValue) -&gt; Generic ThreeValue
+forall x. Rep ThreeValue x -&gt; ThreeValue
+forall x. ThreeValue -&gt; Rep ThreeValue x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+$cto :: forall x. Rep ThreeValue x -&gt; ThreeValue
+$cfrom :: forall x. ThreeValue -&gt; Rep ThreeValue x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679125330"><span id="local-6989586621679125332"><span id="local-6989586621679125334"><span id="local-6989586621679125336"><span id="local-6989586621679125338"><span id="local-6989586621679125340"><span id="local-6989586621679125342"><span class="annot"><span class="annottext">Eq ThreeValue
+Eq ThreeValue
+-&gt; (ThreeValue -&gt; ThreeValue -&gt; Ordering)
+-&gt; (ThreeValue -&gt; ThreeValue -&gt; Bool)
+-&gt; (ThreeValue -&gt; ThreeValue -&gt; Bool)
+-&gt; (ThreeValue -&gt; ThreeValue -&gt; Bool)
+-&gt; (ThreeValue -&gt; ThreeValue -&gt; Bool)
+-&gt; (ThreeValue -&gt; ThreeValue -&gt; ThreeValue)
+-&gt; (ThreeValue -&gt; ThreeValue -&gt; ThreeValue)
+-&gt; Ord ThreeValue
+ThreeValue -&gt; ThreeValue -&gt; Bool
+ThreeValue -&gt; ThreeValue -&gt; Ordering
+ThreeValue -&gt; ThreeValue -&gt; ThreeValue
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: ThreeValue -&gt; ThreeValue -&gt; ThreeValue
+$cmin :: ThreeValue -&gt; ThreeValue -&gt; ThreeValue
+max :: ThreeValue -&gt; ThreeValue -&gt; ThreeValue
+$cmax :: ThreeValue -&gt; ThreeValue -&gt; ThreeValue
+&gt;= :: ThreeValue -&gt; ThreeValue -&gt; Bool
+$c&gt;= :: ThreeValue -&gt; ThreeValue -&gt; Bool
+&gt; :: ThreeValue -&gt; ThreeValue -&gt; Bool
+$c&gt; :: ThreeValue -&gt; ThreeValue -&gt; Bool
+&lt;= :: ThreeValue -&gt; ThreeValue -&gt; Bool
+$c&lt;= :: ThreeValue -&gt; ThreeValue -&gt; Bool
+&lt; :: ThreeValue -&gt; ThreeValue -&gt; Bool
+$c&lt; :: ThreeValue -&gt; ThreeValue -&gt; Bool
+compare :: ThreeValue -&gt; ThreeValue -&gt; Ordering
+$ccompare :: ThreeValue -&gt; ThreeValue -&gt; Ordering
+$cp1Ord :: Eq ThreeValue
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679125321"><span id="local-6989586621679125323"><span id="local-6989586621679125325"><span id="local-6989586621679125327"><span class="annot"><span class="annottext">ReadPrec [ThreeValue]
+ReadPrec ThreeValue
+Int -&gt; ReadS ThreeValue
+ReadS [ThreeValue]
+(Int -&gt; ReadS ThreeValue)
+-&gt; ReadS [ThreeValue]
+-&gt; ReadPrec ThreeValue
+-&gt; ReadPrec [ThreeValue]
+-&gt; Read ThreeValue
+forall a.
+(Int -&gt; ReadS a)
+-&gt; ReadS [a] -&gt; ReadPrec a -&gt; ReadPrec [a] -&gt; Read a
+readListPrec :: ReadPrec [ThreeValue]
+$creadListPrec :: ReadPrec [ThreeValue]
+readPrec :: ReadPrec ThreeValue
+$creadPrec :: ReadPrec ThreeValue
+readList :: ReadS [ThreeValue]
+$creadList :: ReadS [ThreeValue]
+readsPrec :: Int -&gt; ReadS ThreeValue
+$creadsPrec :: Int -&gt; ReadS ThreeValue
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Read</span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679125314"><span id="local-6989586621679125316"><span id="local-6989586621679125318"><span class="annot"><span class="annottext">Int -&gt; ThreeValue -&gt; ShowS
+[ThreeValue] -&gt; ShowS
+ThreeValue -&gt; String
+(Int -&gt; ThreeValue -&gt; ShowS)
+-&gt; (ThreeValue -&gt; String)
+-&gt; ([ThreeValue] -&gt; ShowS)
+-&gt; Show ThreeValue
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [ThreeValue] -&gt; ShowS
+$cshowList :: [ThreeValue] -&gt; ShowS
+show :: ThreeValue -&gt; String
+$cshow :: ThreeValue -&gt; String
+showsPrec :: Int -&gt; ThreeValue -&gt; ShowS
+$cshowsPrec :: Int -&gt; ThreeValue -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-60"></span><span>
+</span><span id="line-61"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679125310"><span class="annot"><span class="hs-identifier hs-type">Arbitrary</span></span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-62"></span><span>  </span><span id="local-6989586621679125308"><span class="annot"><span class="annottext">arbitrary :: Gen ThreeValue
+</span><a href="#local-6989586621679125308"><span class="hs-identifier hs-var hs-var hs-var hs-var">arbitrary</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Gen ThreeValue
+forall a. (Bounded a, Enum a) =&gt; Gen a
+</span><span class="hs-identifier hs-var">arbitraryBoundedEnum</span></span><span>
+</span><span id="line-63"></span><span>
+</span><span id="line-64"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Dep.Class.Renderable.html#CharRenderable"><span class="hs-identifier hs-type">CharRenderable</span></a></span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-65"></span><span>  </span><span id="local-6989586621679125305"><span class="annot"><span class="annottext">charRenderItem :: ThreeValue -&gt; Char
+</span><a href="#local-6989586621679125305"><span class="hs-identifier hs-var hs-var hs-var hs-var">charRenderItem</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Char -&gt; Char -&gt; ThreeValue -&gt; Char
+forall a. a -&gt; a -&gt; a -&gt; ThreeValue -&gt; a
+</span><a href="Dep.Data.ThreeValue.html#threeValue"><span class="hs-identifier hs-var">threeValue</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'-'</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'0'</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'1'</span></span><span>
+</span><span id="line-66"></span><span>
+</span><span id="line-67"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Default</span></span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-68"></span><span>  </span><span id="local-6989586621679125302"><span class="annot"><span class="annottext">def :: ThreeValue
+</span><a href="#local-6989586621679125302"><span class="hs-identifier hs-var hs-var hs-var hs-var">def</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#DontCare"><span class="hs-identifier hs-var">DontCare</span></a></span><span>
+</span><span id="line-69"></span><span>
+</span><span id="line-70"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679125298"><span id="local-6989586621679125300"><span class="annot"><span class="hs-identifier hs-type">Hashable</span></span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span></span></span><span>
+</span><span id="line-71"></span><span>
+</span><span id="line-72"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Lift</span></span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-73"></span><span>  </span><span id="local-6989586621679125293"><span class="annot"><span class="annottext">liftTyped :: ThreeValue -&gt; Q (TExp ThreeValue)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">liftTyped</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Exp -&gt; TExp ThreeValue) -&gt; Q Exp -&gt; Q (TExp ThreeValue)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="annot"><span class="annottext">Exp -&gt; TExp ThreeValue
+forall a. Exp -&gt; TExp a
+</span><span class="hs-identifier hs-var">TExp</span></span><span> </span><span class="annot"><span class="annottext">(Q Exp -&gt; Q (TExp ThreeValue))
+-&gt; (ThreeValue -&gt; Q Exp) -&gt; ThreeValue -&gt; Q (TExp ThreeValue)
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">ThreeValue -&gt; Q Exp
+forall t. Lift t =&gt; t -&gt; Q Exp
+</span><span class="hs-identifier hs-var">lift</span></span><span>
+</span><span id="line-74"></span><span>  </span><span id="local-6989586621679125291"><span class="annot"><span class="annottext">lift :: ThreeValue -&gt; Q Exp
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">lift</span></span></span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#Zero"><span class="hs-identifier hs-var">Zero</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Name -&gt; Q Exp
+</span><span class="hs-identifier hs-var">conE</span></span><span> </span><span class="hs-special">'</span><span class="hs-identifier">Zero</span><span>
+</span><span id="line-75"></span><span>  </span><span class="annot"><span class="hs-identifier hs-var">lift</span></span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#One"><span class="hs-identifier hs-var">One</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Name -&gt; Q Exp
+</span><span class="hs-identifier hs-var">conE</span></span><span> </span><span class="hs-special">'</span><span class="hs-identifier">One</span><span>
+</span><span id="line-76"></span><span>  </span><span class="annot"><span class="hs-identifier hs-var">lift</span></span><span> </span><span class="hs-glyph">~</span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#DontCare"><span class="hs-identifier hs-var">DontCare</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Name -&gt; Q Exp
+</span><span class="hs-identifier hs-var">conE</span></span><span> </span><span class="hs-special">'</span><span class="hs-identifier">DontCare</span><span>
+</span><span id="line-77"></span><span>
+</span><span id="line-78"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Dep.Class.Mergeable.html#Mergeable"><span class="hs-identifier hs-type">Mergeable</span></a></span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-79"></span><span>  </span><span id="local-6989586621679125288"><span class="annot"><span class="annottext">merge :: ThreeValue -&gt; ThreeValue -&gt; Maybe ThreeValue
+</span><a href="#local-6989586621679125288"><span class="hs-identifier hs-var hs-var hs-var hs-var">merge</span></a></span></span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#DontCare"><span class="hs-identifier hs-var">DontCare</span></a></span><span> </span><span id="local-6989586621679125287"><span class="annot"><span class="annottext">ThreeValue
+</span><a href="#local-6989586621679125287"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ThreeValue -&gt; Maybe ThreeValue
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="#local-6989586621679125287"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-80"></span><span>  </span><span class="annot"><a href="Dep.Class.Mergeable.html#merge"><span class="hs-identifier hs-var">merge</span></a></span><span> </span><span id="local-6989586621679125286"><span class="annot"><span class="annottext">ThreeValue
+</span><a href="#local-6989586621679125286"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#DontCare"><span class="hs-identifier hs-var">DontCare</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ThreeValue -&gt; Maybe ThreeValue
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="#local-6989586621679125286"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-81"></span><span>  </span><span class="annot"><a href="Dep.Class.Mergeable.html#merge"><span class="hs-identifier hs-var">merge</span></a></span><span> </span><span id="local-6989586621679125285"><span class="annot"><span class="annottext">ThreeValue
+</span><a href="#local-6989586621679125285"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span id="local-6989586621679125284"><span class="annot"><span class="annottext">ThreeValue
+</span><a href="#local-6989586621679125284"><span class="hs-identifier hs-var">y</span></a></span></span><span>
+</span><span id="line-82"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="#local-6989586621679125285"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">ThreeValue -&gt; ThreeValue -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="#local-6989586621679125284"><span class="hs-identifier hs-var">y</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ThreeValue -&gt; Maybe ThreeValue
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="#local-6989586621679125285"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-83"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe ThreeValue
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-84"></span><span>
+</span><span id="line-85"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679125280"><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-86"></span><span>  </span><span id="local-6989586621679125277"><span class="annot"><span class="annottext">mempty :: ThreeValue
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">mempty</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#DontCare"><span class="hs-identifier hs-var">DontCare</span></a></span><span>
+</span><span id="line-87"></span><span>  </span><span id="local-6989586621679125276"><span class="annot"><span class="annottext">mconcat :: [ThreeValue] -&gt; ThreeValue
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">mconcat</span></span></span><span> </span><span id="local-6989586621679125275"><span class="annot"><span class="annottext">[ThreeValue]
+</span><a href="#local-6989586621679125275"><span class="hs-identifier hs-var">xs</span></a></span></span><span>
+</span><span id="line-88"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679125274"><span class="annot"><span class="annottext">ThreeValue
+</span><a href="#local-6989586621679125274"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(ThreeValue -&gt; Bool) -&gt; [ThreeValue] -&gt; Maybe ThreeValue
+forall (t :: * -&gt; *) a. Foldable t =&gt; (a -&gt; Bool) -&gt; t a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">find</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#DontCare"><span class="hs-identifier hs-var">DontCare</span></a></span><span> </span><span class="annot"><span class="annottext">ThreeValue -&gt; ThreeValue -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">/=</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[ThreeValue]
+</span><a href="#local-6989586621679125275"><span class="hs-identifier hs-var">xs</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="#local-6989586621679125274"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-89"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#DontCare"><span class="hs-identifier hs-var">DontCare</span></a></span><span>
+</span><span id="line-90"></span><span>
+</span><span id="line-91"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679125271"><span class="annot"><span class="hs-identifier hs-type">NFData</span></span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span></span><span>
+</span><span id="line-92"></span><span>
+</span><span id="line-93"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Dep.Class.Opposite.html#Opposite"><span class="hs-identifier hs-type">Opposite</span></a></span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-94"></span><span>  </span><span id="local-6989586621679125267"><span class="annot"><span class="annottext">opposite :: ThreeValue -&gt; ThreeValue
+</span><a href="#local-6989586621679125267"><span class="hs-identifier hs-var hs-var hs-var hs-var">opposite</span></a></span></span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#Zero"><span class="hs-identifier hs-var">Zero</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#One"><span class="hs-identifier hs-var">One</span></a></span><span>
+</span><span id="line-95"></span><span>  </span><span class="annot"><a href="Dep.Class.Opposite.html#opposite"><span class="hs-identifier hs-var">opposite</span></a></span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#One"><span class="hs-identifier hs-var">One</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#Zero"><span class="hs-identifier hs-var">Zero</span></a></span><span>
+</span><span id="line-96"></span><span>  </span><span class="annot"><a href="Dep.Class.Opposite.html#opposite"><span class="hs-identifier hs-var">opposite</span></a></span><span> </span><span id="local-6989586621679125266"><span class="annot"><span class="annottext">ThreeValue
+</span><a href="#local-6989586621679125266"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="#local-6989586621679125266"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-97"></span><span>
+</span><span id="line-98"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679125264"><span class="annot"><a href="Dep.Class.Renderable.html#Renderable"><span class="hs-identifier hs-type">Renderable</span></a></span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span></span><span>
+</span><span id="line-99"></span><span>
+</span><span id="line-100"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679125258"><span id="local-6989586621679125260"><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-101"></span><span>  </span><span id="local-6989586621679125256"><span class="annot"><span class="annottext">&lt;&gt; :: ThreeValue -&gt; ThreeValue -&gt; ThreeValue
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">(&lt;&gt;)</span></span></span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#DontCare"><span class="hs-identifier hs-var">DontCare</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ThreeValue -&gt; ThreeValue
+forall a. a -&gt; a
+</span><span class="hs-identifier hs-var">id</span></span><span>
+</span><span id="line-102"></span><span>  </span><span class="annot"><span class="hs-operator hs-var">(&lt;&gt;)</span></span><span> </span><span id="local-6989586621679125254"><span class="annot"><span class="annottext">ThreeValue
+</span><a href="#local-6989586621679125254"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ThreeValue -&gt; ThreeValue -&gt; ThreeValue
+forall a b. a -&gt; b -&gt; a
+</span><span class="hs-identifier hs-var">const</span></span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="#local-6989586621679125254"><span class="hs-identifier hs-var">x</span></a></span><span>
+</span><span id="line-103"></span><span>
+</span><span id="line-104"></span><span class="hs-comment">-- | A function that maps 'One's and 'DontCare's to 'True's; and 'Zero's to 'False'.</span><span>
+</span><span id="line-105"></span><span class="annot"><a href="Dep.Data.ThreeValue.html#toUpper"><span class="hs-identifier hs-type">toUpper</span></a></span><span>
+</span><span id="line-106"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span><span> </span><span class="hs-comment">-- The given 'ThreeValue' to convert to a 'Bool'.</span><span>
+</span><span id="line-107"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>  </span><span class="hs-comment">-- A 'Bool' that is 'True' for 'One' and 'DontCare', and 'False' for 'Zero'.</span><span>
+</span><span id="line-108"></span><span id="toUpper"><span class="annot"><span class="annottext">toUpper :: ThreeValue -&gt; Bool
+</span><a href="Dep.Data.ThreeValue.html#toUpper"><span class="hs-identifier hs-var hs-var">toUpper</span></a></span></span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#Zero"><span class="hs-identifier hs-var">Zero</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span>
+</span><span id="line-109"></span><span class="annot"><a href="Dep.Data.ThreeValue.html#toUpper"><span class="hs-identifier hs-var">toUpper</span></a></span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span>
+</span><span id="line-110"></span><span>
+</span><span id="line-111"></span><span class="hs-comment">-- | A function that maps 'Zero's and 'DontCare's to 'False's; and 'One's to 'True'.</span><span>
+</span><span id="line-112"></span><span class="annot"><a href="Dep.Data.ThreeValue.html#toLower"><span class="hs-identifier hs-type">toLower</span></a></span><span>
+</span><span id="line-113"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span><span> </span><span class="hs-comment">-- The given 'ThreeValue' to convert to a 'Bool'.</span><span>
+</span><span id="line-114"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>  </span><span class="hs-comment">-- A 'Bool' that is 'True' for 'One', and 'False' for 'Zero' and 'DontCare'.</span><span>
+</span><span id="line-115"></span><span id="toLower"><span class="annot"><span class="annottext">toLower :: ThreeValue -&gt; Bool
+</span><a href="Dep.Data.ThreeValue.html#toLower"><span class="hs-identifier hs-var hs-var">toLower</span></a></span></span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#One"><span class="hs-identifier hs-var">One</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span>
+</span><span id="line-116"></span><span class="annot"><a href="Dep.Data.ThreeValue.html#toLower"><span class="hs-identifier hs-var">toLower</span></a></span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span>
+</span><span id="line-117"></span><span>
+</span><span id="line-118"></span><span class="hs-comment">-- | Convert the given 'ThreeValue' object to the corresponding value.</span><span>
+</span><span id="line-119"></span><span class="hs-comment">-- This acts as a /catamorphism/ for the 'ThreeValue' type.</span><span>
+</span><span id="line-120"></span><span id="local-6989586621679125524"><span class="annot"><a href="Dep.Data.ThreeValue.html#threeValue"><span class="hs-identifier hs-type">threeValue</span></a></span><span>
+</span><span id="line-121"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679125524"><span class="hs-identifier hs-type">a</span></a></span><span>  </span><span class="hs-comment">-- ^ The value for 'DontCare'.</span><span>
+</span><span id="line-122"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679125524"><span class="hs-identifier hs-type">a</span></a></span><span>  </span><span class="hs-comment">-- ^ The value for 'Zero'.</span><span>
+</span><span id="line-123"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679125524"><span class="hs-identifier hs-type">a</span></a></span><span>  </span><span class="hs-comment">-- ^ The value for 'One'.</span><span>
+</span><span id="line-124"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span><span>  </span><span class="hs-comment">-- ^ The value to convert to one of the given values.</span><span>
+</span><span id="line-125"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679125524"><span class="hs-identifier hs-type">a</span></a></span><span>  </span><span class="hs-comment">-- ^ The corresponding value.</span></span><span>
+</span><span id="line-126"></span><span id="threeValue"><span class="annot"><span class="annottext">threeValue :: a -&gt; a -&gt; a -&gt; ThreeValue -&gt; a
+</span><a href="Dep.Data.ThreeValue.html#threeValue"><span class="hs-identifier hs-var hs-var">threeValue</span></a></span></span><span> </span><span id="local-6989586621679125252"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125252"><span class="hs-identifier hs-var">d</span></a></span></span><span> </span><span id="local-6989586621679125251"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125251"><span class="hs-identifier hs-var">z</span></a></span></span><span> </span><span id="local-6989586621679125250"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125250"><span class="hs-identifier hs-var">o</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ThreeValue -&gt; a
+</span><a href="#local-6989586621679125249"><span class="hs-identifier hs-var">go</span></a></span><span>
+</span><span id="line-127"></span><span>  </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679125249"><span class="annot"><span class="annottext">go :: ThreeValue -&gt; a
+</span><a href="#local-6989586621679125249"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#DontCare"><span class="hs-identifier hs-var">DontCare</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125252"><span class="hs-identifier hs-var">d</span></a></span><span>
+</span><span id="line-128"></span><span>        </span><span class="annot"><a href="#local-6989586621679125249"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#Zero"><span class="hs-identifier hs-var">Zero</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125251"><span class="hs-identifier hs-var">z</span></a></span><span>
+</span><span id="line-129"></span><span>        </span><span class="annot"><a href="#local-6989586621679125249"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-glyph">~</span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#One"><span class="hs-identifier hs-var">One</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679125250"><span class="hs-identifier hs-var">o</span></a></span><span>
+</span><span id="line-130"></span><span>
+</span><span id="line-131"></span><span class="hs-comment">-- | Convert 'True' and 'False' to 'Zero' and 'One' respectively.</span><span>
+</span><span id="line-132"></span><span class="annot"><a href="Dep.Data.ThreeValue.html#fromBool"><span class="hs-identifier hs-type">fromBool</span></a></span><span>
+</span><span id="line-133"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>  </span><span class="hs-comment">-- ^ The given 'Bool' to convert tot a 'ThreeValue'.</span><span>
+</span><span id="line-134"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span><span>  </span><span class="hs-comment">-- ^ The corresponding 'ThreeValue' object.</span><span>
+</span><span id="line-135"></span><span id="fromBool"><span class="annot"><span class="annottext">fromBool :: Bool -&gt; ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#fromBool"><span class="hs-identifier hs-var hs-var">fromBool</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ThreeValue -&gt; ThreeValue -&gt; Bool -&gt; ThreeValue
+forall a. a -&gt; a -&gt; Bool -&gt; a
+</span><span class="hs-identifier hs-var">bool</span></span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#Zero"><span class="hs-identifier hs-var">Zero</span></a></span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#One"><span class="hs-identifier hs-var">One</span></a></span><span>
+</span><span id="line-136"></span><span>
+</span><span id="line-137"></span><span class="hs-comment">-- | Convert a 'Maybe' 'Bool' to a 'ThreeValue', where 'Nothing' is</span><span>
+</span><span id="line-138"></span><span class="hs-comment">-- mapped to 'DontCare', and 'Just' 'True' and 'Just' 'False' to 'One'</span><span>
+</span><span id="line-139"></span><span class="hs-comment">-- and 'Zero'.</span><span>
+</span><span id="line-140"></span><span class="annot"><a href="Dep.Data.ThreeValue.html#fromMaybeBool"><span class="hs-identifier hs-type">fromMaybeBool</span></a></span><span>
+</span><span id="line-141"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span> </span><span class="hs-comment">-- ^ The given 'Bool' object to convert.</span><span>
+</span><span id="line-142"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span><span>  </span><span class="hs-comment">-- ^ The corresponding object where 'Nothing' is mapped to 'DontCare', and 'True' and 'False' are mapped to 'One' and 'Zero' respectively.</span><span>
+</span><span id="line-143"></span><span id="fromMaybeBool"><span class="annot"><span class="annottext">fromMaybeBool :: Maybe Bool -&gt; ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#fromMaybeBool"><span class="hs-identifier hs-var hs-var">fromMaybeBool</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ThreeValue -&gt; (Bool -&gt; ThreeValue) -&gt; Maybe Bool -&gt; ThreeValue
+forall b a. b -&gt; (a -&gt; b) -&gt; Maybe a -&gt; b
+</span><span class="hs-identifier hs-var">maybe</span></span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#DontCare"><span class="hs-identifier hs-var">DontCare</span></a></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#fromBool"><span class="hs-identifier hs-var">fromBool</span></a></span><span>
+</span><span id="line-144"></span><span>
+</span><span id="line-145"></span><span class="hs-comment">-- | Convert the given 'ThreeValue' to a 'Maybe' 'Bool' object.</span><span>
+</span><span id="line-146"></span><span class="hs-comment">-- where 'DontCare' is mapped to 'Nothing' and 'Zero' and 'One' to</span><span>
+</span><span id="line-147"></span><span class="hs-comment">-- 'True' and 'False' wrapped in a 'Just' accordingly.</span><span>
+</span><span id="line-148"></span><span class="annot"><a href="Dep.Data.ThreeValue.html#toMaybeBool"><span class="hs-identifier hs-type">toMaybeBool</span></a></span><span>
+</span><span id="line-149"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span><span>  </span><span class="hs-comment">-- ^ The given 'ThreeValue' to convert.</span><span>
+</span><span id="line-150"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>  </span><span class="hs-comment">-- ^ The corresponding 'Bool' wrapped in a 'Maybe'.</span><span>
+</span><span id="line-151"></span><span id="toMaybeBool"><span class="annot"><span class="annottext">toMaybeBool :: ThreeValue -&gt; Maybe Bool
+</span><a href="Dep.Data.ThreeValue.html#toMaybeBool"><span class="hs-identifier hs-var hs-var">toMaybeBool</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe Bool -&gt; Maybe Bool -&gt; Maybe Bool -&gt; ThreeValue -&gt; Maybe Bool
+forall a. a -&gt; a -&gt; a -&gt; ThreeValue -&gt; a
+</span><a href="Dep.Data.ThreeValue.html#threeValue"><span class="hs-identifier hs-var">threeValue</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe Bool
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool -&gt; Maybe Bool
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool -&gt; Maybe Bool
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span class="hs-special">)</span><span>
+</span><span id="line-152"></span><span>
+</span><span id="line-153"></span><span class="hs-comment">-- | Convert the given 'ThreeValue' to a 'Char' that presents the given</span><span>
+</span><span id="line-154"></span><span class="hs-comment">-- value. 'DontCare' is mapped to @-@; 'Zero' to @0@; and 'One' to @1@.</span><span>
+</span><span id="line-155"></span><span class="annot"><a href="Dep.Data.ThreeValue.html#toChar"><span class="hs-identifier hs-type">toChar</span></a></span><span>
+</span><span id="line-156"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span><span>  </span><span class="hs-comment">-- ^ The given 'ThreeValue' object to map.</span><span>
+</span><span id="line-157"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>  </span><span class="hs-comment">-- ^ The corresponding 'Char' that presents the 'ThreeValue'.</span><span>
+</span><span id="line-158"></span><span id="toChar"><span class="annot"><span class="annottext">toChar :: ThreeValue -&gt; Char
+</span><a href="Dep.Data.ThreeValue.html#toChar"><span class="hs-identifier hs-var hs-var">toChar</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Char -&gt; Char -&gt; ThreeValue -&gt; Char
+forall a. a -&gt; a -&gt; a -&gt; ThreeValue -&gt; a
+</span><a href="Dep.Data.ThreeValue.html#threeValue"><span class="hs-identifier hs-var">threeValue</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'-'</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'0'</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'1'</span></span><span>
+</span><span id="line-159"></span><span>
+</span><span id="line-160"></span><span class="hs-comment">-- | A type alias for a list of 'ThreeValue' objects.</span><span>
+</span><span id="line-161"></span><span class="hs-keyword">type</span><span> </span><span id="ThreeValues"><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValues"><span class="hs-identifier hs-var">ThreeValues</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-162"></span><span>
+</span><span id="line-163"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679125244"><span class="annot"><span class="hs-identifier hs-type">Binary</span></span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-164"></span><span>  </span><span id="local-6989586621679125242"><span class="annot"><span class="annottext">put :: ThreeValue -&gt; Put
+</span><a href="#local-6989586621679125242"><span class="hs-identifier hs-var hs-var hs-var hs-var">put</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Put
+</span><span class="hs-identifier hs-var">putWord8</span></span><span> </span><span class="annot"><span class="annottext">(Word8 -&gt; Put) -&gt; (ThreeValue -&gt; Word8) -&gt; ThreeValue -&gt; Put
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Word8
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Word8) -&gt; (ThreeValue -&gt; Int) -&gt; ThreeValue -&gt; Word8
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">ThreeValue -&gt; Int
+forall a. Enum a =&gt; a -&gt; Int
+</span><span class="hs-identifier hs-var">fromEnum</span></span><span>
+</span><span id="line-165"></span><span>  </span><span id="local-6989586621679125240"><span class="annot"><span class="annottext">get :: Get ThreeValue
+</span><a href="#local-6989586621679125240"><span class="hs-identifier hs-var hs-var hs-var hs-var">get</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; ThreeValue
+forall a. Enum a =&gt; Int -&gt; a
+</span><span class="hs-identifier hs-var">toEnum</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; ThreeValue) -&gt; (Word8 -&gt; Int) -&gt; Word8 -&gt; ThreeValue
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Word8 -&gt; Int
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">(Word8 -&gt; ThreeValue) -&gt; Get Word8 -&gt; Get ThreeValue
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Get Word8
+</span><span class="hs-identifier hs-var">getWord8</span></span><span>
+</span><span id="line-166"></span><span>
+</span><span id="line-167"></span><span class="hs-comment">-- | A parser that can parse a single 'ThreeValue' from a 'Char'acter.</span><span>
+</span><span id="line-168"></span><span class="hs-comment">-- The characters for 'Zero' are @0@, @f@ or @F@;</span><span>
+</span><span id="line-169"></span><span class="hs-comment">-- the characters for 'Zero' are @1@, @t@ or @T@; and</span><span>
+</span><span id="line-170"></span><span class="hs-comment">-- the characters for 'DontCare' are @-@, @d@ or @D@,</span><span>
+</span><span id="line-171"></span><span id="local-6989586621679125454"><span id="local-6989586621679125455"><span id="local-6989586621679125456"><span class="annot"><a href="Dep.Data.ThreeValue.html#parseThreeValue"><span class="hs-identifier hs-type">parseThreeValue</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Stream</span></span><span> </span><span class="annot"><a href="#local-6989586621679125456"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679125455"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ParsecT</span></span><span> </span><span class="annot"><a href="#local-6989586621679125456"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679125454"><span class="hs-identifier hs-type">u</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679125455"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span></span></span></span><span>
+</span><span id="line-172"></span><span id="parseThreeValue"><span class="annot"><span class="annottext">parseThreeValue :: ParsecT s u m ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#parseThreeValue"><span class="hs-identifier hs-var hs-var">parseThreeValue</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#Zero"><span class="hs-identifier hs-var">Zero</span></a></span><span> </span><span class="annot"><span class="annottext">ThreeValue -&gt; ParsecT s u m Char -&gt; ParsecT s u m ThreeValue
+forall (f :: * -&gt; *) a b. Functor f =&gt; a -&gt; f b -&gt; f a
+</span><span class="hs-operator hs-var">&lt;$</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; ParsecT s u m Char
+forall s (m :: * -&gt; *) u.
+Stream s m Char =&gt;
+String -&gt; ParsecT s u m Char
+</span><span class="hs-identifier hs-var">oneOf</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;0fF&quot;</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">ParsecT s u m ThreeValue
+-&gt; ParsecT s u m ThreeValue -&gt; ParsecT s u m ThreeValue
+forall (f :: * -&gt; *) a. Alternative f =&gt; f a -&gt; f a -&gt; f a
+</span><span class="hs-operator hs-var">&lt;|&gt;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#One"><span class="hs-identifier hs-var">One</span></a></span><span> </span><span class="annot"><span class="annottext">ThreeValue -&gt; ParsecT s u m Char -&gt; ParsecT s u m ThreeValue
+forall (f :: * -&gt; *) a b. Functor f =&gt; a -&gt; f b -&gt; f a
+</span><span class="hs-operator hs-var">&lt;$</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; ParsecT s u m Char
+forall s (m :: * -&gt; *) u.
+Stream s m Char =&gt;
+String -&gt; ParsecT s u m Char
+</span><span class="hs-identifier hs-var">oneOf</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;1tT&quot;</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">ParsecT s u m ThreeValue
+-&gt; ParsecT s u m ThreeValue -&gt; ParsecT s u m ThreeValue
+forall (f :: * -&gt; *) a. Alternative f =&gt; f a -&gt; f a -&gt; f a
+</span><span class="hs-operator hs-var">&lt;|&gt;</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#DontCare"><span class="hs-identifier hs-var">DontCare</span></a></span><span> </span><span class="annot"><span class="annottext">ThreeValue -&gt; ParsecT s u m Char -&gt; ParsecT s u m ThreeValue
+forall (f :: * -&gt; *) a b. Functor f =&gt; a -&gt; f b -&gt; f a
+</span><span class="hs-operator hs-var">&lt;$</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; ParsecT s u m Char
+forall s (m :: * -&gt; *) u.
+Stream s m Char =&gt;
+String -&gt; ParsecT s u m Char
+</span><span class="hs-identifier hs-var">oneOf</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;-dD&quot;</span></span><span class="hs-special">)</span><span>
+</span><span id="line-173"></span><span>
+</span><span id="line-174"></span><span class="hs-comment">-- | A parser that can parse a (possibly empty) list of 'ThreeValue'</span><span>
+</span><span id="line-175"></span><span class="hs-comment">-- from a 'Char'acter. The characters for 'Zero' are @0@, @f@ or @F@;</span><span>
+</span><span id="line-176"></span><span class="hs-comment">-- the characters for 'Zero' are @1@, @t@ or @T@; and</span><span>
+</span><span id="line-177"></span><span class="hs-comment">-- the characters for 'DontCare' are @-@, @d@ or @D@,</span><span>
+</span><span id="line-178"></span><span id="local-6989586621679125444"><span id="local-6989586621679125445"><span id="local-6989586621679125446"><span class="annot"><a href="Dep.Data.ThreeValue.html#parseThreeValues"><span class="hs-identifier hs-type">parseThreeValues</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Stream</span></span><span> </span><span class="annot"><a href="#local-6989586621679125446"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679125445"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ParsecT</span></span><span> </span><span class="annot"><a href="#local-6989586621679125446"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679125444"><span class="hs-identifier hs-type">u</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679125445"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValues"><span class="hs-identifier hs-type">ThreeValues</span></a></span></span></span></span><span>
+</span><span id="line-179"></span><span id="parseThreeValues"><span class="annot"><span class="annottext">parseThreeValues :: ParsecT s u m [ThreeValue]
+</span><a href="Dep.Data.ThreeValue.html#parseThreeValues"><span class="hs-identifier hs-var hs-var">parseThreeValues</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ParsecT s u m ThreeValue -&gt; ParsecT s u m [ThreeValue]
+forall s u (m :: * -&gt; *) a. ParsecT s u m a -&gt; ParsecT s u m [a]
+</span><span class="hs-identifier hs-var">many</span></span><span> </span><span class="annot"><span class="annottext">ParsecT s u m ThreeValue
+forall s (m :: * -&gt; *) u.
+Stream s m Char =&gt;
+ParsecT s u m ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#parseThreeValue"><span class="hs-identifier hs-var">parseThreeValue</span></a></span><span>
+</span><span id="line-180"></span><span>
+</span><span id="line-181"></span><span class="hs-comment">-- | A parser that can parse a 'NonEmpty' list of 'ThreeValue'</span><span>
+</span><span id="line-182"></span><span class="hs-comment">-- from a 'Char'acter. The characters for 'Zero' are @0@, @f@ or @F@;</span><span>
+</span><span id="line-183"></span><span class="hs-comment">-- the characters for 'Zero' are @1@, @t@ or @T@; and</span><span>
+</span><span id="line-184"></span><span class="hs-comment">-- the characters for 'DontCare' are @-@, @d@ or @D@,</span><span>
+</span><span id="line-185"></span><span id="local-6989586621679125234"><span id="local-6989586621679125235"><span id="local-6989586621679125236"><span class="annot"><a href="Dep.Data.ThreeValue.html#parseThreeValues1"><span class="hs-identifier hs-type">parseThreeValues1</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Stream</span></span><span> </span><span class="annot"><a href="#local-6989586621679125236"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679125235"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ParsecT</span></span><span> </span><span class="annot"><a href="#local-6989586621679125236"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679125234"><span class="hs-identifier hs-type">u</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679125235"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">NonEmpty</span></span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier hs-type">ThreeValue</span></a></span><span class="hs-special">)</span></span></span></span><span>
+</span><span id="line-186"></span><span id="parseThreeValues1"><span class="annot"><span class="annottext">parseThreeValues1 :: ParsecT s u m (NonEmpty ThreeValue)
+</span><a href="Dep.Data.ThreeValue.html#parseThreeValues1"><span class="hs-identifier hs-var hs-var">parseThreeValues1</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ThreeValue -&gt; [ThreeValue] -&gt; NonEmpty ThreeValue
+forall a. a -&gt; [a] -&gt; NonEmpty a
+</span><span class="hs-operator hs-var">(:|)</span></span><span> </span><span class="annot"><span class="annottext">(ThreeValue -&gt; [ThreeValue] -&gt; NonEmpty ThreeValue)
+-&gt; ParsecT s u m ThreeValue
+-&gt; ParsecT s u m ([ThreeValue] -&gt; NonEmpty ThreeValue)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">ParsecT s u m ThreeValue
+forall s (m :: * -&gt; *) u.
+Stream s m Char =&gt;
+ParsecT s u m ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#parseThreeValue"><span class="hs-identifier hs-var">parseThreeValue</span></a></span><span> </span><span class="annot"><span class="annottext">ParsecT s u m ([ThreeValue] -&gt; NonEmpty ThreeValue)
+-&gt; ParsecT s u m [ThreeValue]
+-&gt; ParsecT s u m (NonEmpty ThreeValue)
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">ParsecT s u m [ThreeValue]
+forall s (m :: * -&gt; *) u.
+Stream s m Char =&gt;
+ParsecT s u m [ThreeValue]
+</span><a href="Dep.Data.ThreeValue.html#parseThreeValues"><span class="hs-identifier hs-var">parseThreeValues</span></a></span><span>
+</span><span id="line-187"></span></pre></body></html>

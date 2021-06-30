@@ -1,0 +1,1033 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DeriveFunctor #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE DeriveGeneric #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE DeriveAnyClass #-}</span><span>
+</span><span id="line-4"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Data.IMap</span><span>
+</span><span id="line-5"></span><span>    </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier">IMap</span></a></span><span>
+</span><span id="line-6"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.IMap.html#Run"><span class="hs-identifier">Run</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-7"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.IMap.html#empty"><span class="hs-identifier">empty</span></a></span><span>
+</span><span id="line-8"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.IMap.html#null"><span class="hs-identifier">Data.IMap.null</span></a></span><span>
+</span><span id="line-9"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.IMap.html#singleton"><span class="hs-identifier">singleton</span></a></span><span>
+</span><span id="line-10"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.IMap.html#insert"><span class="hs-identifier">insert</span></a></span><span>
+</span><span id="line-11"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.IMap.html#delete"><span class="hs-identifier">delete</span></a></span><span>
+</span><span id="line-12"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.IMap.html#restrict"><span class="hs-identifier">restrict</span></a></span><span>
+</span><span id="line-13"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.IMap.html#lookup"><span class="hs-identifier">lookup</span></a></span><span>
+</span><span id="line-14"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.IMap.html#splitLE"><span class="hs-identifier">splitLE</span></a></span><span>
+</span><span id="line-15"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.IMap.html#intersectionWith"><span class="hs-identifier">intersectionWith</span></a></span><span>
+</span><span id="line-16"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.IMap.html#mapMaybe"><span class="hs-identifier">mapMaybe</span></a></span><span>
+</span><span id="line-17"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.IMap.html#addToKeys"><span class="hs-identifier">addToKeys</span></a></span><span>
+</span><span id="line-18"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.IMap.html#unsafeUnion"><span class="hs-identifier">unsafeUnion</span></a></span><span>
+</span><span id="line-19"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.IMap.html#fromList"><span class="hs-identifier">fromList</span></a></span><span>
+</span><span id="line-20"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.IMap.html#unsafeRuns"><span class="hs-identifier">unsafeRuns</span></a></span><span>
+</span><span id="line-21"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.IMap.html#unsafeToAscList"><span class="hs-identifier">unsafeToAscList</span></a></span><span>
+</span><span id="line-22"></span><span>    </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-23"></span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.List</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">foldl'</span></span><span class="hs-special">)</span><span>
+</span><span id="line-25"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Monoid</span></span><span>
+</span><span id="line-26"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.IntMap.Strict</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">IntMap</span></span><span class="hs-special">)</span><span>
+</span><span id="line-27"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">GHC.Generics</span></span><span>
+</span><span id="line-28"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.DeepSeq</span></span><span>
+</span><span id="line-29"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Prelude</span></span><span> </span><span class="hs-keyword">hiding</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">lookup</span></span><span class="hs-special">)</span><span>
+</span><span id="line-30"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.IntMap.Strict</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">IM</span></span><span>
+</span><span id="line-31"></span><span>
+</span><span id="line-32"></span><span class="hs-comment">-- | Semantically, 'IMap' and 'IntMap' are identical; but 'IMap' is more</span><span>
+</span><span id="line-33"></span><span class="hs-comment">-- efficient when large sequences of contiguous keys are mapped to the same</span><span>
+</span><span id="line-34"></span><span class="hs-comment">-- value.</span><span>
+</span><span id="line-35"></span><span id="local-6989586621679369668"><span id="local-6989586621679369669"></span></span><span class="hs-keyword">newtype</span><span> </span><span id="IMap"><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-var">IMap</span></a></span></span><span> </span><span id="local-6989586621679369842"><span class="annot"><a href="#local-6989586621679369842"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="IMap"><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-var">IMap</span></a></span></span><span> </span><span class="hs-special">{</span><span> </span><span id="_runs"><span class="annot"><span class="annottext">IMap a -&gt; IntMap (Run a)
+</span><a href="Data.IMap.html#_runs"><span class="hs-identifier hs-var hs-var">_runs</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IntMap</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IMap.html#Run"><span class="hs-identifier hs-type">Run</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369842"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679369660"><span id="local-6989586621679369662"><span id="local-6989586621679369664"><span class="annot"><span class="annottext">Int -&gt; IMap a -&gt; ShowS
+[IMap a] -&gt; ShowS
+IMap a -&gt; String
+(Int -&gt; IMap a -&gt; ShowS)
+-&gt; (IMap a -&gt; String) -&gt; ([IMap a] -&gt; ShowS) -&gt; Show (IMap a)
+forall a. Show a =&gt; Int -&gt; IMap a -&gt; ShowS
+forall a. Show a =&gt; [IMap a] -&gt; ShowS
+forall a. Show a =&gt; IMap a -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [IMap a] -&gt; ShowS
+$cshowList :: forall a. Show a =&gt; [IMap a] -&gt; ShowS
+show :: IMap a -&gt; String
+$cshow :: forall a. Show a =&gt; IMap a -&gt; String
+showsPrec :: Int -&gt; IMap a -&gt; ShowS
+$cshowsPrec :: forall a. Show a =&gt; Int -&gt; IMap a -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679369655"><span id="local-6989586621679369657"><span class="annot"><span class="annottext">a -&gt; IMap b -&gt; IMap a
+(a -&gt; b) -&gt; IMap a -&gt; IMap b
+(forall a b. (a -&gt; b) -&gt; IMap a -&gt; IMap b)
+-&gt; (forall a b. a -&gt; IMap b -&gt; IMap a) -&gt; Functor IMap
+forall a b. a -&gt; IMap b -&gt; IMap a
+forall a b. (a -&gt; b) -&gt; IMap a -&gt; IMap b
+forall (f :: * -&gt; *).
+(forall a b. (a -&gt; b) -&gt; f a -&gt; f b)
+-&gt; (forall a b. a -&gt; f b -&gt; f a) -&gt; Functor f
+&lt;$ :: a -&gt; IMap b -&gt; IMap a
+$c&lt;$ :: forall a b. a -&gt; IMap b -&gt; IMap a
+fmap :: (a -&gt; b) -&gt; IMap a -&gt; IMap b
+$cfmap :: forall a b. (a -&gt; b) -&gt; IMap a -&gt; IMap b
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Functor</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679369646"><span id="local-6989586621679369648"><span id="local-6989586621679369650"><span id="local-6989586621679369652"><span class="annot"><span class="annottext">ReadPrec [IMap a]
+ReadPrec (IMap a)
+Int -&gt; ReadS (IMap a)
+ReadS [IMap a]
+(Int -&gt; ReadS (IMap a))
+-&gt; ReadS [IMap a]
+-&gt; ReadPrec (IMap a)
+-&gt; ReadPrec [IMap a]
+-&gt; Read (IMap a)
+forall a. Read a =&gt; ReadPrec [IMap a]
+forall a. Read a =&gt; ReadPrec (IMap a)
+forall a. Read a =&gt; Int -&gt; ReadS (IMap a)
+forall a. Read a =&gt; ReadS [IMap a]
+forall a.
+(Int -&gt; ReadS a)
+-&gt; ReadS [a] -&gt; ReadPrec a -&gt; ReadPrec [a] -&gt; Read a
+readListPrec :: ReadPrec [IMap a]
+$creadListPrec :: forall a. Read a =&gt; ReadPrec [IMap a]
+readPrec :: ReadPrec (IMap a)
+$creadPrec :: forall a. Read a =&gt; ReadPrec (IMap a)
+readList :: ReadS [IMap a]
+$creadList :: forall a. Read a =&gt; ReadS [IMap a]
+readsPrec :: Int -&gt; ReadS (IMap a)
+$creadsPrec :: forall a. Read a =&gt; Int -&gt; ReadS (IMap a)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Read</span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(forall x. IMap a -&gt; Rep (IMap a) x)
+-&gt; (forall x. Rep (IMap a) x -&gt; IMap a) -&gt; Generic (IMap a)
+forall x. Rep (IMap a) x -&gt; IMap a
+forall x. IMap a -&gt; Rep (IMap a) x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+forall a x. Rep (IMap a) x -&gt; IMap a
+forall a x. IMap a -&gt; Rep (IMap a) x
+$cto :: forall a x. Rep (IMap a) x -&gt; IMap a
+$cfrom :: forall a x. IMap a -&gt; Rep (IMap a) x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679369640"><span class="annot"><span class="annottext">IMap a -&gt; ()
+(IMap a -&gt; ()) -&gt; NFData (IMap a)
+forall a. NFData a =&gt; IMap a -&gt; ()
+forall a. (a -&gt; ()) -&gt; NFData a
+rnf :: IMap a -&gt; ()
+$crnf :: forall a. NFData a =&gt; IMap a -&gt; ()
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">NFData</span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-36"></span><span>
+</span><span id="line-37"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.IMap.html#unsafeRuns"><span class="hs-pragma hs-type">unsafeRuns</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-38"></span><span class="hs-comment">-- | This function is unsafe because 'IMap's that compare equal may split their</span><span>
+</span><span id="line-39"></span><span class="hs-comment">-- runs into different chunks; consumers must promise that they do not treat</span><span>
+</span><span id="line-40"></span><span class="hs-comment">-- run boundaries specially.</span><span>
+</span><span id="line-41"></span><span id="local-6989586621679369638"><span class="annot"><a href="Data.IMap.html#unsafeRuns"><span class="hs-identifier hs-type">unsafeRuns</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369638"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IntMap</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IMap.html#Run"><span class="hs-identifier hs-type">Run</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369638"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-42"></span><span id="unsafeRuns"><span class="annot"><span class="annottext">unsafeRuns :: IMap a -&gt; IntMap (Run a)
+</span><a href="Data.IMap.html#unsafeRuns"><span class="hs-identifier hs-var hs-var">unsafeRuns</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IMap a -&gt; IntMap (Run a)
+forall a. IMap a -&gt; IntMap (Run a)
+</span><a href="Data.IMap.html#_runs"><span class="hs-identifier hs-var hs-var">_runs</span></a></span><span>
+</span><span id="line-43"></span><span>
+</span><span id="line-44"></span><span id="local-6989586621679369637"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679369634"><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="#local-6989586621679369637"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369637"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-45"></span><span>    </span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span id="local-6989586621679369632"><span class="annot"><span class="annottext">IntMap (Run a)
+</span><a href="#local-6989586621679369632"><span class="hs-identifier hs-var">m</span></a></span></span><span> </span><span id="local-6989586621679369631"><span class="annot"><span class="annottext">== :: IMap a -&gt; IMap a -&gt; Bool
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">==</span></span></span><span> </span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span id="local-6989586621679369630"><span class="annot"><span class="annottext">IntMap (Run a)
+</span><a href="#local-6989586621679369630"><span class="hs-identifier hs-var">m'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(Int, Run a)] -&gt; [(Int, Run a)] -&gt; Bool
+forall a. Eq a =&gt; [(Int, Run a)] -&gt; [(Int, Run a)] -&gt; Bool
+</span><a href="#local-6989586621679369629"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IntMap (Run a) -&gt; [(Int, Run a)]
+forall a. IntMap a -&gt; [(Int, a)]
+</span><span class="hs-identifier hs-var">IM.toAscList</span></span><span> </span><span class="annot"><span class="annottext">IntMap (Run a)
+</span><a href="#local-6989586621679369632"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IntMap (Run a) -&gt; [(Int, Run a)]
+forall a. IntMap a -&gt; [(Int, a)]
+</span><span class="hs-identifier hs-var">IM.toAscList</span></span><span> </span><span class="annot"><span class="annottext">IntMap (Run a)
+</span><a href="#local-6989586621679369630"><span class="hs-identifier hs-var">m'</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-46"></span><span>        </span><span id="local-6989586621679369629"><span class="annot"><span class="annottext">go :: [(Int, Run a)] -&gt; [(Int, Run a)] -&gt; Bool
+</span><a href="#local-6989586621679369629"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span id="local-6989586621679369627"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369627"><span class="hs-identifier hs-var">k</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.IMap.html#Run"><span class="hs-identifier hs-type">Run</span></a></span><span> </span><span id="local-6989586621679369625"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369625"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679369624"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679369624"><span class="hs-identifier hs-var">a</span></a></span></span><span class="hs-special">)</span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span id="local-6989586621679369623"><span class="annot"><span class="annottext">[(Int, Run a)]
+</span><a href="#local-6989586621679369623"><span class="hs-identifier hs-var">kvs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span id="local-6989586621679369622"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369622"><span class="hs-identifier hs-var">k'</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.IMap.html#Run"><span class="hs-identifier hs-type">Run</span></a></span><span> </span><span id="local-6989586621679369621"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369621"><span class="hs-identifier hs-var">n'</span></a></span></span><span> </span><span id="local-6989586621679369620"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679369620"><span class="hs-identifier hs-var">a'</span></a></span></span><span class="hs-special">)</span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span id="local-6989586621679369619"><span class="annot"><span class="annottext">[(Int, Run a)]
+</span><a href="#local-6989586621679369619"><span class="hs-identifier hs-var">kvs'</span></a></span></span><span class="hs-special">)</span><span>
+</span><span id="line-47"></span><span>            </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369627"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369622"><span class="hs-identifier hs-var">k'</span></a></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679369624"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679369620"><span class="hs-identifier hs-var">a'</span></a></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Ordering
+forall a. Ord a =&gt; a -&gt; a -&gt; Ordering
+</span><span class="hs-identifier hs-var">compare</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369625"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369621"><span class="hs-identifier hs-var">n'</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-48"></span><span>                </span><span class="annot"><span class="annottext">Ordering
+</span><span class="hs-identifier hs-var">LT</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[(Int, Run a)] -&gt; [(Int, Run a)] -&gt; Bool
+</span><a href="#local-6989586621679369629"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">[(Int, Run a)]
+</span><a href="#local-6989586621679369623"><span class="hs-identifier hs-var">kvs</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369622"><span class="hs-identifier hs-var">k'</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369625"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int -&gt; a -&gt; Run a
+forall a. Int -&gt; a -&gt; Run a
+</span><a href="Data.IMap.html#Run"><span class="hs-identifier hs-var">Run</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369621"><span class="hs-identifier hs-var">n'</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369625"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679369620"><span class="hs-identifier hs-var">a'</span></a></span><span class="hs-special">)</span><span class="annot"><span class="annottext">(Int, Run a) -&gt; [(Int, Run a)] -&gt; [(Int, Run a)]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span class="annot"><span class="annottext">[(Int, Run a)]
+</span><a href="#local-6989586621679369619"><span class="hs-identifier hs-var">kvs'</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-49"></span><span>                </span><span class="annot"><span class="annottext">Ordering
+</span><span class="hs-identifier hs-var">EQ</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[(Int, Run a)] -&gt; [(Int, Run a)] -&gt; Bool
+</span><a href="#local-6989586621679369629"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">[(Int, Run a)]
+</span><a href="#local-6989586621679369623"><span class="hs-identifier hs-var">kvs</span></a></span><span> </span><span class="annot"><span class="annottext">[(Int, Run a)]
+</span><a href="#local-6989586621679369619"><span class="hs-identifier hs-var">kvs'</span></a></span><span>
+</span><span id="line-50"></span><span>                </span><span class="annot"><span class="annottext">Ordering
+</span><span class="hs-identifier hs-var">GT</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[(Int, Run a)] -&gt; [(Int, Run a)] -&gt; Bool
+</span><a href="#local-6989586621679369629"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369627"><span class="hs-identifier hs-var">k</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369621"><span class="hs-identifier hs-var">n'</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int -&gt; a -&gt; Run a
+forall a. Int -&gt; a -&gt; Run a
+</span><a href="Data.IMap.html#Run"><span class="hs-identifier hs-var">Run</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369625"><span class="hs-identifier hs-var">n</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369621"><span class="hs-identifier hs-var">n'</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679369624"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span class="annot"><span class="annottext">(Int, Run a) -&gt; [(Int, Run a)] -&gt; [(Int, Run a)]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span class="annot"><span class="annottext">[(Int, Run a)]
+</span><a href="#local-6989586621679369623"><span class="hs-identifier hs-var">kvs</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[(Int, Run a)]
+</span><a href="#local-6989586621679369619"><span class="hs-identifier hs-var">kvs'</span></a></span><span>
+</span><span id="line-51"></span><span>        </span><span class="annot"><a href="#local-6989586621679369629"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span>
+</span><span id="line-52"></span><span>        </span><span class="annot"><a href="#local-6989586621679369629"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">[(Int, Run a)]
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">[(Int, Run a)]
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span></span><span>
+</span><span id="line-53"></span><span>
+</span><span id="line-54"></span><span id="local-6989586621679369615"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679369601"><span id="local-6989586621679369603"><span id="local-6989586621679369605"><span id="local-6989586621679369607"><span id="local-6989586621679369609"><span id="local-6989586621679369611"><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="#local-6989586621679369615"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369615"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-55"></span><span>    </span><span id="local-6989586621679369599"><span class="annot"><span class="annottext">compare :: IMap a -&gt; IMap a -&gt; Ordering
+</span><a href="#local-6989586621679369599"><span class="hs-identifier hs-var hs-var hs-var hs-var">compare</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span id="local-6989586621679369598"><span class="annot"><span class="annottext">IntMap (Run a)
+</span><a href="#local-6989586621679369598"><span class="hs-identifier hs-var">m</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span id="local-6989586621679369597"><span class="annot"><span class="annottext">IntMap (Run a)
+</span><a href="#local-6989586621679369597"><span class="hs-identifier hs-var">m'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(Int, Run a)] -&gt; [(Int, Run a)] -&gt; Ordering
+forall a. Ord a =&gt; [(Int, Run a)] -&gt; [(Int, Run a)] -&gt; Ordering
+</span><a href="#local-6989586621679369596"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IntMap (Run a) -&gt; [(Int, Run a)]
+forall a. IntMap a -&gt; [(Int, a)]
+</span><span class="hs-identifier hs-var">IM.toAscList</span></span><span> </span><span class="annot"><span class="annottext">IntMap (Run a)
+</span><a href="#local-6989586621679369598"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IntMap (Run a) -&gt; [(Int, Run a)]
+forall a. IntMap a -&gt; [(Int, a)]
+</span><span class="hs-identifier hs-var">IM.toAscList</span></span><span> </span><span class="annot"><span class="annottext">IntMap (Run a)
+</span><a href="#local-6989586621679369597"><span class="hs-identifier hs-var">m'</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-56"></span><span>        </span><span id="local-6989586621679369596"><span class="annot"><span class="annottext">go :: [(Int, Run a)] -&gt; [(Int, Run a)] -&gt; Ordering
+</span><a href="#local-6989586621679369596"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Ordering
+</span><span class="hs-identifier hs-var">EQ</span></span><span>
+</span><span id="line-57"></span><span>        </span><span class="annot"><a href="#local-6989586621679369596"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="annot"><span class="annottext">[(Int, Run a)]
+</span><span class="hs-identifier">_</span></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Ordering
+</span><span class="hs-identifier hs-var">LT</span></span><span>
+</span><span id="line-58"></span><span>        </span><span class="annot"><a href="#local-6989586621679369596"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">[(Int, Run a)]
+</span><span class="hs-identifier">_</span></span><span>  </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Ordering
+</span><span class="hs-identifier hs-var">GT</span></span><span>
+</span><span id="line-59"></span><span>        </span><span class="annot"><a href="#local-6989586621679369596"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span id="local-6989586621679369595"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369595"><span class="hs-identifier hs-var">k</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.IMap.html#Run"><span class="hs-identifier hs-type">Run</span></a></span><span> </span><span id="local-6989586621679369594"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369594"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679369593"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679369593"><span class="hs-identifier hs-var">a</span></a></span></span><span class="hs-special">)</span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span id="local-6989586621679369592"><span class="annot"><span class="annottext">[(Int, Run a)]
+</span><a href="#local-6989586621679369592"><span class="hs-identifier hs-var">kvs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span id="local-6989586621679369591"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369591"><span class="hs-identifier hs-var">k'</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.IMap.html#Run"><span class="hs-identifier hs-type">Run</span></a></span><span> </span><span id="local-6989586621679369590"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369590"><span class="hs-identifier hs-var">n'</span></a></span></span><span> </span><span id="local-6989586621679369589"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679369589"><span class="hs-identifier hs-var">a'</span></a></span></span><span class="hs-special">)</span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span id="local-6989586621679369588"><span class="annot"><span class="annottext">[(Int, Run a)]
+</span><a href="#local-6989586621679369588"><span class="hs-identifier hs-var">kvs'</span></a></span></span><span class="hs-special">)</span><span>
+</span><span id="line-60"></span><span>            </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Ordering
+forall a. Ord a =&gt; a -&gt; a -&gt; Ordering
+</span><span class="hs-identifier hs-var">compare</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369595"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369591"><span class="hs-identifier hs-var">k'</span></a></span><span> </span><span class="annot"><span class="annottext">Ordering -&gt; Ordering -&gt; Ordering
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; a -&gt; Ordering
+forall a. Ord a =&gt; a -&gt; a -&gt; Ordering
+</span><span class="hs-identifier hs-var">compare</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679369593"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679369589"><span class="hs-identifier hs-var">a'</span></a></span><span> </span><span class="annot"><span class="annottext">Ordering -&gt; Ordering -&gt; Ordering
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Ordering
+forall a. Ord a =&gt; a -&gt; a -&gt; Ordering
+</span><span class="hs-identifier hs-var">compare</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369594"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369590"><span class="hs-identifier hs-var">n'</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-61"></span><span>                </span><span class="annot"><span class="annottext">Ordering
+</span><span class="hs-identifier hs-var">LT</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[(Int, Run a)] -&gt; [(Int, Run a)] -&gt; Ordering
+</span><a href="#local-6989586621679369596"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">[(Int, Run a)]
+</span><a href="#local-6989586621679369592"><span class="hs-identifier hs-var">kvs</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369591"><span class="hs-identifier hs-var">k'</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369594"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int -&gt; a -&gt; Run a
+forall a. Int -&gt; a -&gt; Run a
+</span><a href="Data.IMap.html#Run"><span class="hs-identifier hs-var">Run</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369590"><span class="hs-identifier hs-var">n'</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369594"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679369589"><span class="hs-identifier hs-var">a'</span></a></span><span class="hs-special">)</span><span class="annot"><span class="annottext">(Int, Run a) -&gt; [(Int, Run a)] -&gt; [(Int, Run a)]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span class="annot"><span class="annottext">[(Int, Run a)]
+</span><a href="#local-6989586621679369588"><span class="hs-identifier hs-var">kvs'</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-62"></span><span>                </span><span class="annot"><span class="annottext">Ordering
+</span><span class="hs-identifier hs-var">EQ</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[(Int, Run a)] -&gt; [(Int, Run a)] -&gt; Ordering
+</span><a href="#local-6989586621679369596"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">[(Int, Run a)]
+</span><a href="#local-6989586621679369592"><span class="hs-identifier hs-var">kvs</span></a></span><span> </span><span class="annot"><span class="annottext">[(Int, Run a)]
+</span><a href="#local-6989586621679369588"><span class="hs-identifier hs-var">kvs'</span></a></span><span>
+</span><span id="line-63"></span><span>                </span><span class="annot"><span class="annottext">Ordering
+</span><span class="hs-identifier hs-var">GT</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[(Int, Run a)] -&gt; [(Int, Run a)] -&gt; Ordering
+</span><a href="#local-6989586621679369596"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369595"><span class="hs-identifier hs-var">k</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369590"><span class="hs-identifier hs-var">n'</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int -&gt; a -&gt; Run a
+forall a. Int -&gt; a -&gt; Run a
+</span><a href="Data.IMap.html#Run"><span class="hs-identifier hs-var">Run</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369594"><span class="hs-identifier hs-var">n</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369590"><span class="hs-identifier hs-var">n'</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679369593"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span class="annot"><span class="annottext">(Int, Run a) -&gt; [(Int, Run a)] -&gt; [(Int, Run a)]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span class="annot"><span class="annottext">[(Int, Run a)]
+</span><a href="#local-6989586621679369592"><span class="hs-identifier hs-var">kvs</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[(Int, Run a)]
+</span><a href="#local-6989586621679369588"><span class="hs-identifier hs-var">kvs'</span></a></span></span><span>
+</span><span id="line-64"></span><span>
+</span><span id="line-65"></span><span class="hs-comment">-- | Zippy: '(&lt;*&gt;)' combines values at equal keys, discarding any values whose</span><span>
+</span><span id="line-66"></span><span class="hs-comment">-- key is in only one of its two arguments.</span><span>
+</span><span id="line-67"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679369579"><span id="local-6989586621679369581"><span id="local-6989586621679369583"><span class="annot"><span class="hs-identifier hs-type">Applicative</span></span><span> </span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-68"></span><span>    </span><span id="local-6989586621679369577"><span class="annot"><span class="annottext">pure :: a -&gt; IMap a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">pure</span></span></span><span> </span><span id="local-6989586621679369576"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679369576"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IntMap (Run a) -&gt; IMap a
+forall a. IntMap (Run a) -&gt; IMap a
+</span><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-var">IMap</span></a></span><span> </span><span class="annot"><span class="annottext">(IntMap (Run a) -&gt; IMap a)
+-&gt; ([(Int, Run a)] -&gt; IntMap (Run a)) -&gt; [(Int, Run a)] -&gt; IMap a
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">[(Int, Run a)] -&gt; IntMap (Run a)
+forall a. [(Int, a)] -&gt; IntMap a
+</span><span class="hs-identifier hs-var">IM.fromDistinctAscList</span></span><span> </span><span class="annot"><span class="annottext">([(Int, Run a)] -&gt; IMap a) -&gt; [(Int, Run a)] -&gt; IMap a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-69"></span><span>        </span><span class="hs-special">[</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+forall a. Bounded a =&gt; a
+</span><span class="hs-identifier hs-var">minBound</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int -&gt; a -&gt; Run a
+forall a. Int -&gt; a -&gt; Run a
+</span><a href="Data.IMap.html#Run"><span class="hs-identifier hs-var">Run</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+forall a. Bounded a =&gt; a
+</span><span class="hs-identifier hs-var">maxBound</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679369576"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-70"></span><span>        </span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="hs-glyph">-</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int -&gt; a -&gt; Run a
+forall a. Int -&gt; a -&gt; Run a
+</span><a href="Data.IMap.html#Run"><span class="hs-identifier hs-var">Run</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+forall a. Bounded a =&gt; a
+</span><span class="hs-identifier hs-var">maxBound</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679369576"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-71"></span><span>        </span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+forall a. Bounded a =&gt; a
+</span><span class="hs-identifier hs-var">maxBound</span></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int -&gt; a -&gt; Run a
+forall a. Int -&gt; a -&gt; Run a
+</span><a href="Data.IMap.html#Run"><span class="hs-identifier hs-var">Run</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">2</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679369576"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-72"></span><span>        </span><span class="hs-special">]</span><span>
+</span><span id="line-73"></span><span>    </span><span id="local-6989586621679369571"><span class="annot"><span class="annottext">&lt;*&gt; :: IMap (a -&gt; b) -&gt; IMap a -&gt; IMap b
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">(&lt;*&gt;)</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">((a -&gt; b) -&gt; a -&gt; b) -&gt; IMap (a -&gt; b) -&gt; IMap a -&gt; IMap b
+forall a b c. (a -&gt; b -&gt; c) -&gt; IMap a -&gt; IMap b -&gt; IMap c
+</span><a href="Data.IMap.html#intersectionWith"><span class="hs-identifier hs-var">intersectionWith</span></a></span><span> </span><span class="annot"><span class="annottext">(a -&gt; b) -&gt; a -&gt; b
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">($)</span></span><span>
+</span><span id="line-74"></span><span>
+</span><span id="line-75"></span><span class="hs-comment">-- | @Run n a@ represents @n@ copies of the value @a@.</span><span>
+</span><span id="line-76"></span><span id="local-6989586621679369569"><span id="local-6989586621679369570"></span></span><span class="hs-keyword">data</span><span> </span><span id="Run"><span class="annot"><a href="Data.IMap.html#Run"><span class="hs-identifier hs-var">Run</span></a></span></span><span> </span><span id="local-6989586621679369835"><span class="annot"><a href="#local-6989586621679369835"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="Run"><span class="annot"><a href="Data.IMap.html#Run"><span class="hs-identifier hs-var">Run</span></a></span></span><span>
+</span><span id="line-77"></span><span>    </span><span class="hs-special">{</span><span> </span><span id="len"><span class="annot"><span class="annottext">Run a -&gt; Int
+</span><a href="Data.IMap.html#len"><span class="hs-identifier hs-var hs-var">len</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-78"></span><span>    </span><span class="hs-special">,</span><span> </span><span id="val"><span class="annot"><span class="annottext">Run a -&gt; a
+</span><a href="Data.IMap.html#val"><span class="hs-identifier hs-var hs-var">val</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="annot"><a href="#local-6989586621679369835"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-79"></span><span>    </span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679369563"><span id="local-6989586621679369565"><span class="annot"><span class="annottext">Run a -&gt; Run a -&gt; Bool
+(Run a -&gt; Run a -&gt; Bool) -&gt; (Run a -&gt; Run a -&gt; Bool) -&gt; Eq (Run a)
+forall a. Eq a =&gt; Run a -&gt; Run a -&gt; Bool
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: Run a -&gt; Run a -&gt; Bool
+$c/= :: forall a. Eq a =&gt; Run a -&gt; Run a -&gt; Bool
+== :: Run a -&gt; Run a -&gt; Bool
+$c== :: forall a. Eq a =&gt; Run a -&gt; Run a -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679369548"><span id="local-6989586621679369550"><span id="local-6989586621679369552"><span id="local-6989586621679369554"><span id="local-6989586621679369556"><span id="local-6989586621679369558"><span id="local-6989586621679369560"><span class="annot"><span class="annottext">Eq (Run a)
+Eq (Run a)
+-&gt; (Run a -&gt; Run a -&gt; Ordering)
+-&gt; (Run a -&gt; Run a -&gt; Bool)
+-&gt; (Run a -&gt; Run a -&gt; Bool)
+-&gt; (Run a -&gt; Run a -&gt; Bool)
+-&gt; (Run a -&gt; Run a -&gt; Bool)
+-&gt; (Run a -&gt; Run a -&gt; Run a)
+-&gt; (Run a -&gt; Run a -&gt; Run a)
+-&gt; Ord (Run a)
+Run a -&gt; Run a -&gt; Bool
+Run a -&gt; Run a -&gt; Ordering
+Run a -&gt; Run a -&gt; Run a
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+forall a. Ord a =&gt; Eq (Run a)
+forall a. Ord a =&gt; Run a -&gt; Run a -&gt; Bool
+forall a. Ord a =&gt; Run a -&gt; Run a -&gt; Ordering
+forall a. Ord a =&gt; Run a -&gt; Run a -&gt; Run a
+min :: Run a -&gt; Run a -&gt; Run a
+$cmin :: forall a. Ord a =&gt; Run a -&gt; Run a -&gt; Run a
+max :: Run a -&gt; Run a -&gt; Run a
+$cmax :: forall a. Ord a =&gt; Run a -&gt; Run a -&gt; Run a
+&gt;= :: Run a -&gt; Run a -&gt; Bool
+$c&gt;= :: forall a. Ord a =&gt; Run a -&gt; Run a -&gt; Bool
+&gt; :: Run a -&gt; Run a -&gt; Bool
+$c&gt; :: forall a. Ord a =&gt; Run a -&gt; Run a -&gt; Bool
+&lt;= :: Run a -&gt; Run a -&gt; Bool
+$c&lt;= :: forall a. Ord a =&gt; Run a -&gt; Run a -&gt; Bool
+&lt; :: Run a -&gt; Run a -&gt; Bool
+$c&lt; :: forall a. Ord a =&gt; Run a -&gt; Run a -&gt; Bool
+compare :: Run a -&gt; Run a -&gt; Ordering
+$ccompare :: forall a. Ord a =&gt; Run a -&gt; Run a -&gt; Ordering
+$cp1Ord :: forall a. Ord a =&gt; Eq (Run a)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679369540"><span id="local-6989586621679369542"><span id="local-6989586621679369544"><span id="local-6989586621679369546"><span class="annot"><span class="annottext">ReadPrec [Run a]
+ReadPrec (Run a)
+Int -&gt; ReadS (Run a)
+ReadS [Run a]
+(Int -&gt; ReadS (Run a))
+-&gt; ReadS [Run a]
+-&gt; ReadPrec (Run a)
+-&gt; ReadPrec [Run a]
+-&gt; Read (Run a)
+forall a. Read a =&gt; ReadPrec [Run a]
+forall a. Read a =&gt; ReadPrec (Run a)
+forall a. Read a =&gt; Int -&gt; ReadS (Run a)
+forall a. Read a =&gt; ReadS [Run a]
+forall a.
+(Int -&gt; ReadS a)
+-&gt; ReadS [a] -&gt; ReadPrec a -&gt; ReadPrec [a] -&gt; Read a
+readListPrec :: ReadPrec [Run a]
+$creadListPrec :: forall a. Read a =&gt; ReadPrec [Run a]
+readPrec :: ReadPrec (Run a)
+$creadPrec :: forall a. Read a =&gt; ReadPrec (Run a)
+readList :: ReadS [Run a]
+$creadList :: forall a. Read a =&gt; ReadS [Run a]
+readsPrec :: Int -&gt; ReadS (Run a)
+$creadsPrec :: forall a. Read a =&gt; Int -&gt; ReadS (Run a)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Read</span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679369534"><span id="local-6989586621679369536"><span id="local-6989586621679369538"><span class="annot"><span class="annottext">Int -&gt; Run a -&gt; ShowS
+[Run a] -&gt; ShowS
+Run a -&gt; String
+(Int -&gt; Run a -&gt; ShowS)
+-&gt; (Run a -&gt; String) -&gt; ([Run a] -&gt; ShowS) -&gt; Show (Run a)
+forall a. Show a =&gt; Int -&gt; Run a -&gt; ShowS
+forall a. Show a =&gt; [Run a] -&gt; ShowS
+forall a. Show a =&gt; Run a -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [Run a] -&gt; ShowS
+$cshowList :: forall a. Show a =&gt; [Run a] -&gt; ShowS
+show :: Run a -&gt; String
+$cshow :: forall a. Show a =&gt; Run a -&gt; String
+showsPrec :: Int -&gt; Run a -&gt; ShowS
+$cshowsPrec :: forall a. Show a =&gt; Int -&gt; Run a -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679369530"><span id="local-6989586621679369532"><span class="annot"><span class="annottext">a -&gt; Run b -&gt; Run a
+(a -&gt; b) -&gt; Run a -&gt; Run b
+(forall a b. (a -&gt; b) -&gt; Run a -&gt; Run b)
+-&gt; (forall a b. a -&gt; Run b -&gt; Run a) -&gt; Functor Run
+forall a b. a -&gt; Run b -&gt; Run a
+forall a b. (a -&gt; b) -&gt; Run a -&gt; Run b
+forall (f :: * -&gt; *).
+(forall a b. (a -&gt; b) -&gt; f a -&gt; f b)
+-&gt; (forall a b. a -&gt; f b -&gt; f a) -&gt; Functor f
+&lt;$ :: a -&gt; Run b -&gt; Run a
+$c&lt;$ :: forall a b. a -&gt; Run b -&gt; Run a
+fmap :: (a -&gt; b) -&gt; Run a -&gt; Run b
+$cfmap :: forall a b. (a -&gt; b) -&gt; Run a -&gt; Run b
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Functor</span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(forall x. Run a -&gt; Rep (Run a) x)
+-&gt; (forall x. Rep (Run a) x -&gt; Run a) -&gt; Generic (Run a)
+forall x. Rep (Run a) x -&gt; Run a
+forall x. Run a -&gt; Rep (Run a) x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+forall a x. Rep (Run a) x -&gt; Run a
+forall a x. Run a -&gt; Rep (Run a) x
+$cto :: forall a x. Rep (Run a) x -&gt; Run a
+$cfrom :: forall a x. Run a -&gt; Rep (Run a) x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679369526"><span class="annot"><span class="annottext">Run a -&gt; ()
+(Run a -&gt; ()) -&gt; NFData (Run a)
+forall a. NFData a =&gt; Run a -&gt; ()
+forall a. (a -&gt; ()) -&gt; NFData a
+rnf :: Run a -&gt; ()
+$crnf :: forall a. NFData a =&gt; Run a -&gt; ()
+</span><a href="#local-6989586621679369526"><span class="hs-identifier hs-var hs-var hs-var hs-var">NFData</span></a></span></span><span class="hs-special">)</span><span>
+</span><span id="line-80"></span><span>
+</span><span id="line-81"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679369493"><span id="local-6989586621679369495"><span id="local-6989586621679369497"><span id="local-6989586621679369499"><span id="local-6989586621679369501"><span id="local-6989586621679369503"><span id="local-6989586621679369505"><span id="local-6989586621679369507"><span id="local-6989586621679369509"><span id="local-6989586621679369511"><span id="local-6989586621679369513"><span id="local-6989586621679369515"><span id="local-6989586621679369517"><span id="local-6989586621679369519"><span id="local-6989586621679369521"><span id="local-6989586621679369524"><span class="annot"><span class="hs-identifier hs-type">Foldable</span></span><span>    </span><span class="annot"><a href="Data.IMap.html#Run"><span class="hs-identifier hs-type">Run</span></a></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679369491"><span class="annot"><span class="annottext">foldMap :: (a -&gt; m) -&gt; Run a -&gt; m
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">foldMap</span></span></span><span> </span><span id="local-6989586621679369489"><span class="annot"><span class="annottext">a -&gt; m
+</span><a href="#local-6989586621679369489"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span id="local-6989586621679369488"><span class="annot"><span class="annottext">Run a
+</span><a href="#local-6989586621679369488"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; m
+</span><a href="#local-6989586621679369489"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Run a -&gt; a
+forall a. Run a -&gt; a
+</span><a href="Data.IMap.html#val"><span class="hs-identifier hs-var hs-var">val</span></a></span><span> </span><span class="annot"><span class="annottext">Run a
+</span><a href="#local-6989586621679369488"><span class="hs-identifier hs-var">r</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-82"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679369479"><span id="local-6989586621679369481"><span id="local-6989586621679369484"><span class="annot"><span class="hs-identifier hs-type">Traversable</span></span><span> </span><span class="annot"><a href="Data.IMap.html#Run"><span class="hs-identifier hs-type">Run</span></a></span></span></span></span><span> </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679369477"><span class="annot"><span class="annottext">sequenceA :: Run (f a) -&gt; f (Run a)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">sequenceA</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IMap.html#Run"><span class="hs-identifier hs-type">Run</span></a></span><span> </span><span id="local-6989586621679369475"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369475"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679369474"><span class="annot"><span class="annottext">f a
+</span><a href="#local-6989586621679369474"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; a -&gt; Run a
+forall a. Int -&gt; a -&gt; Run a
+</span><a href="Data.IMap.html#Run"><span class="hs-identifier hs-var">Run</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369475"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">(a -&gt; Run a) -&gt; f a -&gt; f (Run a)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">f a
+</span><a href="#local-6989586621679369474"><span class="hs-identifier hs-var">v</span></a></span><span>
+</span><span id="line-83"></span><span>
+</span><span id="line-84"></span><span id="local-6989586621679369719"><span class="annot"><a href="Data.IMap.html#empty"><span class="hs-identifier hs-type">empty</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369719"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-85"></span><span id="empty"><span class="annot"><span class="annottext">empty :: IMap a
+</span><a href="Data.IMap.html#empty"><span class="hs-identifier hs-var hs-var">empty</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IntMap (Run a) -&gt; IMap a
+forall a. IntMap (Run a) -&gt; IMap a
+</span><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-var">IMap</span></a></span><span> </span><span class="annot"><span class="annottext">IntMap (Run a)
+forall a. IntMap a
+</span><span class="hs-identifier hs-var">IM.empty</span></span><span>
+</span><span id="line-86"></span><span>
+</span><span id="line-87"></span><span id="local-6989586621679369471"><span class="annot"><a href="Data.IMap.html#null"><span class="hs-identifier hs-type">null</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369471"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span></span><span>
+</span><span id="line-88"></span><span id="null"><span class="annot"><span class="annottext">null :: IMap a -&gt; Bool
+</span><a href="Data.IMap.html#null"><span class="hs-identifier hs-var hs-var">null</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IntMap (Run a) -&gt; Bool
+forall a. IntMap a -&gt; Bool
+</span><span class="hs-identifier hs-var">IM.null</span></span><span> </span><span class="annot"><span class="annottext">(IntMap (Run a) -&gt; Bool)
+-&gt; (IMap a -&gt; IntMap (Run a)) -&gt; IMap a -&gt; Bool
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">IMap a -&gt; IntMap (Run a)
+forall a. IMap a -&gt; IntMap (Run a)
+</span><a href="Data.IMap.html#_runs"><span class="hs-identifier hs-var hs-var">_runs</span></a></span><span>
+</span><span id="line-89"></span><span>
+</span><span id="line-90"></span><span id="local-6989586621679369469"><span class="annot"><a href="Data.IMap.html#singleton"><span class="hs-identifier hs-type">singleton</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IMap.html#Run"><span class="hs-identifier hs-type">Run</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369469"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369469"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-91"></span><span id="singleton"><span class="annot"><span class="annottext">singleton :: Int -&gt; Run a -&gt; IMap a
+</span><a href="Data.IMap.html#singleton"><span class="hs-identifier hs-var hs-var">singleton</span></a></span></span><span> </span><span id="local-6989586621679369468"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369468"><span class="hs-identifier hs-var">k</span></a></span></span><span> </span><span id="local-6989586621679369467"><span class="annot"><span class="annottext">Run a
+</span><a href="#local-6989586621679369467"><span class="hs-identifier hs-var">r</span></a></span></span><span>
+</span><span id="line-92"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Run a -&gt; Int
+forall a. Run a -&gt; Int
+</span><a href="Data.IMap.html#len"><span class="hs-identifier hs-var hs-var">len</span></a></span><span> </span><span class="annot"><span class="annottext">Run a
+</span><a href="#local-6989586621679369467"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;=</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IntMap (Run a) -&gt; IMap a
+forall a. IntMap (Run a) -&gt; IMap a
+</span><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-var">IMap</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Run a -&gt; IntMap (Run a)
+forall a. Int -&gt; a -&gt; IntMap a
+</span><span class="hs-identifier hs-var">IM.singleton</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369468"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="annot"><span class="annottext">Run a
+</span><a href="#local-6989586621679369467"><span class="hs-identifier hs-var">r</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-93"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IMap a
+forall a. IMap a
+</span><a href="Data.IMap.html#empty"><span class="hs-identifier hs-var">empty</span></a></span><span>
+</span><span id="line-94"></span><span>
+</span><span id="line-95"></span><span id="local-6989586621679369689"><span class="annot"><a href="Data.IMap.html#insert"><span class="hs-identifier hs-type">insert</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IMap.html#Run"><span class="hs-identifier hs-type">Run</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369689"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369689"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369689"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-96"></span><span id="insert"><span class="annot"><span class="annottext">insert :: Int -&gt; Run a -&gt; IMap a -&gt; IMap a
+</span><a href="Data.IMap.html#insert"><span class="hs-identifier hs-var hs-var">insert</span></a></span></span><span> </span><span id="local-6989586621679369465"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369465"><span class="hs-identifier hs-var">k</span></a></span></span><span> </span><span id="local-6989586621679369464"><span class="annot"><span class="annottext">Run a
+</span><a href="#local-6989586621679369464"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span id="local-6989586621679369463"><span class="annot"><span class="annottext">IMap a
+</span><a href="#local-6989586621679369463"><span class="hs-identifier hs-var">m</span></a></span></span><span>
+</span><span id="line-97"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Run a -&gt; Int
+forall a. Run a -&gt; Int
+</span><a href="Data.IMap.html#len"><span class="hs-identifier hs-var hs-var">len</span></a></span><span> </span><span class="annot"><span class="annottext">Run a
+</span><a href="#local-6989586621679369464"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IMap a
+</span><a href="#local-6989586621679369463"><span class="hs-identifier hs-var">m</span></a></span><span>
+</span><span id="line-98"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IMap a
+</span><a href="#local-6989586621679369463"><span class="hs-identifier hs-var">m</span></a></span><span> </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">_runs :: IntMap (Run a)
+</span><a href="Data.IMap.html#_runs"><span class="hs-identifier hs-var">_runs</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Run a -&gt; IntMap (Run a) -&gt; IntMap (Run a)
+forall a. Int -&gt; a -&gt; IntMap a -&gt; IntMap a
+</span><span class="hs-identifier hs-var">IM.insert</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369465"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="annot"><span class="annottext">Run a
+</span><a href="#local-6989586621679369464"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IMap a -&gt; IntMap (Run a)
+forall a. IMap a -&gt; IntMap (Run a)
+</span><a href="Data.IMap.html#_runs"><span class="hs-identifier hs-var hs-var">_runs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Run a -&gt; IMap a -&gt; IMap a
+forall ignored a. Int -&gt; Run ignored -&gt; IMap a -&gt; IMap a
+</span><a href="Data.IMap.html#delete"><span class="hs-identifier hs-var">delete</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369465"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="annot"><span class="annottext">Run a
+</span><a href="#local-6989586621679369464"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">IMap a
+</span><a href="#local-6989586621679369463"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-special">}</span><span>
+</span><span id="line-99"></span><span>
+</span><span id="line-100"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Data.IMap.html#delete"><span class="hs-pragma hs-type">delete</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-101"></span><span id="local-6989586621679369715"><span id="local-6989586621679369716"><span class="annot"><a href="Data.IMap.html#delete"><span class="hs-identifier hs-type">delete</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IMap.html#Run"><span class="hs-identifier hs-type">Run</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369716"><span class="hs-identifier hs-type">ignored</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369715"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369715"><span class="hs-identifier hs-type">a</span></a></span></span></span><span>
+</span><span id="line-102"></span><span id="delete"><span class="annot"><span class="annottext">delete :: Int -&gt; Run ignored -&gt; IMap a -&gt; IMap a
+</span><a href="Data.IMap.html#delete"><span class="hs-identifier hs-var hs-var">delete</span></a></span></span><span> </span><span id="local-6989586621679369460"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369460"><span class="hs-identifier hs-var">k</span></a></span></span><span> </span><span id="local-6989586621679369459"><span class="annot"><span class="annottext">Run ignored
+</span><a href="#local-6989586621679369459"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span id="local-6989586621679369458"><span class="annot"><span class="annottext">IMap a
+</span><a href="#local-6989586621679369458"><span class="hs-identifier hs-var">m</span></a></span></span><span>
+</span><span id="line-103"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Run ignored -&gt; Int
+forall a. Run a -&gt; Int
+</span><a href="Data.IMap.html#len"><span class="hs-identifier hs-var hs-var">len</span></a></span><span> </span><span class="annot"><span class="annottext">Run ignored
+</span><a href="#local-6989586621679369459"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IMap a
+</span><a href="#local-6989586621679369458"><span class="hs-identifier hs-var">m</span></a></span><span>
+</span><span id="line-104"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IMap a
+</span><a href="#local-6989586621679369458"><span class="hs-identifier hs-var">m</span></a></span><span> </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">_runs :: IntMap (Run a)
+</span><a href="Data.IMap.html#_runs"><span class="hs-identifier hs-var">_runs</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IntMap (Run a) -&gt; IntMap (Run a) -&gt; IntMap (Run a)
+forall a. IntMap a -&gt; IntMap a -&gt; IntMap a
+</span><span class="hs-identifier hs-var">IM.union</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IMap a -&gt; IntMap (Run a)
+forall a. IMap a -&gt; IntMap (Run a)
+</span><a href="Data.IMap.html#_runs"><span class="hs-identifier hs-var hs-var">_runs</span></a></span><span> </span><span class="annot"><span class="annottext">IMap a
+</span><a href="#local-6989586621679369456"><span class="hs-identifier hs-var">lt</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IMap a -&gt; IntMap (Run a)
+forall a. IMap a -&gt; IntMap (Run a)
+</span><a href="Data.IMap.html#_runs"><span class="hs-identifier hs-var hs-var">_runs</span></a></span><span> </span><span class="annot"><span class="annottext">IMap a
+</span><a href="#local-6989586621679369455"><span class="hs-identifier hs-var">gt</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">}</span><span>
+</span><span id="line-105"></span><span>    </span><span class="hs-keyword">where</span><span>
+</span><span id="line-106"></span><span>    </span><span class="hs-special">(</span><span id="local-6989586621679369456"><span class="annot"><span class="annottext">IMap a
+</span><a href="#local-6989586621679369456"><span class="hs-identifier hs-var">lt</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679369454"><span class="annot"><span class="annottext">IMap a
+</span><a href="#local-6989586621679369454"><span class="hs-identifier hs-var">ge</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; IMap a -&gt; (IMap a, IMap a)
+forall a. Int -&gt; IMap a -&gt; (IMap a, IMap a)
+</span><a href="Data.IMap.html#splitLE"><span class="hs-identifier hs-var">splitLE</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369460"><span class="hs-identifier hs-var">k</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">IMap a
+</span><a href="#local-6989586621679369458"><span class="hs-identifier hs-var">m</span></a></span><span>
+</span><span id="line-107"></span><span>    </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IMap a
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">,</span><span> </span><span id="local-6989586621679369455"><span class="annot"><span class="annottext">IMap a
+</span><a href="#local-6989586621679369455"><span class="hs-identifier hs-var">gt</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; IMap a -&gt; (IMap a, IMap a)
+forall a. Int -&gt; IMap a -&gt; (IMap a, IMap a)
+</span><a href="Data.IMap.html#splitLE"><span class="hs-identifier hs-var">splitLE</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369460"><span class="hs-identifier hs-var">k</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span class="annot"><span class="annottext">Run ignored -&gt; Int
+forall a. Run a -&gt; Int
+</span><a href="Data.IMap.html#len"><span class="hs-identifier hs-var hs-var">len</span></a></span><span> </span><span class="annot"><span class="annottext">Run ignored
+</span><a href="#local-6989586621679369459"><span class="hs-identifier hs-var">r</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">IMap a
+</span><a href="#local-6989586621679369454"><span class="hs-identifier hs-var">ge</span></a></span><span>
+</span><span id="line-108"></span><span>
+</span><span id="line-109"></span><span class="hs-comment">-- | Given a range of keys (as specified by a starting key and a length for</span><span>
+</span><span id="line-110"></span><span class="hs-comment">-- consistency with other functions in this module), restrict the map to keys</span><span>
+</span><span id="line-111"></span><span class="hs-comment">-- in that range. @restrict k r m@ is equivalent to @intersectionWith const m</span><span>
+</span><span id="line-112"></span><span class="hs-comment">-- (insert k r empty)@ but potentially more efficient.</span><span>
+</span><span id="line-113"></span><span id="local-6989586621679369452"><span id="local-6989586621679369453"><span class="annot"><a href="Data.IMap.html#restrict"><span class="hs-identifier hs-type">restrict</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IMap.html#Run"><span class="hs-identifier hs-type">Run</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369453"><span class="hs-identifier hs-type">ignored</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369452"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369452"><span class="hs-identifier hs-type">a</span></a></span></span></span><span>
+</span><span id="line-114"></span><span id="restrict"><span class="annot"><span class="annottext">restrict :: Int -&gt; Run ignored -&gt; IMap a -&gt; IMap a
+</span><a href="Data.IMap.html#restrict"><span class="hs-identifier hs-var hs-var">restrict</span></a></span></span><span> </span><span id="local-6989586621679369451"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369451"><span class="hs-identifier hs-var">k</span></a></span></span><span> </span><span id="local-6989586621679369450"><span class="annot"><span class="annottext">Run ignored
+</span><a href="#local-6989586621679369450"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IMap a -&gt; IMap a
+forall a. a -&gt; a
+</span><span class="hs-identifier hs-var">id</span></span><span>
+</span><span id="line-115"></span><span>    </span><span class="annot"><span class="annottext">(IMap a -&gt; IMap a) -&gt; (IMap a -&gt; IMap a) -&gt; IMap a -&gt; IMap a
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(IMap a, IMap a) -&gt; IMap a
+forall a b. (a, b) -&gt; b
+</span><span class="hs-identifier hs-var">snd</span></span><span>
+</span><span id="line-116"></span><span>    </span><span class="annot"><span class="annottext">((IMap a, IMap a) -&gt; IMap a)
+-&gt; (IMap a -&gt; (IMap a, IMap a)) -&gt; IMap a -&gt; IMap a
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; IMap a -&gt; (IMap a, IMap a)
+forall a. Int -&gt; IMap a -&gt; (IMap a, IMap a)
+</span><a href="Data.IMap.html#splitLE"><span class="hs-identifier hs-var">splitLE</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369451"><span class="hs-identifier hs-var">k</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-117"></span><span>    </span><span class="annot"><span class="annottext">(IMap a -&gt; (IMap a, IMap a))
+-&gt; (IMap a -&gt; IMap a) -&gt; IMap a -&gt; (IMap a, IMap a)
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(IMap a, IMap a) -&gt; IMap a
+forall a b. (a, b) -&gt; a
+</span><span class="hs-identifier hs-var">fst</span></span><span>
+</span><span id="line-118"></span><span>    </span><span class="annot"><span class="annottext">((IMap a, IMap a) -&gt; IMap a)
+-&gt; (IMap a -&gt; (IMap a, IMap a)) -&gt; IMap a -&gt; IMap a
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; IMap a -&gt; (IMap a, IMap a)
+forall a. Int -&gt; IMap a -&gt; (IMap a, IMap a)
+</span><a href="Data.IMap.html#splitLE"><span class="hs-identifier hs-var">splitLE</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369451"><span class="hs-identifier hs-var">k</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span class="annot"><span class="annottext">Run ignored -&gt; Int
+forall a. Run a -&gt; Int
+</span><a href="Data.IMap.html#len"><span class="hs-identifier hs-var hs-var">len</span></a></span><span> </span><span class="annot"><span class="annottext">Run ignored
+</span><a href="#local-6989586621679369450"><span class="hs-identifier hs-var">r</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span>
+</span><span id="line-119"></span><span>
+</span><span id="line-120"></span><span id="local-6989586621679369448"><span class="annot"><a href="Data.IMap.html#lookup"><span class="hs-identifier hs-type">lookup</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369448"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679369448"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-121"></span><span id="lookup"><span class="annot"><span class="annottext">lookup :: Int -&gt; IMap a -&gt; Maybe a
+</span><a href="Data.IMap.html#lookup"><span class="hs-identifier hs-var hs-var">lookup</span></a></span></span><span> </span><span id="local-6989586621679369447"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369447"><span class="hs-identifier hs-var">k</span></a></span></span><span> </span><span id="local-6989586621679369446"><span class="annot"><span class="annottext">IMap a
+</span><a href="#local-6989586621679369446"><span class="hs-identifier hs-var">m</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Int -&gt; IntMap (Run a) -&gt; Maybe (Int, Run a)
+forall a. Int -&gt; IntMap a -&gt; Maybe (Int, a)
+</span><span class="hs-identifier hs-var">IM.lookupLE</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369447"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IMap a -&gt; IntMap (Run a)
+forall a. IMap a -&gt; IntMap (Run a)
+</span><a href="Data.IMap.html#_runs"><span class="hs-identifier hs-var hs-var">_runs</span></a></span><span> </span><span class="annot"><span class="annottext">IMap a
+</span><a href="#local-6989586621679369446"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-122"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679369444"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369444"><span class="hs-identifier hs-var">k'</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.IMap.html#Run"><span class="hs-identifier hs-type">Run</span></a></span><span> </span><span id="local-6989586621679369443"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369443"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679369442"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679369442"><span class="hs-identifier hs-var">a</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369447"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369444"><span class="hs-identifier hs-var">k'</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369443"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">a -&gt; Maybe a
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679369442"><span class="hs-identifier hs-var">a</span></a></span><span>
+</span><span id="line-123"></span><span>    </span><span class="annot"><span class="annottext">Maybe (Int, Run a)
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe a
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-124"></span><span>
+</span><span id="line-125"></span><span class="hs-comment">-- | @splitLE n m@ produces a tuple @(le, gt)@ where @le@ has all the</span><span>
+</span><span id="line-126"></span><span class="hs-comment">-- associations of @m@ where the keys are @&lt;= n@ and @gt@ has all the</span><span>
+</span><span id="line-127"></span><span class="hs-comment">-- associations of @m@ where the keys are @&gt; n@.</span><span>
+</span><span id="line-128"></span><span id="local-6989586621679369711"><span class="annot"><a href="Data.IMap.html#splitLE"><span class="hs-identifier hs-type">splitLE</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369711"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369711"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369711"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-129"></span><span id="splitLE"><span class="annot"><span class="annottext">splitLE :: Int -&gt; IMap a -&gt; (IMap a, IMap a)
+</span><a href="Data.IMap.html#splitLE"><span class="hs-identifier hs-var hs-var">splitLE</span></a></span></span><span> </span><span id="local-6989586621679369441"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369441"><span class="hs-identifier hs-var">k</span></a></span></span><span> </span><span id="local-6989586621679369440"><span class="annot"><span class="annottext">IMap a
+</span><a href="#local-6989586621679369440"><span class="hs-identifier hs-var">m</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Int -&gt; IntMap (Run a) -&gt; Maybe (Int, Run a)
+forall a. Int -&gt; IntMap a -&gt; Maybe (Int, a)
+</span><span class="hs-identifier hs-var">IM.lookupLE</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369441"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IMap a -&gt; IntMap (Run a)
+forall a. IMap a -&gt; IntMap (Run a)
+</span><a href="Data.IMap.html#_runs"><span class="hs-identifier hs-var hs-var">_runs</span></a></span><span> </span><span class="annot"><span class="annottext">IMap a
+</span><a href="#local-6989586621679369440"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-130"></span><span>    </span><span class="annot"><span class="annottext">Maybe (Int, Run a)
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IMap a
+forall a. IMap a
+</span><a href="Data.IMap.html#empty"><span class="hs-identifier hs-var">empty</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">IMap a
+</span><a href="#local-6989586621679369440"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-131"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679369439"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369439"><span class="hs-identifier hs-var">k'</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679369438"><span class="annot"><span class="annottext">r :: Run a
+</span><a href="#local-6989586621679369438"><span class="hs-identifier hs-var">r</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Data.IMap.html#Run"><span class="hs-identifier hs-type">Run</span></a></span><span> </span><span id="local-6989586621679369437"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369437"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="annot"><span class="annottext">a
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369439"><span class="hs-identifier hs-var">k'</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369437"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;=</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369441"><span class="hs-identifier hs-var">k</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369439"><span class="hs-identifier hs-var">k'</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369441"><span class="hs-identifier hs-var">k</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-132"></span><span>        </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span> </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IMap a
+</span><a href="#local-6989586621679369440"><span class="hs-identifier hs-var">m</span></a></span><span> </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">_runs :: IntMap (Run a)
+</span><a href="Data.IMap.html#_runs"><span class="hs-identifier hs-var">_runs</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IntMap (Run a)
+</span><a href="#local-6989586621679369435"><span class="hs-identifier hs-var">lt</span></a></span><span> </span><span class="hs-special">}</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">IMap a
+</span><a href="#local-6989586621679369440"><span class="hs-identifier hs-var">m</span></a></span><span> </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">_runs :: IntMap (Run a)
+</span><a href="Data.IMap.html#_runs"><span class="hs-identifier hs-var">_runs</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IntMap (Run a)
+</span><a href="#local-6989586621679369434"><span class="hs-identifier hs-var">gt</span></a></span><span> </span><span class="hs-special">}</span><span class="hs-special">)</span><span>
+</span><span id="line-133"></span><span>        </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span> </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span> </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IMap a
+</span><a href="#local-6989586621679369440"><span class="hs-identifier hs-var">m</span></a></span><span> </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">_runs :: IntMap (Run a)
+</span><a href="Data.IMap.html#_runs"><span class="hs-identifier hs-var">_runs</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Run a -&gt; IntMap (Run a) -&gt; IntMap (Run a)
+forall a. Int -&gt; a -&gt; IntMap a -&gt; IntMap a
+</span><span class="hs-identifier hs-var">IM.insert</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369441"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="annot"><span class="annottext">Run a
+</span><a href="#local-6989586621679369438"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">IntMap (Run a)
+</span><a href="#local-6989586621679369435"><span class="hs-identifier hs-var">lt</span></a></span><span> </span><span class="hs-special">}</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">IMap a
+</span><a href="#local-6989586621679369440"><span class="hs-identifier hs-var">m</span></a></span><span> </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">_runs :: IntMap (Run a)
+</span><a href="Data.IMap.html#_runs"><span class="hs-identifier hs-var">_runs</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IntMap (Run a)
+</span><a href="#local-6989586621679369434"><span class="hs-identifier hs-var">gt</span></a></span><span> </span><span class="hs-special">}</span><span class="hs-special">)</span><span>
+</span><span id="line-134"></span><span>        </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier">_</span></span><span>    </span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span> </span><span class="annot"><span class="annottext">IMap a
+</span><a href="#local-6989586621679369440"><span class="hs-identifier hs-var">m</span></a></span><span> </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">_runs :: IntMap (Run a)
+</span><a href="Data.IMap.html#_runs"><span class="hs-identifier hs-var">_runs</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Run a -&gt; IntMap (Run a) -&gt; IntMap (Run a)
+forall a. Int -&gt; a -&gt; IntMap a -&gt; IntMap a
+</span><span class="hs-identifier hs-var">IM.insert</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369439"><span class="hs-identifier hs-var">k'</span></a></span><span>    </span><span class="annot"><span class="annottext">Run a
+</span><a href="#local-6989586621679369438"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">len :: Int
+</span><a href="Data.IMap.html#len"><span class="hs-identifier hs-var">len</span></a></span><span> </span><span class="hs-glyph">=</span><span>     </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369441"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369439"><span class="hs-identifier hs-var">k'</span></a></span><span> </span><span class="hs-special">}</span><span> </span><span class="annot"><span class="annottext">IntMap (Run a)
+</span><a href="#local-6989586621679369433"><span class="hs-identifier hs-var">lt'</span></a></span><span> </span><span class="hs-special">}</span><span>
+</span><span id="line-135"></span><span>                          </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">IMap a
+</span><a href="#local-6989586621679369440"><span class="hs-identifier hs-var">m</span></a></span><span> </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">_runs :: IntMap (Run a)
+</span><a href="Data.IMap.html#_runs"><span class="hs-identifier hs-var">_runs</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Run a -&gt; IntMap (Run a) -&gt; IntMap (Run a)
+forall a. Int -&gt; a -&gt; IntMap a -&gt; IntMap a
+</span><span class="hs-identifier hs-var">IM.insert</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369441"><span class="hs-identifier hs-var">k</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Run a
+</span><a href="#local-6989586621679369438"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">len :: Int
+</span><a href="Data.IMap.html#len"><span class="hs-identifier hs-var">len</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369437"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369441"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369439"><span class="hs-identifier hs-var">k'</span></a></span><span> </span><span class="hs-special">}</span><span> </span><span class="annot"><span class="annottext">IntMap (Run a)
+</span><a href="#local-6989586621679369432"><span class="hs-identifier hs-var">gt'</span></a></span><span> </span><span class="hs-special">}</span><span>
+</span><span id="line-136"></span><span>                          </span><span class="hs-special">)</span><span>
+</span><span id="line-137"></span><span>        </span><span class="hs-keyword">where</span><span>
+</span><span id="line-138"></span><span>        </span><span class="hs-special">(</span><span id="local-6989586621679369433"><span class="annot"><span class="annottext">IntMap (Run a)
+</span><a href="#local-6989586621679369433"><span class="hs-identifier hs-var">lt'</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679369432"><span class="annot"><span class="annottext">IntMap (Run a)
+</span><a href="#local-6989586621679369432"><span class="hs-identifier hs-var">gt'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; IntMap (Run a) -&gt; (IntMap (Run a), IntMap (Run a))
+forall a. Int -&gt; IntMap a -&gt; (IntMap a, IntMap a)
+</span><span class="hs-identifier hs-var">IM.split</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369439"><span class="hs-identifier hs-var">k'</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IMap a -&gt; IntMap (Run a)
+forall a. IMap a -&gt; IntMap (Run a)
+</span><a href="Data.IMap.html#_runs"><span class="hs-identifier hs-var hs-var">_runs</span></a></span><span> </span><span class="annot"><span class="annottext">IMap a
+</span><a href="#local-6989586621679369440"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-139"></span><span>    </span><span class="hs-keyword">where</span><span>
+</span><span id="line-140"></span><span>    </span><span class="hs-special">(</span><span id="local-6989586621679369435"><span class="annot"><span class="annottext">IntMap (Run a)
+</span><a href="#local-6989586621679369435"><span class="hs-identifier hs-var">lt</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679369434"><span class="annot"><span class="annottext">IntMap (Run a)
+</span><a href="#local-6989586621679369434"><span class="hs-identifier hs-var">gt</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; IntMap (Run a) -&gt; (IntMap (Run a), IntMap (Run a))
+forall a. Int -&gt; IntMap a -&gt; (IntMap a, IntMap a)
+</span><span class="hs-identifier hs-var">IM.split</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369441"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IMap a -&gt; IntMap (Run a)
+forall a. IMap a -&gt; IntMap (Run a)
+</span><a href="Data.IMap.html#_runs"><span class="hs-identifier hs-var hs-var">_runs</span></a></span><span> </span><span class="annot"><span class="annottext">IMap a
+</span><a href="#local-6989586621679369440"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-141"></span><span>
+</span><span id="line-142"></span><span class="hs-comment">-- | Increment all keys by the given amount. This is like</span><span>
+</span><span id="line-143"></span><span class="hs-comment">-- 'IM.mapKeysMonotonic', but restricted to partially-applied addition.</span><span>
+</span><span id="line-144"></span><span id="local-6989586621679369430"><span class="annot"><a href="Data.IMap.html#addToKeys"><span class="hs-identifier hs-type">addToKeys</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369430"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369430"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-145"></span><span id="addToKeys"><span class="annot"><span class="annottext">addToKeys :: Int -&gt; IMap a -&gt; IMap a
+</span><a href="Data.IMap.html#addToKeys"><span class="hs-identifier hs-var hs-var">addToKeys</span></a></span></span><span> </span><span id="local-6989586621679369429"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369429"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679369428"><span class="annot"><span class="annottext">IMap a
+</span><a href="#local-6989586621679369428"><span class="hs-identifier hs-var">m</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IMap a
+</span><a href="#local-6989586621679369428"><span class="hs-identifier hs-var">m</span></a></span><span> </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">_runs :: IntMap (Run a)
+</span><a href="Data.IMap.html#_runs"><span class="hs-identifier hs-var">_runs</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Int) -&gt; IntMap (Run a) -&gt; IntMap (Run a)
+forall a. (Int -&gt; Int) -&gt; IntMap a -&gt; IntMap a
+</span><span class="hs-identifier hs-var">IM.mapKeysMonotonic</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369429"><span class="hs-identifier hs-var">n</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IMap a -&gt; IntMap (Run a)
+forall a. IMap a -&gt; IntMap (Run a)
+</span><a href="Data.IMap.html#_runs"><span class="hs-identifier hs-var hs-var">_runs</span></a></span><span> </span><span class="annot"><span class="annottext">IMap a
+</span><a href="#local-6989586621679369428"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">}</span><span>
+</span><span id="line-146"></span><span>
+</span><span id="line-147"></span><span class="hs-comment">-- TODO: This is pretty inefficient. IntMap offers some splitting functions</span><span>
+</span><span id="line-148"></span><span class="hs-comment">-- that should make it possible to be more efficient here (though the</span><span>
+</span><span id="line-149"></span><span class="hs-comment">-- implementation would be significantly messier).</span><span>
+</span><span id="line-150"></span><span id="local-6989586621679369424"><span id="local-6989586621679369425"><span id="local-6989586621679369426"><span class="annot"><a href="Data.IMap.html#intersectionWith"><span class="hs-identifier hs-type">intersectionWith</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679369426"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679369425"><span class="hs-identifier hs-type">b</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679369424"><span class="hs-identifier hs-type">c</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369426"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369425"><span class="hs-identifier hs-type">b</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369424"><span class="hs-identifier hs-type">c</span></a></span></span></span></span><span>
+</span><span id="line-151"></span><span id="intersectionWith"><span class="annot"><span class="annottext">intersectionWith :: (a -&gt; b -&gt; c) -&gt; IMap a -&gt; IMap b -&gt; IMap c
+</span><a href="Data.IMap.html#intersectionWith"><span class="hs-identifier hs-var hs-var">intersectionWith</span></a></span></span><span> </span><span id="local-6989586621679369423"><span class="annot"><span class="annottext">a -&gt; b -&gt; c
+</span><a href="#local-6989586621679369423"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span id="local-6989586621679369422"><span class="annot"><span class="annottext">IntMap (Run a)
+</span><a href="#local-6989586621679369422"><span class="hs-identifier hs-var">runsa</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span id="local-6989586621679369421"><span class="annot"><span class="annottext">IntMap (Run b)
+</span><a href="#local-6989586621679369421"><span class="hs-identifier hs-var">runsb</span></a></span></span><span class="hs-special">)</span><span>
+</span><span id="line-152"></span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IntMap (Run c) -&gt; IMap c
+forall a. IntMap (Run a) -&gt; IMap a
+</span><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-var">IMap</span></a></span><span> </span><span class="annot"><span class="annottext">(IntMap (Run c) -&gt; IMap c)
+-&gt; ([(Int, Run c)] -&gt; IntMap (Run c)) -&gt; [(Int, Run c)] -&gt; IMap c
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">[(Int, Run c)] -&gt; IntMap (Run c)
+forall a. [(Int, a)] -&gt; IntMap a
+</span><span class="hs-identifier hs-var">IM.fromDistinctAscList</span></span><span> </span><span class="annot"><span class="annottext">([(Int, Run c)] -&gt; IMap c) -&gt; [(Int, Run c)] -&gt; IMap c
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[(Int, Run a)] -&gt; [(Int, Run b)] -&gt; [(Int, Run c)]
+</span><a href="#local-6989586621679369420"><span class="hs-identifier hs-var">merge</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IntMap (Run a) -&gt; [(Int, Run a)]
+forall a. IntMap a -&gt; [(Int, a)]
+</span><span class="hs-identifier hs-var">IM.toAscList</span></span><span> </span><span class="annot"><span class="annottext">IntMap (Run a)
+</span><a href="#local-6989586621679369422"><span class="hs-identifier hs-var">runsa</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IntMap (Run b) -&gt; [(Int, Run b)]
+forall a. IntMap a -&gt; [(Int, a)]
+</span><span class="hs-identifier hs-var">IM.toAscList</span></span><span> </span><span class="annot"><span class="annottext">IntMap (Run b)
+</span><a href="#local-6989586621679369421"><span class="hs-identifier hs-var">runsb</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-153"></span><span>    </span><span class="hs-keyword">where</span><span>
+</span><span id="line-154"></span><span>    </span><span id="local-6989586621679369420"><span class="annot"><span class="annottext">merge :: [(Int, Run a)] -&gt; [(Int, Run b)] -&gt; [(Int, Run c)]
+</span><a href="#local-6989586621679369420"><span class="hs-identifier hs-var hs-var">merge</span></a></span></span><span> </span><span id="local-6989586621679369419"><span class="annot"><span class="annottext">as :: [(Int, Run a)]
+</span><a href="#local-6989586621679369419"><span class="hs-keyword hs-var">as</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="hs-special">(</span><span id="local-6989586621679369418"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369418"><span class="hs-identifier hs-var">ka</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679369417"><span class="annot"><span class="annottext">Run a
+</span><a href="#local-6989586621679369417"><span class="hs-identifier hs-var">ra</span></a></span></span><span class="hs-special">)</span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span id="local-6989586621679369416"><span class="annot"><span class="annottext">[(Int, Run a)]
+</span><a href="#local-6989586621679369416"><span class="hs-identifier hs-var">at</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679369415"><span class="annot"><span class="annottext">bs :: [(Int, Run b)]
+</span><a href="#local-6989586621679369415"><span class="hs-identifier hs-var">bs</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="hs-special">(</span><span id="local-6989586621679369414"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369414"><span class="hs-identifier hs-var">kb</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679369413"><span class="annot"><span class="annottext">Run b
+</span><a href="#local-6989586621679369413"><span class="hs-identifier hs-var">rb</span></a></span></span><span class="hs-special">)</span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span id="local-6989586621679369412"><span class="annot"><span class="annottext">[(Int, Run b)]
+</span><a href="#local-6989586621679369412"><span class="hs-identifier hs-var">bt</span></a></span></span><span class="hs-special">)</span><span>
+</span><span id="line-155"></span><span>        </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369411"><span class="hs-identifier hs-var">ka'</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369414"><span class="hs-identifier hs-var">kb</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(Int, Run a)] -&gt; [(Int, Run b)] -&gt; [(Int, Run c)]
+</span><a href="#local-6989586621679369420"><span class="hs-identifier hs-var">merge</span></a></span><span> </span><span class="annot"><span class="annottext">[(Int, Run a)]
+</span><a href="#local-6989586621679369416"><span class="hs-identifier hs-var">at</span></a></span><span> </span><span class="annot"><span class="annottext">[(Int, Run b)]
+</span><a href="#local-6989586621679369415"><span class="hs-identifier hs-var">bs</span></a></span><span>
+</span><span id="line-156"></span><span>        </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369410"><span class="hs-identifier hs-var">kb'</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369418"><span class="hs-identifier hs-var">ka</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(Int, Run a)] -&gt; [(Int, Run b)] -&gt; [(Int, Run c)]
+</span><a href="#local-6989586621679369420"><span class="hs-identifier hs-var">merge</span></a></span><span> </span><span class="annot"><span class="annottext">[(Int, Run a)]
+</span><a href="#local-6989586621679369419"><span class="hs-keyword hs-var">as</span></a></span><span> </span><span class="annot"><span class="annottext">[(Int, Run b)]
+</span><a href="#local-6989586621679369412"><span class="hs-identifier hs-var">bt</span></a></span><span>
+</span><span id="line-157"></span><span>        </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369409"><span class="hs-identifier hs-var">kc</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Int -&gt; c -&gt; Run c
+forall a. Int -&gt; a -&gt; Run a
+</span><a href="Data.IMap.html#Run"><span class="hs-identifier hs-var">Run</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369408"><span class="hs-identifier hs-var">kc'</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369409"><span class="hs-identifier hs-var">kc</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">c
+</span><a href="#local-6989586621679369407"><span class="hs-identifier hs-var">vc</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Int, Run c) -&gt; [(Int, Run c)] -&gt; [(Int, Run c)]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Ordering
+forall a. Ord a =&gt; a -&gt; a -&gt; Ordering
+</span><span class="hs-identifier hs-var">compare</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369411"><span class="hs-identifier hs-var">ka'</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369410"><span class="hs-identifier hs-var">kb'</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-158"></span><span>            </span><span class="annot"><span class="annottext">Ordering
+</span><span class="hs-identifier hs-var">LT</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[(Int, Run a)] -&gt; [(Int, Run b)] -&gt; [(Int, Run c)]
+</span><a href="#local-6989586621679369420"><span class="hs-identifier hs-var">merge</span></a></span><span> </span><span class="annot"><span class="annottext">[(Int, Run a)]
+</span><a href="#local-6989586621679369416"><span class="hs-identifier hs-var">at</span></a></span><span> </span><span class="annot"><span class="annottext">[(Int, Run b)]
+</span><a href="#local-6989586621679369415"><span class="hs-identifier hs-var">bs</span></a></span><span>
+</span><span id="line-159"></span><span>            </span><span class="annot"><span class="annottext">Ordering
+</span><span class="hs-identifier hs-var">EQ</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[(Int, Run a)] -&gt; [(Int, Run b)] -&gt; [(Int, Run c)]
+</span><a href="#local-6989586621679369420"><span class="hs-identifier hs-var">merge</span></a></span><span> </span><span class="annot"><span class="annottext">[(Int, Run a)]
+</span><a href="#local-6989586621679369416"><span class="hs-identifier hs-var">at</span></a></span><span> </span><span class="annot"><span class="annottext">[(Int, Run b)]
+</span><a href="#local-6989586621679369412"><span class="hs-identifier hs-var">bt</span></a></span><span>
+</span><span id="line-160"></span><span>            </span><span class="annot"><span class="annottext">Ordering
+</span><span class="hs-identifier hs-var">GT</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[(Int, Run a)] -&gt; [(Int, Run b)] -&gt; [(Int, Run c)]
+</span><a href="#local-6989586621679369420"><span class="hs-identifier hs-var">merge</span></a></span><span> </span><span class="annot"><span class="annottext">[(Int, Run a)]
+</span><a href="#local-6989586621679369419"><span class="hs-keyword hs-var">as</span></a></span><span> </span><span class="annot"><span class="annottext">[(Int, Run b)]
+</span><a href="#local-6989586621679369412"><span class="hs-identifier hs-var">bt</span></a></span><span>
+</span><span id="line-161"></span><span>        </span><span class="hs-keyword">where</span><span>
+</span><span id="line-162"></span><span>        </span><span id="local-6989586621679369411"><span class="annot"><span class="annottext">ka' :: Int
+</span><a href="#local-6989586621679369411"><span class="hs-identifier hs-var hs-var">ka'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369418"><span class="hs-identifier hs-var">ka</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Run a -&gt; Int
+forall a. Run a -&gt; Int
+</span><a href="Data.IMap.html#len"><span class="hs-identifier hs-var hs-var">len</span></a></span><span> </span><span class="annot"><span class="annottext">Run a
+</span><a href="#local-6989586621679369417"><span class="hs-identifier hs-var">ra</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span>
+</span><span id="line-163"></span><span>        </span><span id="local-6989586621679369410"><span class="annot"><span class="annottext">kb' :: Int
+</span><a href="#local-6989586621679369410"><span class="hs-identifier hs-var hs-var">kb'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369414"><span class="hs-identifier hs-var">kb</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Run b -&gt; Int
+forall a. Run a -&gt; Int
+</span><a href="Data.IMap.html#len"><span class="hs-identifier hs-var hs-var">len</span></a></span><span> </span><span class="annot"><span class="annottext">Run b
+</span><a href="#local-6989586621679369413"><span class="hs-identifier hs-var">rb</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-glyph hs-var">-</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span>
+</span><span id="line-164"></span><span>        </span><span id="local-6989586621679369409"><span class="annot"><span class="annottext">kc :: Int
+</span><a href="#local-6989586621679369409"><span class="hs-identifier hs-var hs-var">kc</span></a></span></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">max</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369418"><span class="hs-identifier hs-var">ka</span></a></span><span>  </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369414"><span class="hs-identifier hs-var">kb</span></a></span><span>
+</span><span id="line-165"></span><span>        </span><span id="local-6989586621679369408"><span class="annot"><span class="annottext">kc' :: Int
+</span><a href="#local-6989586621679369408"><span class="hs-identifier hs-var hs-var">kc'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">min</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369411"><span class="hs-identifier hs-var">ka'</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369410"><span class="hs-identifier hs-var">kb'</span></a></span><span>
+</span><span id="line-166"></span><span>        </span><span id="local-6989586621679369407"><span class="annot"><span class="annottext">vc :: c
+</span><a href="#local-6989586621679369407"><span class="hs-identifier hs-var hs-var">vc</span></a></span></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a -&gt; b -&gt; c
+</span><a href="#local-6989586621679369423"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Run a -&gt; a
+forall a. Run a -&gt; a
+</span><a href="Data.IMap.html#val"><span class="hs-identifier hs-var hs-var">val</span></a></span><span> </span><span class="annot"><span class="annottext">Run a
+</span><a href="#local-6989586621679369417"><span class="hs-identifier hs-var">ra</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Run b -&gt; b
+forall a. Run a -&gt; a
+</span><a href="Data.IMap.html#val"><span class="hs-identifier hs-var hs-var">val</span></a></span><span> </span><span class="annot"><span class="annottext">Run b
+</span><a href="#local-6989586621679369413"><span class="hs-identifier hs-var">rb</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-167"></span><span>    </span><span class="annot"><a href="#local-6989586621679369420"><span class="hs-identifier hs-var">merge</span></a></span><span> </span><span class="annot"><span class="annottext">[(Int, Run a)]
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">[(Int, Run b)]
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><span id="line-168"></span><span>
+</span><span id="line-169"></span><span id="local-6989586621679369403"><span id="local-6989586621679369404"><span class="annot"><a href="Data.IMap.html#mapMaybe"><span class="hs-identifier hs-type">mapMaybe</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679369404"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679369403"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369404"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369403"><span class="hs-identifier hs-type">b</span></a></span></span></span><span>
+</span><span id="line-170"></span><span id="mapMaybe"><span class="annot"><span class="annottext">mapMaybe :: (a -&gt; Maybe b) -&gt; IMap a -&gt; IMap b
+</span><a href="Data.IMap.html#mapMaybe"><span class="hs-identifier hs-var hs-var">mapMaybe</span></a></span></span><span> </span><span id="local-6989586621679369402"><span class="annot"><span class="annottext">a -&gt; Maybe b
+</span><a href="#local-6989586621679369402"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span id="local-6989586621679369401"><span class="annot"><span class="annottext">IntMap (Run a)
+</span><a href="#local-6989586621679369401"><span class="hs-identifier hs-var">runs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IntMap (Run b) -&gt; IMap b
+forall a. IntMap (Run a) -&gt; IMap a
+</span><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-var">IMap</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Run a -&gt; Maybe (Run b)) -&gt; IntMap (Run a) -&gt; IntMap (Run b)
+forall a b. (a -&gt; Maybe b) -&gt; IntMap a -&gt; IntMap b
+</span><span class="hs-identifier hs-var">IM.mapMaybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(a -&gt; Maybe b) -&gt; Run a -&gt; Maybe (Run b)
+forall (t :: * -&gt; *) (f :: * -&gt; *) a b.
+(Traversable t, Applicative f) =&gt;
+(a -&gt; f b) -&gt; t a -&gt; f (t b)
+</span><span class="hs-identifier hs-var">traverse</span></span><span> </span><span class="annot"><span class="annottext">a -&gt; Maybe b
+</span><a href="#local-6989586621679369402"><span class="hs-identifier hs-var">f</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">IntMap (Run a)
+</span><a href="#local-6989586621679369401"><span class="hs-identifier hs-var">runs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-171"></span><span>
+</span><span id="line-172"></span><span id="local-6989586621679369398"><span class="annot"><a href="Data.IMap.html#fromList"><span class="hs-identifier hs-type">fromList</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.IMap.html#Run"><span class="hs-identifier hs-type">Run</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369398"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369398"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-173"></span><span id="fromList"><span class="annot"><span class="annottext">fromList :: [(Int, Run a)] -&gt; IMap a
+</span><a href="Data.IMap.html#fromList"><span class="hs-identifier hs-var hs-var">fromList</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(IMap a -&gt; (Int, Run a) -&gt; IMap a)
+-&gt; IMap a -&gt; [(Int, Run a)] -&gt; IMap a
+forall (t :: * -&gt; *) b a.
+Foldable t =&gt;
+(b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b
+</span><span class="hs-identifier hs-var">foldl'</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679369397"><span class="annot"><span class="annottext">IMap a
+</span><a href="#local-6989586621679369397"><span class="hs-identifier hs-var">m</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679369396"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369396"><span class="hs-identifier hs-var">k</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679369395"><span class="annot"><span class="annottext">Run a
+</span><a href="#local-6989586621679369395"><span class="hs-identifier hs-var">r</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Run a -&gt; IMap a -&gt; IMap a
+forall a. Int -&gt; Run a -&gt; IMap a -&gt; IMap a
+</span><a href="Data.IMap.html#insert"><span class="hs-identifier hs-var">insert</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679369396"><span class="hs-identifier hs-var">k</span></a></span><span> </span><span class="annot"><span class="annottext">Run a
+</span><a href="#local-6989586621679369395"><span class="hs-identifier hs-var">r</span></a></span><span> </span><span class="annot"><span class="annottext">IMap a
+</span><a href="#local-6989586621679369397"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">IMap a
+forall a. IMap a
+</span><a href="Data.IMap.html#empty"><span class="hs-identifier hs-var">empty</span></a></span><span>
+</span><span id="line-174"></span><span>
+</span><span id="line-175"></span><span class="hs-comment">-- | This function is unsafe because 'IMap's that compare equal may split their</span><span>
+</span><span id="line-176"></span><span class="hs-comment">-- runs into different chunks; consumers must promise that they do not treat</span><span>
+</span><span id="line-177"></span><span class="hs-comment">-- run boundaries specially.</span><span>
+</span><span id="line-178"></span><span id="local-6989586621679369394"><span class="annot"><a href="Data.IMap.html#unsafeToAscList"><span class="hs-identifier hs-type">unsafeToAscList</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369394"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.IMap.html#Run"><span class="hs-identifier hs-type">Run</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369394"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span></span><span>
+</span><span id="line-179"></span><span id="unsafeToAscList"><span class="annot"><span class="annottext">unsafeToAscList :: IMap a -&gt; [(Int, Run a)]
+</span><a href="Data.IMap.html#unsafeToAscList"><span class="hs-identifier hs-var hs-var">unsafeToAscList</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IntMap (Run a) -&gt; [(Int, Run a)]
+forall a. IntMap a -&gt; [(Int, a)]
+</span><span class="hs-identifier hs-var">IM.toAscList</span></span><span> </span><span class="annot"><span class="annottext">(IntMap (Run a) -&gt; [(Int, Run a)])
+-&gt; (IMap a -&gt; IntMap (Run a)) -&gt; IMap a -&gt; [(Int, Run a)]
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">IMap a -&gt; IntMap (Run a)
+forall a. IMap a -&gt; IntMap (Run a)
+</span><a href="Data.IMap.html#_runs"><span class="hs-identifier hs-var hs-var">_runs</span></a></span><span>
+</span><span id="line-180"></span><span>
+</span><span id="line-181"></span><span class="hs-comment">-- | This function is unsafe because it assumes there is no overlap between its</span><span>
+</span><span id="line-182"></span><span class="hs-comment">-- arguments. That is, in the call @unsafeUnion a b@, the caller must guarantee</span><span>
+</span><span id="line-183"></span><span class="hs-comment">-- that if @lookup k a = Just v@ then @lookup k b = Nothing@ and vice versa.</span><span>
+</span><span id="line-184"></span><span id="local-6989586621679369393"><span class="annot"><a href="Data.IMap.html#unsafeUnion"><span class="hs-identifier hs-type">unsafeUnion</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369393"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369393"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679369393"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-185"></span><span id="unsafeUnion"><span class="annot"><span class="annottext">unsafeUnion :: IMap a -&gt; IMap a -&gt; IMap a
+</span><a href="Data.IMap.html#unsafeUnion"><span class="hs-identifier hs-var hs-var">unsafeUnion</span></a></span></span><span> </span><span id="local-6989586621679369392"><span class="annot"><span class="annottext">IMap a
+</span><a href="#local-6989586621679369392"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679369391"><span class="annot"><span class="annottext">IMap a
+</span><a href="#local-6989586621679369391"><span class="hs-identifier hs-var">b</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IMap :: forall a. IntMap (Run a) -&gt; IMap a
+</span><a href="Data.IMap.html#IMap"><span class="hs-identifier hs-type">IMap</span></a></span><span> </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">_runs :: IntMap (Run a)
+</span><a href="Data.IMap.html#_runs"><span class="hs-identifier hs-var">_runs</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IMap a -&gt; IntMap (Run a)
+forall a. IMap a -&gt; IntMap (Run a)
+</span><a href="Data.IMap.html#_runs"><span class="hs-identifier hs-var hs-var">_runs</span></a></span><span> </span><span class="annot"><span class="annottext">IMap a
+</span><a href="#local-6989586621679369392"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">IntMap (Run a) -&gt; IntMap (Run a) -&gt; IntMap (Run a)
+forall a. IntMap a -&gt; IntMap a -&gt; IntMap a
+</span><span class="hs-operator hs-var">`IM.union`</span></span><span> </span><span class="annot"><span class="annottext">IMap a -&gt; IntMap (Run a)
+forall a. IMap a -&gt; IntMap (Run a)
+</span><a href="Data.IMap.html#_runs"><span class="hs-identifier hs-var hs-var">_runs</span></a></span><span> </span><span class="annot"><span class="annottext">IMap a
+</span><a href="#local-6989586621679369391"><span class="hs-identifier hs-var">b</span></a></span><span> </span><span class="hs-special">}</span><span>
+</span><span id="line-186"></span></pre></body></html>

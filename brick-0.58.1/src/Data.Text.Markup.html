@@ -1,0 +1,313 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- | This module provides an API for &quot;marking up&quot; text with arbitrary</span><span>
+</span><span id="line-2"></span><span class="hs-comment">-- values. A piece of markup can then be converted to a list of pairs</span><span>
+</span><span id="line-3"></span><span class="hs-comment">-- representing the sequences of characters assigned the same markup</span><span>
+</span><span id="line-4"></span><span class="hs-comment">-- value.</span><span>
+</span><span id="line-5"></span><span class="hs-comment">--</span><span>
+</span><span id="line-6"></span><span class="hs-comment">-- This interface is experimental. Don't use this for your full-file</span><span>
+</span><span id="line-7"></span><span class="hs-comment">-- syntax highlighter just yet!</span><span>
+</span><span id="line-8"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Data.Text.Markup</span><span>
+</span><span id="line-9"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Data.Text.Markup.html#Markup"><span class="hs-identifier">Markup</span></a></span><span>
+</span><span id="line-10"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Text.Markup.html#markupToList"><span class="hs-identifier">markupToList</span></a></span><span>
+</span><span id="line-11"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Text.Markup.html#markupSet"><span class="hs-identifier">markupSet</span></a></span><span>
+</span><span id="line-12"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Text.Markup.html#fromList"><span class="hs-identifier">fromList</span></a></span><span>
+</span><span id="line-13"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Text.Markup.html#fromText"><span class="hs-identifier">fromText</span></a></span><span>
+</span><span id="line-14"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Text.Markup.html#toText"><span class="hs-identifier">toText</span></a></span><span>
+</span><span id="line-15"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Text.Markup.html#isEmpty"><span class="hs-identifier">isEmpty</span></a></span><span>
+</span><span id="line-16"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Data.Text.Markup.html#%40%40"><span class="hs-operator">(@@)</span></a></span><span>
+</span><span id="line-17"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-18"></span><span class="hs-keyword">where</span><span class="hs-cpp">
+
+#if !MIN_VERSION_base(4,8,0)
+</span><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Control.Applicative</span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="hs-operator">&lt;$&gt;</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Data.Monoid</span><span class="hs-cpp">
+#endif
+</span><span>
+</span><span id="line-25"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Semigroup</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Sem</span></span><span>
+</span><span id="line-26"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.String</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">IsString</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-27"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Text</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">T</span></span><span>
+</span><span id="line-28"></span><span>
+</span><span id="line-29"></span><span class="hs-comment">-- | Markup with metadata type 'a' assigned to each character.</span><span>
+</span><span id="line-30"></span><span class="hs-keyword">data</span><span> </span><span id="Markup"><span class="annot"><a href="Data.Text.Markup.html#Markup"><span class="hs-identifier hs-var">Markup</span></a></span></span><span> </span><span id="local-6989586621679376312"><span class="annot"><a href="#local-6989586621679376312"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="Markup"><span class="annot"><a href="Data.Text.Markup.html#Markup"><span class="hs-identifier hs-var">Markup</span></a></span></span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679376312"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span><span>
+</span><span id="line-31"></span><span>              </span><span class="hs-keyword">deriving</span><span> </span><span id="local-6989586621679376252"><span id="local-6989586621679376254"><span id="local-6989586621679376256"><span class="annot"><span class="annottext">Int -&gt; Markup a -&gt; ShowS
+[Markup a] -&gt; ShowS
+Markup a -&gt; String
+(Int -&gt; Markup a -&gt; ShowS)
+-&gt; (Markup a -&gt; String) -&gt; ([Markup a] -&gt; ShowS) -&gt; Show (Markup a)
+forall a. Show a =&gt; Int -&gt; Markup a -&gt; ShowS
+forall a. Show a =&gt; [Markup a] -&gt; ShowS
+forall a. Show a =&gt; Markup a -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [Markup a] -&gt; ShowS
+$cshowList :: forall a. Show a =&gt; [Markup a] -&gt; ShowS
+show :: Markup a -&gt; String
+$cshow :: forall a. Show a =&gt; Markup a -&gt; String
+showsPrec :: Int -&gt; Markup a -&gt; ShowS
+$cshowsPrec :: forall a. Show a =&gt; Int -&gt; Markup a -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span>
+</span><span id="line-32"></span><span>
+</span><span id="line-33"></span><span id="local-6989586621679376250"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679376245"><span id="local-6989586621679376247"><span class="annot"><span class="hs-identifier hs-type">Sem.Semigroup</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Text.Markup.html#Markup"><span class="hs-identifier hs-type">Markup</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679376250"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-34"></span><span>    </span><span class="hs-special">(</span><span class="annot"><a href="Data.Text.Markup.html#Markup"><span class="hs-identifier hs-type">Markup</span></a></span><span> </span><span id="local-6989586621679376243"><span class="annot"><span class="annottext">[(Char, a)]
+</span><a href="#local-6989586621679376243"><span class="hs-identifier hs-var">t1</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679376242"><span class="annot"><span class="annottext">&lt;&gt; :: Markup a -&gt; Markup a -&gt; Markup a
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">&lt;&gt;</span></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Text.Markup.html#Markup"><span class="hs-identifier hs-type">Markup</span></a></span><span> </span><span id="local-6989586621679376241"><span class="annot"><span class="annottext">[(Char, a)]
+</span><a href="#local-6989586621679376241"><span class="hs-identifier hs-var">t2</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(Char, a)] -&gt; Markup a
+forall a. [(Char, a)] -&gt; Markup a
+</span><a href="Data.Text.Markup.html#Markup"><span class="hs-identifier hs-var">Markup</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[(Char, a)]
+</span><a href="#local-6989586621679376243"><span class="hs-identifier hs-var">t1</span></a></span><span> </span><span class="annot"><span class="annottext">[(Char, a)] -&gt; [(Char, a)] -&gt; [(Char, a)]
+forall a. Monoid a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">`mappend`</span></span><span> </span><span class="annot"><span class="annottext">[(Char, a)]
+</span><a href="#local-6989586621679376241"><span class="hs-identifier hs-var">t2</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-35"></span><span>
+</span><span id="line-36"></span><span id="local-6989586621679376240"><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679376235"><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Text.Markup.html#Markup"><span class="hs-identifier hs-type">Markup</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679376240"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-37"></span><span>    </span><span id="local-6989586621679376233"><span class="annot"><span class="annottext">mempty :: Markup a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">mempty</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(Char, a)] -&gt; Markup a
+forall a. [(Char, a)] -&gt; Markup a
+</span><a href="Data.Text.Markup.html#Markup"><span class="hs-identifier hs-var">Markup</span></a></span><span> </span><span class="annot"><span class="annottext">[(Char, a)]
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span>
+</span><span id="line-38"></span><span>    </span><span id="local-6989586621679376232"><span class="annot"><span class="annottext">mappend :: Markup a -&gt; Markup a -&gt; Markup a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">mappend</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Markup a -&gt; Markup a -&gt; Markup a
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">(Sem.&lt;&gt;)</span></span></span><span>
+</span><span id="line-39"></span><span>
+</span><span id="line-40"></span><span id="local-6989586621679376231"><span class="hs-keyword">instance</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="#local-6989586621679376231"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IsString</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Text.Markup.html#Markup"><span class="hs-identifier hs-type">Markup</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679376231"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-41"></span><span>    </span><span id="local-6989586621679376228"><span class="annot"><span class="annottext">fromString :: String -&gt; Markup a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">fromString</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Markup a
+forall a. Monoid a =&gt; Text -&gt; Markup a
+</span><a href="Data.Text.Markup.html#fromText"><span class="hs-identifier hs-var">fromText</span></a></span><span> </span><span class="annot"><span class="annottext">(Text -&gt; Markup a) -&gt; (String -&gt; Text) -&gt; String -&gt; Markup a
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; Text
+</span><span class="hs-identifier hs-var">T.pack</span></span></span><span>
+</span><span id="line-42"></span><span>
+</span><span id="line-43"></span><span class="hs-comment">-- | Build a piece of markup; assign the specified metadata to every</span><span>
+</span><span id="line-44"></span><span class="hs-comment">-- character in the specified text.</span><span>
+</span><span id="line-45"></span><span id="local-6989586621679376300"><span class="annot"><a href="Data.Text.Markup.html#%40%40"><span class="hs-operator hs-type">(@@)</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">T.Text</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679376300"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.Text.Markup.html#Markup"><span class="hs-identifier hs-type">Markup</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679376300"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-46"></span><span id="local-6989586621679376225"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679376225"><span class="hs-identifier hs-var">t</span></a></span></span><span> </span><span id="%40%40"><span class="annot"><span class="annottext">@@ :: Text -&gt; a -&gt; Markup a
+</span><a href="Data.Text.Markup.html#%40%40"><span class="hs-operator hs-var hs-var">@@</span></a></span></span><span> </span><span id="local-6989586621679376224"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679376224"><span class="hs-identifier hs-var">val</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(Char, a)] -&gt; Markup a
+forall a. [(Char, a)] -&gt; Markup a
+</span><a href="Data.Text.Markup.html#Markup"><span class="hs-identifier hs-var">Markup</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679376223"><span class="hs-identifier hs-var">c</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679376224"><span class="hs-identifier hs-var">val</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span id="local-6989586621679376223"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679376223"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Text -&gt; String
+</span><span class="hs-identifier hs-var">T.unpack</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679376225"><span class="hs-identifier hs-var">t</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-47"></span><span>
+</span><span id="line-48"></span><span class="hs-comment">-- | Build markup from text with the default metadata.</span><span>
+</span><span id="line-49"></span><span id="local-6989586621679376306"><span class="annot"><a href="Data.Text.Markup.html#fromText"><span class="hs-identifier hs-type">fromText</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="#local-6989586621679376306"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">T.Text</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.Text.Markup.html#Markup"><span class="hs-identifier hs-type">Markup</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679376306"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-50"></span><span id="fromText"><span class="annot"><span class="annottext">fromText :: Text -&gt; Markup a
+</span><a href="Data.Text.Markup.html#fromText"><span class="hs-identifier hs-var hs-var">fromText</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Text -&gt; a -&gt; Markup a
+forall a. Text -&gt; a -&gt; Markup a
+</span><a href="Data.Text.Markup.html#%40%40"><span class="hs-operator hs-var">@@</span></a></span><span> </span><span class="annot"><span class="annottext">a
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span class="hs-special">)</span><span>
+</span><span id="line-51"></span><span>
+</span><span id="line-52"></span><span class="hs-comment">-- | Extract the text from markup, discarding the markup metadata.</span><span>
+</span><span id="line-53"></span><span id="local-6989586621679376221"><span class="annot"><a href="Data.Text.Markup.html#toText"><span class="hs-identifier hs-type">toText</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="#local-6989586621679376221"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Data.Text.Markup.html#Markup"><span class="hs-identifier hs-type">Markup</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679376221"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">T.Text</span></span></span><span>
+</span><span id="line-54"></span><span id="toText"><span class="annot"><span class="annottext">toText :: Markup a -&gt; Text
+</span><a href="Data.Text.Markup.html#toText"><span class="hs-identifier hs-var hs-var">toText</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Text] -&gt; Text
+</span><span class="hs-identifier hs-var">T.concat</span></span><span> </span><span class="annot"><span class="annottext">([Text] -&gt; Text) -&gt; (Markup a -&gt; [Text]) -&gt; Markup a -&gt; Text
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Text, a) -&gt; Text
+forall a b. (a, b) -&gt; a
+</span><span class="hs-identifier hs-var">fst</span></span><span> </span><span class="annot"><span class="annottext">((Text, a) -&gt; Text) -&gt; [(Text, a)] -&gt; [Text]
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">([(Text, a)] -&gt; [Text])
+-&gt; (Markup a -&gt; [(Text, a)]) -&gt; Markup a -&gt; [Text]
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">[[(Text, a)]] -&gt; [(Text, a)]
+forall (t :: * -&gt; *) a. Foldable t =&gt; t [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">concat</span></span><span> </span><span class="annot"><span class="annottext">([[(Text, a)]] -&gt; [(Text, a)])
+-&gt; (Markup a -&gt; [[(Text, a)]]) -&gt; Markup a -&gt; [(Text, a)]
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Markup a -&gt; [[(Text, a)]]
+forall a. Eq a =&gt; Markup a -&gt; [[(Text, a)]]
+</span><a href="Data.Text.Markup.html#markupToList"><span class="hs-identifier hs-var">markupToList</span></a></span><span>
+</span><span id="line-55"></span><span>
+</span><span id="line-56"></span><span class="hs-comment">-- | Test whether the markup is empty.</span><span>
+</span><span id="line-57"></span><span id="local-6989586621679376217"><span class="annot"><a href="Data.Text.Markup.html#isEmpty"><span class="hs-identifier hs-type">isEmpty</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Data.Text.Markup.html#Markup"><span class="hs-identifier hs-type">Markup</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679376217"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span></span><span>
+</span><span id="line-58"></span><span id="isEmpty"><span class="annot"><span class="annottext">isEmpty :: Markup a -&gt; Bool
+</span><a href="Data.Text.Markup.html#isEmpty"><span class="hs-identifier hs-var hs-var">isEmpty</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Text.Markup.html#Markup"><span class="hs-identifier hs-type">Markup</span></a></span><span> </span><span id="local-6989586621679376216"><span class="annot"><span class="annottext">[(Char, a)]
+</span><a href="#local-6989586621679376216"><span class="hs-identifier hs-var">ls</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(Char, a)] -&gt; Bool
+forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Bool
+</span><span class="hs-identifier hs-var">null</span></span><span> </span><span class="annot"><span class="annottext">[(Char, a)]
+</span><a href="#local-6989586621679376216"><span class="hs-identifier hs-var">ls</span></a></span><span>
+</span><span id="line-59"></span><span>
+</span><span id="line-60"></span><span class="hs-comment">-- | Set the metadata for a range of character positions in a piece of</span><span>
+</span><span id="line-61"></span><span class="hs-comment">-- markup. This is useful for, e.g., syntax highlighting.</span><span>
+</span><span id="line-62"></span><span id="local-6989586621679376214"><span class="annot"><a href="Data.Text.Markup.html#markupSet"><span class="hs-identifier hs-type">markupSet</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="#local-6989586621679376214"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679376214"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.Text.Markup.html#Markup"><span class="hs-identifier hs-type">Markup</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679376214"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.Text.Markup.html#Markup"><span class="hs-identifier hs-type">Markup</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679376214"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-63"></span><span id="markupSet"><span class="annot"><span class="annottext">markupSet :: (Int, Int) -&gt; a -&gt; Markup a -&gt; Markup a
+</span><a href="Data.Text.Markup.html#markupSet"><span class="hs-identifier hs-var hs-var">markupSet</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679376213"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679376213"><span class="hs-identifier hs-var">start</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679376212"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679376212"><span class="hs-identifier hs-var">len</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679376211"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679376211"><span class="hs-identifier hs-var">val</span></a></span></span><span> </span><span id="local-6989586621679376210"><span class="annot"><span class="annottext">m :: Markup a
+</span><a href="#local-6989586621679376210"><span class="hs-identifier hs-var">m</span></a></span></span><span class="hs-glyph">@</span><span class="hs-special">(</span><span class="annot"><a href="Data.Text.Markup.html#Markup"><span class="hs-identifier hs-type">Markup</span></a></span><span> </span><span id="local-6989586621679376209"><span class="annot"><span class="annottext">[(Char, a)]
+</span><a href="#local-6989586621679376209"><span class="hs-identifier hs-var">l</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679376213"><span class="hs-identifier hs-var">start</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">||</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679376213"><span class="hs-identifier hs-var">start</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679376212"><span class="hs-identifier hs-var">len</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="annottext">[(Char, a)] -&gt; Int
+forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Int
+</span><span class="hs-identifier hs-var">length</span></span><span> </span><span class="annot"><span class="annottext">[(Char, a)]
+</span><a href="#local-6989586621679376209"><span class="hs-identifier hs-var">l</span></a></span><span>
+</span><span id="line-64"></span><span>                                          </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Markup a
+</span><a href="#local-6989586621679376210"><span class="hs-identifier hs-var">m</span></a></span><span>
+</span><span id="line-65"></span><span>                                          </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">Markup a
+</span><a href="#local-6989586621679376203"><span class="hs-identifier hs-var">newM</span></a></span><span>
+</span><span id="line-66"></span><span>    </span><span class="hs-keyword">where</span><span>
+</span><span id="line-67"></span><span>        </span><span id="local-6989586621679376203"><span class="annot"><span class="annottext">newM :: Markup a
+</span><a href="#local-6989586621679376203"><span class="hs-identifier hs-var hs-var">newM</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(Char, a)] -&gt; Markup a
+forall a. [(Char, a)] -&gt; Markup a
+</span><a href="Data.Text.Markup.html#Markup"><span class="hs-identifier hs-var">Markup</span></a></span><span> </span><span class="annot"><span class="annottext">([(Char, a)] -&gt; Markup a) -&gt; [(Char, a)] -&gt; Markup a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[(Char, a)]
+</span><a href="#local-6989586621679376202"><span class="hs-identifier hs-var">theHead</span></a></span><span> </span><span class="annot"><span class="annottext">[(Char, a)] -&gt; [(Char, a)] -&gt; [(Char, a)]
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span> </span><span class="annot"><span class="annottext">[(Char, a)]
+</span><a href="#local-6989586621679376201"><span class="hs-identifier hs-var">theNewEntries</span></a></span><span> </span><span class="annot"><span class="annottext">[(Char, a)] -&gt; [(Char, a)] -&gt; [(Char, a)]
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span> </span><span class="annot"><span class="annottext">[(Char, a)]
+</span><a href="#local-6989586621679376200"><span class="hs-identifier hs-var">theTail</span></a></span><span>
+</span><span id="line-68"></span><span>        </span><span class="hs-special">(</span><span id="local-6989586621679376202"><span class="annot"><span class="annottext">[(Char, a)]
+</span><a href="#local-6989586621679376202"><span class="hs-identifier hs-var">theHead</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679376199"><span class="annot"><span class="annottext">[(Char, a)]
+</span><a href="#local-6989586621679376199"><span class="hs-identifier hs-var">theLongTail</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; [(Char, a)] -&gt; ([(Char, a)], [(Char, a)])
+forall a. Int -&gt; [a] -&gt; ([a], [a])
+</span><span class="hs-identifier hs-var">splitAt</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679376213"><span class="hs-identifier hs-var">start</span></a></span><span> </span><span class="annot"><span class="annottext">[(Char, a)]
+</span><a href="#local-6989586621679376209"><span class="hs-identifier hs-var">l</span></a></span><span>
+</span><span id="line-69"></span><span>        </span><span class="hs-special">(</span><span id="local-6989586621679376197"><span class="annot"><span class="annottext">[(Char, a)]
+</span><a href="#local-6989586621679376197"><span class="hs-identifier hs-var">theOldEntries</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679376200"><span class="annot"><span class="annottext">[(Char, a)]
+</span><a href="#local-6989586621679376200"><span class="hs-identifier hs-var">theTail</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; [(Char, a)] -&gt; ([(Char, a)], [(Char, a)])
+forall a. Int -&gt; [a] -&gt; ([a], [a])
+</span><span class="hs-identifier hs-var">splitAt</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679376212"><span class="hs-identifier hs-var">len</span></a></span><span> </span><span class="annot"><span class="annottext">[(Char, a)]
+</span><a href="#local-6989586621679376199"><span class="hs-identifier hs-var">theLongTail</span></a></span><span>
+</span><span id="line-70"></span><span>        </span><span id="local-6989586621679376201"><span class="annot"><span class="annottext">theNewEntries :: [(Char, a)]
+</span><a href="#local-6989586621679376201"><span class="hs-identifier hs-var hs-var">theNewEntries</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String -&gt; [a] -&gt; [(Char, a)]
+forall a b. [a] -&gt; [b] -&gt; [(a, b)]
+</span><span class="hs-identifier hs-var">zip</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Char, a) -&gt; Char
+forall a b. (a, b) -&gt; a
+</span><span class="hs-identifier hs-var">fst</span></span><span> </span><span class="annot"><span class="annottext">((Char, a) -&gt; Char) -&gt; [(Char, a)] -&gt; String
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">[(Char, a)]
+</span><a href="#local-6989586621679376197"><span class="hs-identifier hs-var">theOldEntries</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; [a]
+forall a. a -&gt; [a]
+</span><span class="hs-identifier hs-var">repeat</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679376211"><span class="hs-identifier hs-var">val</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-71"></span><span>
+</span><span id="line-72"></span><span class="hs-comment">-- | Convert markup to a list of lines. Each line is represented by a</span><span>
+</span><span id="line-73"></span><span class="hs-comment">-- list of pairs in which each pair contains the longest subsequence of</span><span>
+</span><span id="line-74"></span><span class="hs-comment">-- characters having the same metadata.</span><span>
+</span><span id="line-75"></span><span id="local-6989586621679376291"><span class="annot"><a href="Data.Text.Markup.html#markupToList"><span class="hs-identifier hs-type">markupToList</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Eq</span></span><span> </span><span class="annot"><a href="#local-6989586621679376291"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Data.Text.Markup.html#Markup"><span class="hs-identifier hs-type">Markup</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679376291"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">T.Text</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679376291"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span><span class="hs-special">]</span></span><span>
+</span><span id="line-76"></span><span id="markupToList"><span class="annot"><span class="annottext">markupToList :: Markup a -&gt; [[(Text, a)]]
+</span><a href="Data.Text.Markup.html#markupToList"><span class="hs-identifier hs-var hs-var">markupToList</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Data.Text.Markup.html#Markup"><span class="hs-identifier hs-type">Markup</span></a></span><span> </span><span id="local-6989586621679376195"><span class="annot"><span class="annottext">[(Char, a)]
+</span><a href="#local-6989586621679376195"><span class="hs-identifier hs-var">thePairs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(Char, a)] -&gt; [(Text, a)]
+forall b. Eq b =&gt; [(Char, b)] -&gt; [(Text, b)]
+</span><a href="#local-6989586621679376194"><span class="hs-identifier hs-var">toList</span></a></span><span> </span><span class="annot"><span class="annottext">([(Char, a)] -&gt; [(Text, a)]) -&gt; [[(Char, a)]] -&gt; [[(Text, a)]]
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">[[(Char, a)]] -&gt; [(Char, a)] -&gt; [(Char, a)] -&gt; [[(Char, a)]]
+forall b.
+[[(Char, b)]] -&gt; [(Char, b)] -&gt; [(Char, b)] -&gt; [[(Char, b)]]
+</span><a href="#local-6989586621679376193"><span class="hs-identifier hs-var">toLines</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="annot"><span class="annottext">[(Char, a)]
+</span><a href="#local-6989586621679376195"><span class="hs-identifier hs-var">thePairs</span></a></span><span>
+</span><span id="line-77"></span><span>    </span><span class="hs-keyword">where</span><span>
+</span><span id="line-78"></span><span>        </span><span id="local-6989586621679376193"><span class="annot"><span class="annottext">toLines :: [[(Char, b)]] -&gt; [(Char, b)] -&gt; [(Char, b)] -&gt; [[(Char, b)]]
+</span><a href="#local-6989586621679376193"><span class="hs-identifier hs-var hs-var">toLines</span></a></span></span><span> </span><span id="local-6989586621679376192"><span class="annot"><span class="annottext">[[(Char, b)]]
+</span><a href="#local-6989586621679376192"><span class="hs-identifier hs-var">ls</span></a></span></span><span> </span><span id="local-6989586621679376191"><span class="annot"><span class="annottext">[(Char, b)]
+</span><a href="#local-6989586621679376191"><span class="hs-identifier hs-var">cur</span></a></span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[[(Char, b)]]
+</span><a href="#local-6989586621679376192"><span class="hs-identifier hs-var">ls</span></a></span><span> </span><span class="annot"><span class="annottext">[[(Char, b)]] -&gt; [[(Char, b)]] -&gt; [[(Char, b)]]
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">[(Char, b)]
+</span><a href="#local-6989586621679376191"><span class="hs-identifier hs-var">cur</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-79"></span><span>        </span><span class="annot"><a href="#local-6989586621679376193"><span class="hs-identifier hs-var">toLines</span></a></span><span> </span><span id="local-6989586621679376190"><span class="annot"><span class="annottext">[[(Char, b)]]
+</span><a href="#local-6989586621679376190"><span class="hs-identifier hs-var">ls</span></a></span></span><span> </span><span id="local-6989586621679376189"><span class="annot"><span class="annottext">[(Char, b)]
+</span><a href="#local-6989586621679376189"><span class="hs-identifier hs-var">cur</span></a></span></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span id="local-6989586621679376188"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679376188"><span class="hs-identifier hs-var">ch</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679376187"><span class="annot"><span class="annottext">b
+</span><a href="#local-6989586621679376187"><span class="hs-identifier hs-var">val</span></a></span></span><span class="hs-special">)</span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span id="local-6989586621679376186"><span class="annot"><span class="annottext">[(Char, b)]
+</span><a href="#local-6989586621679376186"><span class="hs-identifier hs-var">rest</span></a></span></span><span class="hs-special">)</span><span>
+</span><span id="line-80"></span><span>            </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679376188"><span class="hs-identifier hs-var">ch</span></a></span><span> </span><span class="annot"><span class="annottext">Char -&gt; Char -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\n'</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[[(Char, b)]] -&gt; [(Char, b)] -&gt; [(Char, b)] -&gt; [[(Char, b)]]
+</span><a href="#local-6989586621679376193"><span class="hs-identifier hs-var">toLines</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[[(Char, b)]]
+</span><a href="#local-6989586621679376190"><span class="hs-identifier hs-var">ls</span></a></span><span> </span><span class="annot"><span class="annottext">[[(Char, b)]] -&gt; [[(Char, b)]] -&gt; [[(Char, b)]]
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">[(Char, b)]
+</span><a href="#local-6989586621679376189"><span class="hs-identifier hs-var">cur</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="annot"><span class="annottext">[(Char, b)]
+</span><a href="#local-6989586621679376186"><span class="hs-identifier hs-var">rest</span></a></span><span>
+</span><span id="line-81"></span><span>            </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[[(Char, b)]] -&gt; [(Char, b)] -&gt; [(Char, b)] -&gt; [[(Char, b)]]
+</span><a href="#local-6989586621679376193"><span class="hs-identifier hs-var">toLines</span></a></span><span> </span><span class="annot"><span class="annottext">[[(Char, b)]]
+</span><a href="#local-6989586621679376190"><span class="hs-identifier hs-var">ls</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[(Char, b)]
+</span><a href="#local-6989586621679376189"><span class="hs-identifier hs-var">cur</span></a></span><span> </span><span class="annot"><span class="annottext">[(Char, b)] -&gt; [(Char, b)] -&gt; [(Char, b)]
+forall a. [a] -&gt; [a] -&gt; [a]
+</span><span class="hs-operator hs-var">++</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679376188"><span class="hs-identifier hs-var">ch</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">b
+</span><a href="#local-6989586621679376187"><span class="hs-identifier hs-var">val</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[(Char, b)]
+</span><a href="#local-6989586621679376186"><span class="hs-identifier hs-var">rest</span></a></span><span>
+</span><span id="line-82"></span><span>
+</span><span id="line-83"></span><span>        </span><span id="local-6989586621679376194"><span class="annot"><span class="annottext">toList :: [(Char, b)] -&gt; [(Text, b)]
+</span><a href="#local-6989586621679376194"><span class="hs-identifier hs-var hs-var">toList</span></a></span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><span id="line-84"></span><span>        </span><span class="annot"><a href="#local-6989586621679376194"><span class="hs-identifier hs-var">toList</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span id="local-6989586621679376185"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679376185"><span class="hs-identifier hs-var">ch</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679376184"><span class="annot"><span class="annottext">b
+</span><a href="#local-6989586621679376184"><span class="hs-identifier hs-var">val</span></a></span></span><span class="hs-special">)</span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span id="local-6989586621679376183"><span class="annot"><span class="annottext">[(Char, b)]
+</span><a href="#local-6989586621679376183"><span class="hs-identifier hs-var">rest</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">String -&gt; Text
+</span><span class="hs-identifier hs-var">T.pack</span></span><span> </span><span class="annot"><span class="annottext">(String -&gt; Text) -&gt; String -&gt; Text
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679376185"><span class="hs-identifier hs-var">ch</span></a></span><span> </span><span class="annot"><span class="annottext">Char -&gt; ShowS
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Char, b) -&gt; Char
+forall a b. (a, b) -&gt; a
+</span><span class="hs-identifier hs-var">fst</span></span><span> </span><span class="annot"><span class="annottext">((Char, b) -&gt; Char) -&gt; [(Char, b)] -&gt; String
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">[(Char, b)]
+</span><a href="#local-6989586621679376182"><span class="hs-identifier hs-var">matching</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">b
+</span><a href="#local-6989586621679376184"><span class="hs-identifier hs-var">val</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Text, b) -&gt; [(Text, b)] -&gt; [(Text, b)]
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">[(Char, b)] -&gt; [(Text, b)]
+</span><a href="#local-6989586621679376194"><span class="hs-identifier hs-var">toList</span></a></span><span> </span><span class="annot"><span class="annottext">[(Char, b)]
+</span><a href="#local-6989586621679376181"><span class="hs-identifier hs-var">remaining</span></a></span><span>
+</span><span id="line-85"></span><span>            </span><span class="hs-keyword">where</span><span>
+</span><span id="line-86"></span><span>                </span><span class="hs-special">(</span><span id="local-6989586621679376182"><span class="annot"><span class="annottext">[(Char, b)]
+</span><a href="#local-6989586621679376182"><span class="hs-identifier hs-var">matching</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679376181"><span class="annot"><span class="annottext">[(Char, b)]
+</span><a href="#local-6989586621679376181"><span class="hs-identifier hs-var">remaining</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">((Char, b) -&gt; Bool) -&gt; [(Char, b)] -&gt; ([(Char, b)], [(Char, b)])
+forall a. (a -&gt; Bool) -&gt; [a] -&gt; ([a], [a])
+</span><span class="hs-identifier hs-var">break</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span class="annot"><span class="annottext">Char
+</span><span class="hs-identifier">_</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679376179"><span class="annot"><span class="annottext">b
+</span><a href="#local-6989586621679376179"><span class="hs-identifier hs-var">v</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">b
+</span><a href="#local-6989586621679376179"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">b -&gt; b -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">/=</span></span><span> </span><span class="annot"><span class="annottext">b
+</span><a href="#local-6989586621679376184"><span class="hs-identifier hs-var">val</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[(Char, b)]
+</span><a href="#local-6989586621679376183"><span class="hs-identifier hs-var">rest</span></a></span><span>
+</span><span id="line-87"></span><span>
+</span><span id="line-88"></span><span class="hs-comment">-- | Convert a list of text and metadata pairs into markup.</span><span>
+</span><span id="line-89"></span><span id="local-6989586621679376177"><span class="annot"><a href="Data.Text.Markup.html#fromList"><span class="hs-identifier hs-type">fromList</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">T.Text</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679376177"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Data.Text.Markup.html#Markup"><span class="hs-identifier hs-type">Markup</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679376177"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-90"></span><span id="fromList"><span class="annot"><span class="annottext">fromList :: [(Text, a)] -&gt; Markup a
+</span><a href="Data.Text.Markup.html#fromList"><span class="hs-identifier hs-var hs-var">fromList</span></a></span></span><span> </span><span id="local-6989586621679376176"><span class="annot"><span class="annottext">[(Text, a)]
+</span><a href="#local-6989586621679376176"><span class="hs-identifier hs-var">pairs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(Char, a)] -&gt; Markup a
+forall a. [(Char, a)] -&gt; Markup a
+</span><a href="Data.Text.Markup.html#Markup"><span class="hs-identifier hs-var">Markup</span></a></span><span> </span><span class="annot"><span class="annottext">([(Char, a)] -&gt; Markup a) -&gt; [(Char, a)] -&gt; Markup a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">((Text, a) -&gt; [(Char, a)]) -&gt; [(Text, a)] -&gt; [(Char, a)]
+forall (t :: * -&gt; *) a b. Foldable t =&gt; (a -&gt; [b]) -&gt; t a -&gt; [b]
+</span><span class="hs-identifier hs-var">concatMap</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679376174"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679376174"><span class="hs-identifier hs-var">t</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679376173"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679376173"><span class="hs-identifier hs-var">val</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679376172"><span class="hs-identifier hs-var">c</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679376173"><span class="hs-identifier hs-var">val</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">|</span><span> </span><span id="local-6989586621679376172"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679376172"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Text -&gt; String
+</span><span class="hs-identifier hs-var">T.unpack</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679376174"><span class="hs-identifier hs-var">t</span></a></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[(Text, a)]
+</span><a href="#local-6989586621679376176"><span class="hs-identifier hs-var">pairs</span></a></span><span>
+</span><span id="line-91"></span></pre></body></html>

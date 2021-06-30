@@ -1,0 +1,132 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Brick.BChan</span><span>
+</span><span id="line-2"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Brick.BChan.html#BChan"><span class="hs-identifier">BChan</span></a></span><span>
+</span><span id="line-3"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.BChan.html#newBChan"><span class="hs-identifier">newBChan</span></a></span><span>
+</span><span id="line-4"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.BChan.html#writeBChan"><span class="hs-identifier">writeBChan</span></a></span><span>
+</span><span id="line-5"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.BChan.html#writeBChanNonBlocking"><span class="hs-identifier">writeBChanNonBlocking</span></a></span><span>
+</span><span id="line-6"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.BChan.html#readBChan"><span class="hs-identifier">readBChan</span></a></span><span>
+</span><span id="line-7"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Brick.BChan.html#readBChan2"><span class="hs-identifier">readBChan2</span></a></span><span>
+</span><span id="line-8"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-9"></span><span class="hs-keyword">where</span><span class="hs-cpp">
+
+#if !MIN_VERSION_base(4,8,0)
+</span><span class="hs-keyword">import</span><span> </span><span class="hs-identifier">Control.Applicative</span><span> </span><span class="hs-special">(</span><span class="hs-special">(</span><span class="hs-operator">&lt;$&gt;</span><span class="hs-special">)</span><span class="hs-special">)</span><span class="hs-cpp">
+#endif
+</span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Concurrent.STM.TBQueue</span></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.STM</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">atomically</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">orElse</span></span><span class="hs-special">)</span><span>
+</span><span id="line-17"></span><span>
+</span><span id="line-18"></span><span class="hs-comment">-- | @BChan@ is an abstract type representing a bounded FIFO channel.</span><span>
+</span><span id="line-19"></span><span class="hs-keyword">data</span><span> </span><span id="BChan"><span class="annot"><a href="Brick.BChan.html#BChan"><span class="hs-identifier hs-var">BChan</span></a></span></span><span> </span><span id="local-6989586621679368566"><span class="annot"><a href="#local-6989586621679368566"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="BChan"><span class="annot"><a href="Brick.BChan.html#BChan"><span class="hs-identifier hs-var">BChan</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">TBQueue</span></span><span> </span><span class="annot"><a href="#local-6989586621679368566"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-20"></span><span>
+</span><span id="line-21"></span><span class="hs-comment">-- | Builds and returns a new instance of @BChan@.</span><span>
+</span><span id="line-22"></span><span id="local-6989586621679368536"><span class="annot"><a href="Brick.BChan.html#newBChan"><span class="hs-identifier hs-type">newBChan</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>   </span><span class="hs-comment">-- ^ maximum number of elements the channel can hold</span><span>
+</span><span id="line-23"></span><span>          </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Brick.BChan.html#BChan"><span class="hs-identifier hs-type">BChan</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679368536"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-24"></span><span id="newBChan"><span class="annot"><span class="annottext">newBChan :: Int -&gt; IO (BChan a)
+</span><a href="Brick.BChan.html#newBChan"><span class="hs-identifier hs-var hs-var">newBChan</span></a></span></span><span> </span><span id="local-6989586621679368535"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368535"><span class="hs-identifier hs-var">size</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">STM (BChan a) -&gt; IO (BChan a)
+forall a. STM a -&gt; IO a
+</span><span class="hs-identifier hs-var">atomically</span></span><span> </span><span class="annot"><span class="annottext">(STM (BChan a) -&gt; IO (BChan a)) -&gt; STM (BChan a) -&gt; IO (BChan a)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TBQueue a -&gt; BChan a
+forall a. TBQueue a -&gt; BChan a
+</span><a href="Brick.BChan.html#BChan"><span class="hs-identifier hs-var">BChan</span></a></span><span> </span><span class="annot"><span class="annottext">(TBQueue a -&gt; BChan a) -&gt; STM (TBQueue a) -&gt; STM (BChan a)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Natural -&gt; STM (TBQueue a)
+forall a. Natural -&gt; STM (TBQueue a)
+</span><span class="hs-identifier hs-var">newTBQueue</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Natural
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679368535"><span class="hs-identifier hs-var">size</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-25"></span><span>
+</span><span id="line-26"></span><span class="hs-comment">-- | Writes a value to a @BChan@; blocks if the channel is full.</span><span>
+</span><span id="line-27"></span><span id="local-6989586621679368532"><span class="annot"><a href="Brick.BChan.html#writeBChan"><span class="hs-identifier hs-type">writeBChan</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.BChan.html#BChan"><span class="hs-identifier hs-type">BChan</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679368532"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679368532"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-28"></span><span id="writeBChan"><span class="annot"><span class="annottext">writeBChan :: BChan a -&gt; a -&gt; IO ()
+</span><a href="Brick.BChan.html#writeBChan"><span class="hs-identifier hs-var hs-var">writeBChan</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Brick.BChan.html#BChan"><span class="hs-identifier hs-type">BChan</span></a></span><span> </span><span id="local-6989586621679368531"><span class="annot"><span class="annottext">TBQueue a
+</span><a href="#local-6989586621679368531"><span class="hs-identifier hs-var">q</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679368530"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679368530"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">STM () -&gt; IO ()
+forall a. STM a -&gt; IO a
+</span><span class="hs-identifier hs-var">atomically</span></span><span> </span><span class="annot"><span class="annottext">(STM () -&gt; IO ()) -&gt; STM () -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TBQueue a -&gt; a -&gt; STM ()
+forall a. TBQueue a -&gt; a -&gt; STM ()
+</span><span class="hs-identifier hs-var">writeTBQueue</span></span><span> </span><span class="annot"><span class="annottext">TBQueue a
+</span><a href="#local-6989586621679368531"><span class="hs-identifier hs-var">q</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679368530"><span class="hs-identifier hs-var">a</span></a></span><span>
+</span><span id="line-29"></span><span>
+</span><span id="line-30"></span><span class="hs-comment">-- | Attempts to write a value to a @BChan@. If the channel has room,</span><span>
+</span><span id="line-31"></span><span class="hs-comment">-- the value is written and this returns 'True'. Otherwise this returns</span><span>
+</span><span id="line-32"></span><span class="hs-comment">-- 'False' and returns immediately.</span><span>
+</span><span id="line-33"></span><span id="local-6989586621679368528"><span class="annot"><a href="Brick.BChan.html#writeBChanNonBlocking"><span class="hs-identifier hs-type">writeBChanNonBlocking</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.BChan.html#BChan"><span class="hs-identifier hs-type">BChan</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679368528"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679368528"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span></span><span>
+</span><span id="line-34"></span><span id="writeBChanNonBlocking"><span class="annot"><span class="annottext">writeBChanNonBlocking :: BChan a -&gt; a -&gt; IO Bool
+</span><a href="Brick.BChan.html#writeBChanNonBlocking"><span class="hs-identifier hs-var hs-var">writeBChanNonBlocking</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Brick.BChan.html#BChan"><span class="hs-identifier hs-type">BChan</span></a></span><span> </span><span id="local-6989586621679368527"><span class="annot"><span class="annottext">TBQueue a
+</span><a href="#local-6989586621679368527"><span class="hs-identifier hs-var">q</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679368526"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679368526"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">STM Bool -&gt; IO Bool
+forall a. STM a -&gt; IO a
+</span><span class="hs-identifier hs-var">atomically</span></span><span> </span><span class="annot"><span class="annottext">(STM Bool -&gt; IO Bool) -&gt; STM Bool -&gt; IO Bool
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-35"></span><span>    </span><span id="local-6989586621679368525"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679368525"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">TBQueue a -&gt; STM Bool
+forall a. TBQueue a -&gt; STM Bool
+</span><span class="hs-identifier hs-var">isFullTBQueue</span></span><span> </span><span class="annot"><span class="annottext">TBQueue a
+</span><a href="#local-6989586621679368527"><span class="hs-identifier hs-var">q</span></a></span><span>
+</span><span id="line-36"></span><span>    </span><span class="hs-keyword">if</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679368525"><span class="hs-identifier hs-var">f</span></a></span><span>
+</span><span id="line-37"></span><span>       </span><span class="hs-keyword">then</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; STM Bool
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span>
+</span><span id="line-38"></span><span>       </span><span class="hs-keyword">else</span><span> </span><span class="annot"><span class="annottext">TBQueue a -&gt; a -&gt; STM ()
+forall a. TBQueue a -&gt; a -&gt; STM ()
+</span><span class="hs-identifier hs-var">writeTBQueue</span></span><span> </span><span class="annot"><span class="annottext">TBQueue a
+</span><a href="#local-6989586621679368527"><span class="hs-identifier hs-var">q</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679368526"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">STM () -&gt; STM Bool -&gt; STM Bool
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; m b -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; STM Bool
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><span class="hs-identifier hs-var">return</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span>
+</span><span id="line-39"></span><span>
+</span><span id="line-40"></span><span class="hs-comment">-- | Reads the next value from the @BChan@; blocks if necessary.</span><span>
+</span><span id="line-41"></span><span id="local-6989586621679368523"><span class="annot"><a href="Brick.BChan.html#readBChan"><span class="hs-identifier hs-type">readBChan</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.BChan.html#BChan"><span class="hs-identifier hs-type">BChan</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679368523"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="annot"><a href="#local-6989586621679368523"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-42"></span><span id="readBChan"><span class="annot"><span class="annottext">readBChan :: BChan a -&gt; IO a
+</span><a href="Brick.BChan.html#readBChan"><span class="hs-identifier hs-var hs-var">readBChan</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Brick.BChan.html#BChan"><span class="hs-identifier hs-type">BChan</span></a></span><span> </span><span id="local-6989586621679368522"><span class="annot"><span class="annottext">TBQueue a
+</span><a href="#local-6989586621679368522"><span class="hs-identifier hs-var">q</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">STM a -&gt; IO a
+forall a. STM a -&gt; IO a
+</span><span class="hs-identifier hs-var">atomically</span></span><span> </span><span class="annot"><span class="annottext">(STM a -&gt; IO a) -&gt; STM a -&gt; IO a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">TBQueue a -&gt; STM a
+forall a. TBQueue a -&gt; STM a
+</span><span class="hs-identifier hs-var">readTBQueue</span></span><span> </span><span class="annot"><span class="annottext">TBQueue a
+</span><a href="#local-6989586621679368522"><span class="hs-identifier hs-var">q</span></a></span><span>
+</span><span id="line-43"></span><span>
+</span><span id="line-44"></span><span class="hs-comment">-- | Reads the next value from either @BChan@, prioritizing the first</span><span>
+</span><span id="line-45"></span><span class="hs-comment">-- @BChan@; blocks if necessary.</span><span>
+</span><span id="line-46"></span><span id="local-6989586621679368519"><span id="local-6989586621679368520"><span class="annot"><a href="Brick.BChan.html#readBChan2"><span class="hs-identifier hs-type">readBChan2</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Brick.BChan.html#BChan"><span class="hs-identifier hs-type">BChan</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679368520"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Brick.BChan.html#BChan"><span class="hs-identifier hs-type">BChan</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679368519"><span class="hs-identifier hs-type">b</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="#local-6989586621679368520"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679368519"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-47"></span><span id="readBChan2"><span class="annot"><span class="annottext">readBChan2 :: BChan a -&gt; BChan b -&gt; IO (Either a b)
+</span><a href="Brick.BChan.html#readBChan2"><span class="hs-identifier hs-var hs-var">readBChan2</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Brick.BChan.html#BChan"><span class="hs-identifier hs-type">BChan</span></a></span><span> </span><span id="local-6989586621679368518"><span class="annot"><span class="annottext">TBQueue a
+</span><a href="#local-6989586621679368518"><span class="hs-identifier hs-var">q1</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Brick.BChan.html#BChan"><span class="hs-identifier hs-type">BChan</span></a></span><span> </span><span id="local-6989586621679368517"><span class="annot"><span class="annottext">TBQueue b
+</span><a href="#local-6989586621679368517"><span class="hs-identifier hs-var">q2</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">STM (Either a b) -&gt; IO (Either a b)
+forall a. STM a -&gt; IO a
+</span><span class="hs-identifier hs-var">atomically</span></span><span> </span><span class="annot"><span class="annottext">(STM (Either a b) -&gt; IO (Either a b))
+-&gt; STM (Either a b) -&gt; IO (Either a b)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-48"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; Either a b
+forall a b. a -&gt; Either a b
+</span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="annot"><span class="annottext">(a -&gt; Either a b) -&gt; STM a -&gt; STM (Either a b)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">TBQueue a -&gt; STM a
+forall a. TBQueue a -&gt; STM a
+</span><span class="hs-identifier hs-var">readTBQueue</span></span><span> </span><span class="annot"><span class="annottext">TBQueue a
+</span><a href="#local-6989586621679368518"><span class="hs-identifier hs-var">q1</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">STM (Either a b) -&gt; STM (Either a b) -&gt; STM (Either a b)
+forall a. STM a -&gt; STM a -&gt; STM a
+</span><span class="hs-operator hs-var">`orElse`</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">b -&gt; Either a b
+forall a b. b -&gt; Either a b
+</span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="annot"><span class="annottext">(b -&gt; Either a b) -&gt; STM b -&gt; STM (Either a b)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">TBQueue b -&gt; STM b
+forall a. TBQueue a -&gt; STM a
+</span><span class="hs-identifier hs-var">readTBQueue</span></span><span> </span><span class="annot"><span class="annottext">TBQueue b
+</span><a href="#local-6989586621679368517"><span class="hs-identifier hs-var">q2</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-49"></span></pre></body></html>

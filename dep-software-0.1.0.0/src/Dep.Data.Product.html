@@ -1,0 +1,1309 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE BangPatterns, DeriveDataTypeable, DeriveGeneric, MultiParamTypeClasses, OverloadedStrings, Safe, TypeApplications #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-comment">{-|
+Module      : Dep.Data.Product
+Description : A module that defines data structures for a product, and a sum-of-products.
+Maintainer  : hapytexeu+gh@gmail.com
+Stability   : experimental
+Portability : POSIX
+
+This module provides utility functions to compress/decompress products, and render these 'Product''s to
+a unicode string.
+-}</span><span>
+</span><span id="line-13"></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Dep.Data.Product</span><span> </span><span class="hs-special">(</span><span>
+</span><span id="line-15"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Type synonyms to represent synthesis</span></span><span>
+</span><span id="line-16"></span><span>    </span><span class="annot"><a href="Dep.Data.Product.html#Product"><span class="hs-identifier">Product</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Product.html#Product"><span class="hs-identifier">Product</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Product.html#Product%27"><span class="hs-identifier">Product'</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Product.html#CompactProduct"><span class="hs-identifier">CompactProduct</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Product.html#CompactProduct"><span class="hs-identifier">CompactProduct</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Product.html#CompactProduct%27"><span class="hs-identifier">CompactProduct'</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Product.html#SumOfProducts"><span class="hs-identifier">SumOfProducts</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Product.html#SumOfProducts"><span class="hs-identifier">SumOfProducts</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Product.html#SumOfProducts%27"><span class="hs-identifier">SumOfProducts'</span></a></span><span>
+</span><span id="line-17"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Print products and sums-of-products</span></span><span>
+</span><span id="line-18"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Product.html#showSumOfProducts"><span class="hs-identifier">showSumOfProducts</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Product.html#showProduct"><span class="hs-identifier">showProduct</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Product.html#showProduct%27"><span class="hs-identifier">showProduct'</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.LogicItem.html#subscriptVariable"><span class="hs-identifier">subscriptVariable</span></a></span><span>
+</span><span id="line-19"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-20"></span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.DeepSeq</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">NFData</span></span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span>
+</span><span id="line-23"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Binary</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Binary</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">get</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">put</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">putList</span></span><span class="hs-special">)</span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Bool</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">bool</span></span><span class="hs-special">)</span><span>
+</span><span id="line-25"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Data</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Data</span></span><span class="hs-special">)</span><span>
+</span><span id="line-26"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Hashable</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Hashable</span></span><span class="hs-special">)</span><span>
+</span><span id="line-27"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Text</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Text</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">cons</span></span><span class="hs-special">)</span><span>
+</span><span id="line-28"></span><span>
+</span><span id="line-29"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Dep.Class.Simplify.html"><span class="hs-identifier">Dep.Class.Simplify</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Class.Simplify.html#simplify"><span class="hs-identifier">simplify</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-30"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Dep.Data.LogicItem.html"><span class="hs-identifier">Dep.Data.LogicItem</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.LogicItem.html#EvaluateItem"><span class="hs-identifier">EvaluateItem</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.LogicItem.html#evaluateItem"><span class="hs-identifier">evaluateItem</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.LogicItem.html#isTrivial"><span class="hs-identifier">isTrivial</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.LogicItem.html#numberOfVariables"><span class="hs-identifier">numberOfVariables</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.LogicItem.html#ToCompact"><span class="hs-identifier">ToCompact</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.LogicItem.html#fromCompact"><span class="hs-identifier">fromCompact</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.LogicItem.html#toCompact"><span class="hs-identifier">toCompact</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.LogicItem.html#getThreeList"><span class="hs-identifier">getThreeList</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.LogicItem.html#putThreeList"><span class="hs-identifier">putThreeList</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.LogicItem.html#subscriptVariable"><span class="hs-identifier">subscriptVariable</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-31"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Dep.Data.Three.html"><span class="hs-identifier">Dep.Data.Three</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Three.html#ThreePath"><span class="hs-identifier">ThreePath</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#Three"><span class="hs-identifier">Three</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Three.html#Leaf"><span class="hs-identifier">Leaf</span></a></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#wipeAll"><span class="hs-identifier">wipeAll</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-32"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html"><span class="hs-identifier">Dep.Data.ThreeValue</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.ThreeValue.html#ThreeValue"><span class="hs-identifier">ThreeValue</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.ThreeValue.html#Zero"><span class="hs-identifier">Zero</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#One"><span class="hs-identifier">One</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Dep.Data.ThreeValue.html#DontCare"><span class="hs-identifier">DontCare</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-33"></span><span>
+</span><span id="line-34"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">GHC.Generics</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Generic</span></span><span class="hs-special">)</span><span>
+</span><span id="line-35"></span><span>
+</span><span id="line-36"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Test.QuickCheck.Arbitrary</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Arbitrary</span></span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">arbitrary</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">shrink</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-37"></span><span>
+</span><span id="line-38"></span><span class="hs-comment">-- | A type alias for a product that is a 'ThreePath'.</span><span>
+</span><span id="line-39"></span><span class="hs-keyword">type</span><span> </span><span id="Product%27"><span class="annot"><a href="Dep.Data.Product.html#Product%27"><span class="hs-identifier hs-var">Product'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#ThreePath"><span class="hs-identifier hs-type">ThreePath</span></a></span><span>
+</span><span id="line-40"></span><span>
+</span><span id="line-41"></span><span class="hs-comment">-- | A data type that can be used to specify a product. By using a newtype,</span><span>
+</span><span id="line-42"></span><span class="hs-comment">-- we can add special instance to the 'Product'.</span><span>
+</span><span id="line-43"></span><span id="local-6989586621679127841"><span id="local-6989586621679127842"></span></span><span class="hs-keyword">newtype</span><span> </span><span id="Product"><span class="annot"><a href="Dep.Data.Product.html#Product"><span class="hs-identifier hs-var">Product</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="Product"><span class="annot"><a href="Dep.Data.Product.html#Product"><span class="hs-identifier hs-var">Product</span></a></span></span><span> </span><span class="annot"><a href="Dep.Data.Product.html#Product%27"><span class="hs-identifier hs-type">Product'</span></a></span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="%24cProduct"><span id="%24tProduct"><span id="local-6989586621679127812"><span id="local-6989586621679127814"><span id="local-6989586621679127816"><span id="local-6989586621679127818"><span id="local-6989586621679127820"><span id="local-6989586621679127822"><span id="local-6989586621679127824"><span id="local-6989586621679127826"><span id="local-6989586621679127828"><span id="local-6989586621679127830"><span id="local-6989586621679127832"><span id="local-6989586621679127834"><span id="local-6989586621679127836"><span id="local-6989586621679127838"><span class="annot"><span class="annottext">Typeable Product
+DataType
+Constr
+Typeable Product
+-&gt; (forall (c :: * -&gt; *).
+    (forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+    -&gt; (forall g. g -&gt; c g) -&gt; Product -&gt; c Product)
+-&gt; (forall (c :: * -&gt; *).
+    (forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+    -&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c Product)
+-&gt; (Product -&gt; Constr)
+-&gt; (Product -&gt; DataType)
+-&gt; (forall (t :: * -&gt; *) (c :: * -&gt; *).
+    Typeable t =&gt;
+    (forall d. Data d =&gt; c (t d)) -&gt; Maybe (c Product))
+-&gt; (forall (t :: * -&gt; * -&gt; *) (c :: * -&gt; *).
+    Typeable t =&gt;
+    (forall d e. (Data d, Data e) =&gt; c (t d e)) -&gt; Maybe (c Product))
+-&gt; ((forall b. Data b =&gt; b -&gt; b) -&gt; Product -&gt; Product)
+-&gt; (forall r r'.
+    (r -&gt; r' -&gt; r)
+    -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; Product -&gt; r)
+-&gt; (forall r r'.
+    (r' -&gt; r -&gt; r)
+    -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; Product -&gt; r)
+-&gt; (forall u. (forall d. Data d =&gt; d -&gt; u) -&gt; Product -&gt; [u])
+-&gt; (forall u. Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; Product -&gt; u)
+-&gt; (forall (m :: * -&gt; *).
+    Monad m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; Product -&gt; m Product)
+-&gt; (forall (m :: * -&gt; *).
+    MonadPlus m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; Product -&gt; m Product)
+-&gt; (forall (m :: * -&gt; *).
+    MonadPlus m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; Product -&gt; m Product)
+-&gt; Data Product
+Product -&gt; DataType
+Product -&gt; Constr
+(forall b. Data b =&gt; b -&gt; b) -&gt; Product -&gt; Product
+(forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+-&gt; (forall g. g -&gt; c g) -&gt; Product -&gt; c Product
+(forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+-&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c Product
+forall a.
+Typeable a
+-&gt; (forall (c :: * -&gt; *).
+    (forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+    -&gt; (forall g. g -&gt; c g) -&gt; a -&gt; c a)
+-&gt; (forall (c :: * -&gt; *).
+    (forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+    -&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c a)
+-&gt; (a -&gt; Constr)
+-&gt; (a -&gt; DataType)
+-&gt; (forall (t :: * -&gt; *) (c :: * -&gt; *).
+    Typeable t =&gt;
+    (forall d. Data d =&gt; c (t d)) -&gt; Maybe (c a))
+-&gt; (forall (t :: * -&gt; * -&gt; *) (c :: * -&gt; *).
+    Typeable t =&gt;
+    (forall d e. (Data d, Data e) =&gt; c (t d e)) -&gt; Maybe (c a))
+-&gt; ((forall b. Data b =&gt; b -&gt; b) -&gt; a -&gt; a)
+-&gt; (forall r r'.
+    (r -&gt; r' -&gt; r) -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; a -&gt; r)
+-&gt; (forall r r'.
+    (r' -&gt; r -&gt; r) -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; a -&gt; r)
+-&gt; (forall u. (forall d. Data d =&gt; d -&gt; u) -&gt; a -&gt; [u])
+-&gt; (forall u. Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; a -&gt; u)
+-&gt; (forall (m :: * -&gt; *).
+    Monad m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; a -&gt; m a)
+-&gt; (forall (m :: * -&gt; *).
+    MonadPlus m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; a -&gt; m a)
+-&gt; (forall (m :: * -&gt; *).
+    MonadPlus m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; a -&gt; m a)
+-&gt; Data a
+forall u. Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; Product -&gt; u
+forall u. (forall d. Data d =&gt; d -&gt; u) -&gt; Product -&gt; [u]
+forall r r'.
+(r -&gt; r' -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; Product -&gt; r
+forall r r'.
+(r' -&gt; r -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; Product -&gt; r
+forall (m :: * -&gt; *).
+Monad m =&gt;
+(forall d. Data d =&gt; d -&gt; m d) -&gt; Product -&gt; m Product
+forall (m :: * -&gt; *).
+MonadPlus m =&gt;
+(forall d. Data d =&gt; d -&gt; m d) -&gt; Product -&gt; m Product
+forall (c :: * -&gt; *).
+(forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+-&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c Product
+forall (c :: * -&gt; *).
+(forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+-&gt; (forall g. g -&gt; c g) -&gt; Product -&gt; c Product
+forall (t :: * -&gt; *) (c :: * -&gt; *).
+Typeable t =&gt;
+(forall d. Data d =&gt; c (t d)) -&gt; Maybe (c Product)
+forall (t :: * -&gt; * -&gt; *) (c :: * -&gt; *).
+Typeable t =&gt;
+(forall d e. (Data d, Data e) =&gt; c (t d e)) -&gt; Maybe (c Product)
+$cProduct :: Constr
+$tProduct :: DataType
+gmapMo :: (forall d. Data d =&gt; d -&gt; m d) -&gt; Product -&gt; m Product
+$cgmapMo :: forall (m :: * -&gt; *).
+MonadPlus m =&gt;
+(forall d. Data d =&gt; d -&gt; m d) -&gt; Product -&gt; m Product
+gmapMp :: (forall d. Data d =&gt; d -&gt; m d) -&gt; Product -&gt; m Product
+$cgmapMp :: forall (m :: * -&gt; *).
+MonadPlus m =&gt;
+(forall d. Data d =&gt; d -&gt; m d) -&gt; Product -&gt; m Product
+gmapM :: (forall d. Data d =&gt; d -&gt; m d) -&gt; Product -&gt; m Product
+$cgmapM :: forall (m :: * -&gt; *).
+Monad m =&gt;
+(forall d. Data d =&gt; d -&gt; m d) -&gt; Product -&gt; m Product
+gmapQi :: Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; Product -&gt; u
+$cgmapQi :: forall u. Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; Product -&gt; u
+gmapQ :: (forall d. Data d =&gt; d -&gt; u) -&gt; Product -&gt; [u]
+$cgmapQ :: forall u. (forall d. Data d =&gt; d -&gt; u) -&gt; Product -&gt; [u]
+gmapQr :: (r' -&gt; r -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; Product -&gt; r
+$cgmapQr :: forall r r'.
+(r' -&gt; r -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; Product -&gt; r
+gmapQl :: (r -&gt; r' -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; Product -&gt; r
+$cgmapQl :: forall r r'.
+(r -&gt; r' -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; Product -&gt; r
+gmapT :: (forall b. Data b =&gt; b -&gt; b) -&gt; Product -&gt; Product
+$cgmapT :: (forall b. Data b =&gt; b -&gt; b) -&gt; Product -&gt; Product
+dataCast2 :: (forall d e. (Data d, Data e) =&gt; c (t d e)) -&gt; Maybe (c Product)
+$cdataCast2 :: forall (t :: * -&gt; * -&gt; *) (c :: * -&gt; *).
+Typeable t =&gt;
+(forall d e. (Data d, Data e) =&gt; c (t d e)) -&gt; Maybe (c Product)
+dataCast1 :: (forall d. Data d =&gt; c (t d)) -&gt; Maybe (c Product)
+$cdataCast1 :: forall (t :: * -&gt; *) (c :: * -&gt; *).
+Typeable t =&gt;
+(forall d. Data d =&gt; c (t d)) -&gt; Maybe (c Product)
+dataTypeOf :: Product -&gt; DataType
+$cdataTypeOf :: Product -&gt; DataType
+toConstr :: Product -&gt; Constr
+$ctoConstr :: Product -&gt; Constr
+gunfold :: (forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+-&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c Product
+$cgunfold :: forall (c :: * -&gt; *).
+(forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+-&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c Product
+gfoldl :: (forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+-&gt; (forall g. g -&gt; c g) -&gt; Product -&gt; c Product
+$cgfoldl :: forall (c :: * -&gt; *).
+(forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+-&gt; (forall g. g -&gt; c g) -&gt; Product -&gt; c Product
+$cp1Data :: Typeable Product
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Data</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679127805"><span id="local-6989586621679127807"><span class="annot"><span class="annottext">Product -&gt; Product -&gt; Bool
+(Product -&gt; Product -&gt; Bool)
+-&gt; (Product -&gt; Product -&gt; Bool) -&gt; Eq Product
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: Product -&gt; Product -&gt; Bool
+$c/= :: Product -&gt; Product -&gt; Bool
+== :: Product -&gt; Product -&gt; Bool
+$c== :: Product -&gt; Product -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(forall x. Product -&gt; Rep Product x)
+-&gt; (forall x. Rep Product x -&gt; Product) -&gt; Generic Product
+forall x. Rep Product x -&gt; Product
+forall x. Product -&gt; Rep Product x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+$cto :: forall x. Rep Product x -&gt; Product
+$cfrom :: forall x. Product -&gt; Rep Product x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679127786"><span id="local-6989586621679127788"><span id="local-6989586621679127790"><span id="local-6989586621679127792"><span id="local-6989586621679127794"><span id="local-6989586621679127796"><span id="local-6989586621679127798"><span class="annot"><span class="annottext">Eq Product
+Eq Product
+-&gt; (Product -&gt; Product -&gt; Ordering)
+-&gt; (Product -&gt; Product -&gt; Bool)
+-&gt; (Product -&gt; Product -&gt; Bool)
+-&gt; (Product -&gt; Product -&gt; Bool)
+-&gt; (Product -&gt; Product -&gt; Bool)
+-&gt; (Product -&gt; Product -&gt; Product)
+-&gt; (Product -&gt; Product -&gt; Product)
+-&gt; Ord Product
+Product -&gt; Product -&gt; Bool
+Product -&gt; Product -&gt; Ordering
+Product -&gt; Product -&gt; Product
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: Product -&gt; Product -&gt; Product
+$cmin :: Product -&gt; Product -&gt; Product
+max :: Product -&gt; Product -&gt; Product
+$cmax :: Product -&gt; Product -&gt; Product
+&gt;= :: Product -&gt; Product -&gt; Bool
+$c&gt;= :: Product -&gt; Product -&gt; Bool
+&gt; :: Product -&gt; Product -&gt; Bool
+$c&gt; :: Product -&gt; Product -&gt; Bool
+&lt;= :: Product -&gt; Product -&gt; Bool
+$c&lt;= :: Product -&gt; Product -&gt; Bool
+&lt; :: Product -&gt; Product -&gt; Bool
+$c&lt; :: Product -&gt; Product -&gt; Bool
+compare :: Product -&gt; Product -&gt; Ordering
+$ccompare :: Product -&gt; Product -&gt; Ordering
+$cp1Ord :: Eq Product
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679127777"><span id="local-6989586621679127779"><span id="local-6989586621679127781"><span id="local-6989586621679127783"><span class="annot"><span class="annottext">ReadPrec [Product]
+ReadPrec Product
+Int -&gt; ReadS Product
+ReadS [Product]
+(Int -&gt; ReadS Product)
+-&gt; ReadS [Product]
+-&gt; ReadPrec Product
+-&gt; ReadPrec [Product]
+-&gt; Read Product
+forall a.
+(Int -&gt; ReadS a)
+-&gt; ReadS [a] -&gt; ReadPrec a -&gt; ReadPrec [a] -&gt; Read a
+readListPrec :: ReadPrec [Product]
+$creadListPrec :: ReadPrec [Product]
+readPrec :: ReadPrec Product
+$creadPrec :: ReadPrec Product
+readList :: ReadS [Product]
+$creadList :: ReadS [Product]
+readsPrec :: Int -&gt; ReadS Product
+$creadsPrec :: Int -&gt; ReadS Product
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Read</span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679127770"><span id="local-6989586621679127772"><span id="local-6989586621679127774"><span class="annot"><span class="annottext">Int -&gt; Product -&gt; ShowS
+[Product] -&gt; ShowS
+Product -&gt; String
+(Int -&gt; Product -&gt; ShowS)
+-&gt; (Product -&gt; String) -&gt; ([Product] -&gt; ShowS) -&gt; Show Product
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [Product] -&gt; ShowS
+$cshowList :: [Product] -&gt; ShowS
+show :: Product -&gt; String
+$cshow :: Product -&gt; String
+showsPrec :: Int -&gt; Product -&gt; ShowS
+$cshowsPrec :: Int -&gt; Product -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-44"></span><span>
+</span><span id="line-45"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Arbitrary</span></span><span> </span><span class="annot"><a href="Dep.Data.Product.html#Product"><span class="hs-identifier hs-type">Product</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-46"></span><span>  </span><span id="local-6989586621679127765"><span class="annot"><span class="annottext">arbitrary :: Gen Product
+</span><a href="#local-6989586621679127765"><span class="hs-identifier hs-var hs-var hs-var hs-var">arbitrary</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Product' -&gt; Product
+</span><a href="Dep.Data.Product.html#Product"><span class="hs-identifier hs-var">Product</span></a></span><span> </span><span class="annot"><span class="annottext">(Product' -&gt; Product) -&gt; Gen Product' -&gt; Gen Product
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Gen Product'
+forall a. Arbitrary a =&gt; Gen a
+</span><span class="hs-identifier hs-var">arbitrary</span></span><span>
+</span><span id="line-47"></span><span>  </span><span id="local-6989586621679127763"><span class="annot"><span class="annottext">shrink :: Product -&gt; [Product]
+</span><a href="#local-6989586621679127763"><span class="hs-identifier hs-var hs-var hs-var hs-var">shrink</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Product.html#Product"><span class="hs-identifier hs-type">Product</span></a></span><span> </span><span id="local-6989586621679127762"><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679127762"><span class="hs-identifier hs-var">p</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Product' -&gt; Product
+</span><a href="Dep.Data.Product.html#Product"><span class="hs-identifier hs-var">Product</span></a></span><span> </span><span class="annot"><span class="annottext">(Product' -&gt; Product) -&gt; [Product'] -&gt; [Product]
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Product' -&gt; [Product']
+forall a. Arbitrary a =&gt; a -&gt; [a]
+</span><span class="hs-identifier hs-var">shrink</span></span><span> </span><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679127762"><span class="hs-identifier hs-var">p</span></a></span><span>
+</span><span id="line-48"></span><span>
+</span><span id="line-49"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679127758"><span class="annot"><span class="hs-identifier hs-type">Binary</span></span><span> </span><span class="annot"><a href="Dep.Data.Product.html#Product"><span class="hs-identifier hs-type">Product</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-50"></span><span>  </span><span id="local-6989586621679127756"><span class="annot"><span class="annottext">get :: Get Product
+</span><a href="#local-6989586621679127756"><span class="hs-identifier hs-var hs-var hs-var hs-var">get</span></a></span></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Product' -&gt; Product
+</span><a href="Dep.Data.Product.html#Product"><span class="hs-identifier hs-var">Product</span></a></span><span> </span><span class="annot"><span class="annottext">(Product' -&gt; Product) -&gt; Get Product' -&gt; Get Product
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Get Product'
+</span><a href="Dep.Data.LogicItem.html#getThreeList"><span class="hs-identifier hs-var">getThreeList</span></a></span><span>
+</span><span id="line-51"></span><span>  </span><span id="local-6989586621679127755"><span class="annot"><span class="annottext">put :: Product -&gt; Put
+</span><a href="#local-6989586621679127755"><span class="hs-identifier hs-var hs-var hs-var hs-var">put</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Product.html#Product"><span class="hs-identifier hs-type">Product</span></a></span><span> </span><span id="local-6989586621679127754"><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679127754"><span class="hs-identifier hs-var">p</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Product' -&gt; Put
+</span><a href="Dep.Data.LogicItem.html#putThreeList"><span class="hs-identifier hs-var">putThreeList</span></a></span><span> </span><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679127754"><span class="hs-identifier hs-var">p</span></a></span><span>
+</span><span id="line-52"></span><span>
+</span><span id="line-53"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679127751"><span class="annot"><a href="Dep.Data.LogicItem.html#EvaluateItem"><span class="hs-identifier hs-type">EvaluateItem</span></a></span><span> </span><span class="annot"><a href="Dep.Data.Product.html#Product"><span class="hs-identifier hs-type">Product</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-54"></span><span>  </span><span id="local-6989586621679127747"><span class="annot"><span class="annottext">evaluateItem :: (Int -&gt; Bool) -&gt; Product -&gt; Bool
+</span><a href="#local-6989586621679127747"><span class="hs-identifier hs-var hs-var hs-var hs-var">evaluateItem</span></a></span></span><span> </span><span id="local-6989586621679127746"><span class="annot"><span class="annottext">Int -&gt; Bool
+</span><a href="#local-6989586621679127746"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">~</span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Product.html#Product"><span class="hs-identifier hs-type">Product</span></a></span><span> </span><span id="local-6989586621679127745"><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679127745"><span class="hs-identifier hs-var">p</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Product' -&gt; Bool
+</span><a href="#local-6989586621679127744"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679127745"><span class="hs-identifier hs-var">p</span></a></span><span>
+</span><span id="line-55"></span><span>    </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679127744"><span class="annot"><span class="annottext">go :: Int -&gt; Product' -&gt; Bool
+</span><a href="#local-6989586621679127744"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span>
+</span><span id="line-56"></span><span>          </span><span class="annot"><a href="#local-6989586621679127744"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679127743"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127743"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#Zero"><span class="hs-identifier hs-var">Zero</span></a></span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span id="local-6989586621679127742"><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679127742"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool
+</span><span class="hs-identifier hs-var">not</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Bool
+</span><a href="#local-6989586621679127746"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127743"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Product' -&gt; Bool
+</span><a href="#local-6989586621679127744"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127743"><span class="hs-identifier hs-var">n</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679127742"><span class="hs-identifier hs-var">xs</span></a></span><span>
+</span><span id="line-57"></span><span>          </span><span class="annot"><a href="#local-6989586621679127744"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679127738"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127738"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#One"><span class="hs-identifier hs-var">One</span></a></span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span id="local-6989586621679127737"><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679127737"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Bool
+</span><a href="#local-6989586621679127746"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127738"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">&amp;&amp;</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Product' -&gt; Bool
+</span><a href="#local-6989586621679127744"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127738"><span class="hs-identifier hs-var">n</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679127737"><span class="hs-identifier hs-var">xs</span></a></span><span>
+</span><span id="line-58"></span><span>          </span><span class="annot"><a href="#local-6989586621679127744"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679127736"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127736"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">~</span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#DontCare"><span class="hs-identifier hs-var">DontCare</span></a></span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span id="local-6989586621679127735"><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679127735"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Product' -&gt; Bool
+</span><a href="#local-6989586621679127744"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127736"><span class="hs-identifier hs-var">n</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679127735"><span class="hs-identifier hs-var">xs</span></a></span><span>
+</span><span id="line-59"></span><span>  </span><span id="local-6989586621679127734"><span class="annot"><span class="annottext">isTrivial :: Product -&gt; ThreeValue
+</span><a href="#local-6989586621679127734"><span class="hs-identifier hs-var hs-var hs-var hs-var">isTrivial</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Product.html#Product"><span class="hs-identifier hs-type">Product</span></a></span><span> </span><span id="local-6989586621679127733"><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679127733"><span class="hs-identifier hs-var">p</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ThreeValue -&gt; ThreeValue -&gt; Bool -&gt; ThreeValue
+forall a. a -&gt; a -&gt; Bool -&gt; a
+</span><span class="hs-identifier hs-var">bool</span></span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#DontCare"><span class="hs-identifier hs-var">DontCare</span></a></span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#One"><span class="hs-identifier hs-var">One</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(ThreeValue -&gt; Bool) -&gt; Product' -&gt; Bool
+forall (t :: * -&gt; *) a. Foldable t =&gt; (a -&gt; Bool) -&gt; t a -&gt; Bool
+</span><span class="hs-identifier hs-var">all</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#DontCare"><span class="hs-identifier hs-var">DontCare</span></a></span><span> </span><span class="annot"><span class="annottext">ThreeValue -&gt; ThreeValue -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679127733"><span class="hs-identifier hs-var">p</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-60"></span><span>  </span><span id="local-6989586621679127731"><span class="annot"><span class="annottext">numberOfVariables :: Product -&gt; Int
+</span><a href="#local-6989586621679127731"><span class="hs-identifier hs-var hs-var hs-var hs-var">numberOfVariables</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Product.html#Product"><span class="hs-identifier hs-type">Product</span></a></span><span> </span><span id="local-6989586621679127730"><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679127730"><span class="hs-identifier hs-var">p</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Product' -&gt; Int
+forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Int
+</span><span class="hs-identifier hs-var">length</span></span><span> </span><span class="annot"><span class="annottext">(Product' -&gt; Int) -&gt; (Product' -&gt; Product') -&gt; Product' -&gt; Int
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(ThreeValue -&gt; Bool) -&gt; Product' -&gt; Product'
+forall a. (a -&gt; Bool) -&gt; [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">dropWhile</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#DontCare"><span class="hs-identifier hs-var">DontCare</span></a></span><span> </span><span class="annot"><span class="annottext">ThreeValue -&gt; ThreeValue -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Product' -&gt; Product')
+-&gt; (Product' -&gt; Product') -&gt; Product' -&gt; Product'
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Product' -&gt; Product'
+forall a. [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">reverse</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679127730"><span class="hs-identifier hs-var">p</span></a></span><span>
+</span><span id="line-61"></span><span>
+</span><span id="line-62"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679127722"><span id="local-6989586621679127724"><span class="annot"><span class="hs-identifier hs-type">Hashable</span></span><span> </span><span class="annot"><a href="Dep.Data.Product.html#Product"><span class="hs-identifier hs-type">Product</span></a></span></span></span><span>
+</span><span id="line-63"></span><span>
+</span><span id="line-64"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679127719"><span class="annot"><span class="hs-identifier hs-type">NFData</span></span><span> </span><span class="annot"><a href="Dep.Data.Product.html#Product"><span class="hs-identifier hs-type">Product</span></a></span></span><span>
+</span><span id="line-65"></span><span>
+</span><span id="line-66"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Dep.Data.LogicItem.html#ToCompact"><span class="hs-identifier hs-type">ToCompact</span></a></span><span> </span><span class="annot"><a href="Dep.Data.Product.html#Product"><span class="hs-identifier hs-type">Product</span></a></span><span> </span><span class="annot"><a href="Dep.Data.Product.html#CompactProduct"><span class="hs-identifier hs-type">CompactProduct</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-67"></span><span>  </span><span id="local-6989586621679127714"><span class="annot"><span class="annottext">toCompact :: Product -&gt; CompactProduct
+</span><a href="#local-6989586621679127714"><span class="hs-identifier hs-var hs-var hs-var hs-var">toCompact</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Product.html#Product"><span class="hs-identifier hs-type">Product</span></a></span><span> </span><span id="local-6989586621679127713"><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679127713"><span class="hs-identifier hs-var">s</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CompactProduct' -&gt; CompactProduct
+</span><a href="Dep.Data.Product.html#CompactProduct"><span class="hs-identifier hs-var">CompactProduct</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Product' -&gt; CompactProduct'
+forall a b. ToCompact a b =&gt; a -&gt; b
+</span><a href="Dep.Data.LogicItem.html#toCompact"><span class="hs-identifier hs-var">toCompact</span></a></span><span> </span><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679127713"><span class="hs-identifier hs-var">s</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-68"></span><span>  </span><span id="local-6989586621679127712"><span class="annot"><span class="annottext">fromCompact :: CompactProduct -&gt; Product
+</span><a href="#local-6989586621679127712"><span class="hs-identifier hs-var hs-var hs-var hs-var">fromCompact</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Product.html#CompactProduct"><span class="hs-identifier hs-type">CompactProduct</span></a></span><span> </span><span id="local-6989586621679127711"><span class="annot"><span class="annottext">CompactProduct'
+</span><a href="#local-6989586621679127711"><span class="hs-identifier hs-var">s</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Product' -&gt; Product
+</span><a href="Dep.Data.Product.html#Product"><span class="hs-identifier hs-var">Product</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CompactProduct' -&gt; Product'
+forall a b. ToCompact a b =&gt; b -&gt; a
+</span><a href="Dep.Data.LogicItem.html#fromCompact"><span class="hs-identifier hs-var">fromCompact</span></a></span><span> </span><span class="annot"><span class="annottext">CompactProduct'
+</span><a href="#local-6989586621679127711"><span class="hs-identifier hs-var">s</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-69"></span><span>
+</span><span id="line-70"></span><span class="hs-comment">-- | A more compact representation of a product where the indexes that have 'Zero'</span><span>
+</span><span id="line-71"></span><span class="hs-comment">-- or 'One' are listed by the /positive/ or /negative/ index respectively.</span><span>
+</span><span id="line-72"></span><span class="hs-keyword">type</span><span> </span><span id="CompactProduct%27"><span class="annot"><a href="Dep.Data.Product.html#CompactProduct%27"><span class="hs-identifier hs-var">CompactProduct'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">]</span><span>
+</span><span id="line-73"></span><span>
+</span><span id="line-74"></span><span class="hs-comment">-- | A data type that can be used to specify a 'CompactProduct'. By using a new</span><span>
+</span><span id="line-75"></span><span class="hs-comment">-- type, this means that we can define other instances than these for a list of 'Int'.</span><span>
+</span><span id="line-76"></span><span id="local-6989586621679127709"><span id="local-6989586621679127710"></span></span><span class="hs-keyword">newtype</span><span> </span><span id="CompactProduct"><span class="annot"><a href="Dep.Data.Product.html#CompactProduct"><span class="hs-identifier hs-var">CompactProduct</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="CompactProduct"><span class="annot"><a href="Dep.Data.Product.html#CompactProduct"><span class="hs-identifier hs-var">CompactProduct</span></a></span></span><span> </span><span class="annot"><a href="Dep.Data.Product.html#CompactProduct%27"><span class="hs-identifier hs-type">CompactProduct'</span></a></span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="%24cCompactProduct"><span id="%24tCompactProduct"><span id="local-6989586621679127680"><span id="local-6989586621679127682"><span id="local-6989586621679127684"><span id="local-6989586621679127686"><span id="local-6989586621679127688"><span id="local-6989586621679127690"><span id="local-6989586621679127692"><span id="local-6989586621679127694"><span id="local-6989586621679127696"><span id="local-6989586621679127698"><span id="local-6989586621679127700"><span id="local-6989586621679127702"><span id="local-6989586621679127704"><span id="local-6989586621679127706"><span class="annot"><span class="annottext">Typeable CompactProduct
+DataType
+Constr
+Typeable CompactProduct
+-&gt; (forall (c :: * -&gt; *).
+    (forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+    -&gt; (forall g. g -&gt; c g) -&gt; CompactProduct -&gt; c CompactProduct)
+-&gt; (forall (c :: * -&gt; *).
+    (forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+    -&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c CompactProduct)
+-&gt; (CompactProduct -&gt; Constr)
+-&gt; (CompactProduct -&gt; DataType)
+-&gt; (forall (t :: * -&gt; *) (c :: * -&gt; *).
+    Typeable t =&gt;
+    (forall d. Data d =&gt; c (t d)) -&gt; Maybe (c CompactProduct))
+-&gt; (forall (t :: * -&gt; * -&gt; *) (c :: * -&gt; *).
+    Typeable t =&gt;
+    (forall d e. (Data d, Data e) =&gt; c (t d e))
+    -&gt; Maybe (c CompactProduct))
+-&gt; ((forall b. Data b =&gt; b -&gt; b)
+    -&gt; CompactProduct -&gt; CompactProduct)
+-&gt; (forall r r'.
+    (r -&gt; r' -&gt; r)
+    -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; CompactProduct -&gt; r)
+-&gt; (forall r r'.
+    (r' -&gt; r -&gt; r)
+    -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; CompactProduct -&gt; r)
+-&gt; (forall u.
+    (forall d. Data d =&gt; d -&gt; u) -&gt; CompactProduct -&gt; [u])
+-&gt; (forall u.
+    Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; CompactProduct -&gt; u)
+-&gt; (forall (m :: * -&gt; *).
+    Monad m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d)
+    -&gt; CompactProduct -&gt; m CompactProduct)
+-&gt; (forall (m :: * -&gt; *).
+    MonadPlus m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d)
+    -&gt; CompactProduct -&gt; m CompactProduct)
+-&gt; (forall (m :: * -&gt; *).
+    MonadPlus m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d)
+    -&gt; CompactProduct -&gt; m CompactProduct)
+-&gt; Data CompactProduct
+CompactProduct -&gt; DataType
+CompactProduct -&gt; Constr
+(forall b. Data b =&gt; b -&gt; b) -&gt; CompactProduct -&gt; CompactProduct
+(forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+-&gt; (forall g. g -&gt; c g) -&gt; CompactProduct -&gt; c CompactProduct
+(forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+-&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c CompactProduct
+forall a.
+Typeable a
+-&gt; (forall (c :: * -&gt; *).
+    (forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+    -&gt; (forall g. g -&gt; c g) -&gt; a -&gt; c a)
+-&gt; (forall (c :: * -&gt; *).
+    (forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+    -&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c a)
+-&gt; (a -&gt; Constr)
+-&gt; (a -&gt; DataType)
+-&gt; (forall (t :: * -&gt; *) (c :: * -&gt; *).
+    Typeable t =&gt;
+    (forall d. Data d =&gt; c (t d)) -&gt; Maybe (c a))
+-&gt; (forall (t :: * -&gt; * -&gt; *) (c :: * -&gt; *).
+    Typeable t =&gt;
+    (forall d e. (Data d, Data e) =&gt; c (t d e)) -&gt; Maybe (c a))
+-&gt; ((forall b. Data b =&gt; b -&gt; b) -&gt; a -&gt; a)
+-&gt; (forall r r'.
+    (r -&gt; r' -&gt; r) -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; a -&gt; r)
+-&gt; (forall r r'.
+    (r' -&gt; r -&gt; r) -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; a -&gt; r)
+-&gt; (forall u. (forall d. Data d =&gt; d -&gt; u) -&gt; a -&gt; [u])
+-&gt; (forall u. Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; a -&gt; u)
+-&gt; (forall (m :: * -&gt; *).
+    Monad m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; a -&gt; m a)
+-&gt; (forall (m :: * -&gt; *).
+    MonadPlus m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; a -&gt; m a)
+-&gt; (forall (m :: * -&gt; *).
+    MonadPlus m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; a -&gt; m a)
+-&gt; Data a
+forall u.
+Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; CompactProduct -&gt; u
+forall u. (forall d. Data d =&gt; d -&gt; u) -&gt; CompactProduct -&gt; [u]
+forall r r'.
+(r -&gt; r' -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; CompactProduct -&gt; r
+forall r r'.
+(r' -&gt; r -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; CompactProduct -&gt; r
+forall (m :: * -&gt; *).
+Monad m =&gt;
+(forall d. Data d =&gt; d -&gt; m d)
+-&gt; CompactProduct -&gt; m CompactProduct
+forall (m :: * -&gt; *).
+MonadPlus m =&gt;
+(forall d. Data d =&gt; d -&gt; m d)
+-&gt; CompactProduct -&gt; m CompactProduct
+forall (c :: * -&gt; *).
+(forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+-&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c CompactProduct
+forall (c :: * -&gt; *).
+(forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+-&gt; (forall g. g -&gt; c g) -&gt; CompactProduct -&gt; c CompactProduct
+forall (t :: * -&gt; *) (c :: * -&gt; *).
+Typeable t =&gt;
+(forall d. Data d =&gt; c (t d)) -&gt; Maybe (c CompactProduct)
+forall (t :: * -&gt; * -&gt; *) (c :: * -&gt; *).
+Typeable t =&gt;
+(forall d e. (Data d, Data e) =&gt; c (t d e))
+-&gt; Maybe (c CompactProduct)
+$cCompactProduct :: Constr
+$tCompactProduct :: DataType
+gmapMo :: (forall d. Data d =&gt; d -&gt; m d)
+-&gt; CompactProduct -&gt; m CompactProduct
+$cgmapMo :: forall (m :: * -&gt; *).
+MonadPlus m =&gt;
+(forall d. Data d =&gt; d -&gt; m d)
+-&gt; CompactProduct -&gt; m CompactProduct
+gmapMp :: (forall d. Data d =&gt; d -&gt; m d)
+-&gt; CompactProduct -&gt; m CompactProduct
+$cgmapMp :: forall (m :: * -&gt; *).
+MonadPlus m =&gt;
+(forall d. Data d =&gt; d -&gt; m d)
+-&gt; CompactProduct -&gt; m CompactProduct
+gmapM :: (forall d. Data d =&gt; d -&gt; m d)
+-&gt; CompactProduct -&gt; m CompactProduct
+$cgmapM :: forall (m :: * -&gt; *).
+Monad m =&gt;
+(forall d. Data d =&gt; d -&gt; m d)
+-&gt; CompactProduct -&gt; m CompactProduct
+gmapQi :: Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; CompactProduct -&gt; u
+$cgmapQi :: forall u.
+Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; CompactProduct -&gt; u
+gmapQ :: (forall d. Data d =&gt; d -&gt; u) -&gt; CompactProduct -&gt; [u]
+$cgmapQ :: forall u. (forall d. Data d =&gt; d -&gt; u) -&gt; CompactProduct -&gt; [u]
+gmapQr :: (r' -&gt; r -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; CompactProduct -&gt; r
+$cgmapQr :: forall r r'.
+(r' -&gt; r -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; CompactProduct -&gt; r
+gmapQl :: (r -&gt; r' -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; CompactProduct -&gt; r
+$cgmapQl :: forall r r'.
+(r -&gt; r' -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; CompactProduct -&gt; r
+gmapT :: (forall b. Data b =&gt; b -&gt; b) -&gt; CompactProduct -&gt; CompactProduct
+$cgmapT :: (forall b. Data b =&gt; b -&gt; b) -&gt; CompactProduct -&gt; CompactProduct
+dataCast2 :: (forall d e. (Data d, Data e) =&gt; c (t d e))
+-&gt; Maybe (c CompactProduct)
+$cdataCast2 :: forall (t :: * -&gt; * -&gt; *) (c :: * -&gt; *).
+Typeable t =&gt;
+(forall d e. (Data d, Data e) =&gt; c (t d e))
+-&gt; Maybe (c CompactProduct)
+dataCast1 :: (forall d. Data d =&gt; c (t d)) -&gt; Maybe (c CompactProduct)
+$cdataCast1 :: forall (t :: * -&gt; *) (c :: * -&gt; *).
+Typeable t =&gt;
+(forall d. Data d =&gt; c (t d)) -&gt; Maybe (c CompactProduct)
+dataTypeOf :: CompactProduct -&gt; DataType
+$cdataTypeOf :: CompactProduct -&gt; DataType
+toConstr :: CompactProduct -&gt; Constr
+$ctoConstr :: CompactProduct -&gt; Constr
+gunfold :: (forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+-&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c CompactProduct
+$cgunfold :: forall (c :: * -&gt; *).
+(forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+-&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c CompactProduct
+gfoldl :: (forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+-&gt; (forall g. g -&gt; c g) -&gt; CompactProduct -&gt; c CompactProduct
+$cgfoldl :: forall (c :: * -&gt; *).
+(forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+-&gt; (forall g. g -&gt; c g) -&gt; CompactProduct -&gt; c CompactProduct
+$cp1Data :: Typeable CompactProduct
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Data</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679127674"><span id="local-6989586621679127676"><span class="annot"><span class="annottext">CompactProduct -&gt; CompactProduct -&gt; Bool
+(CompactProduct -&gt; CompactProduct -&gt; Bool)
+-&gt; (CompactProduct -&gt; CompactProduct -&gt; Bool) -&gt; Eq CompactProduct
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: CompactProduct -&gt; CompactProduct -&gt; Bool
+$c/= :: CompactProduct -&gt; CompactProduct -&gt; Bool
+== :: CompactProduct -&gt; CompactProduct -&gt; Bool
+$c== :: CompactProduct -&gt; CompactProduct -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(forall x. CompactProduct -&gt; Rep CompactProduct x)
+-&gt; (forall x. Rep CompactProduct x -&gt; CompactProduct)
+-&gt; Generic CompactProduct
+forall x. Rep CompactProduct x -&gt; CompactProduct
+forall x. CompactProduct -&gt; Rep CompactProduct x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+$cto :: forall x. Rep CompactProduct x -&gt; CompactProduct
+$cfrom :: forall x. CompactProduct -&gt; Rep CompactProduct x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679127657"><span id="local-6989586621679127659"><span id="local-6989586621679127661"><span id="local-6989586621679127663"><span id="local-6989586621679127665"><span id="local-6989586621679127667"><span id="local-6989586621679127669"><span class="annot"><span class="annottext">Eq CompactProduct
+Eq CompactProduct
+-&gt; (CompactProduct -&gt; CompactProduct -&gt; Ordering)
+-&gt; (CompactProduct -&gt; CompactProduct -&gt; Bool)
+-&gt; (CompactProduct -&gt; CompactProduct -&gt; Bool)
+-&gt; (CompactProduct -&gt; CompactProduct -&gt; Bool)
+-&gt; (CompactProduct -&gt; CompactProduct -&gt; Bool)
+-&gt; (CompactProduct -&gt; CompactProduct -&gt; CompactProduct)
+-&gt; (CompactProduct -&gt; CompactProduct -&gt; CompactProduct)
+-&gt; Ord CompactProduct
+CompactProduct -&gt; CompactProduct -&gt; Bool
+CompactProduct -&gt; CompactProduct -&gt; Ordering
+CompactProduct -&gt; CompactProduct -&gt; CompactProduct
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: CompactProduct -&gt; CompactProduct -&gt; CompactProduct
+$cmin :: CompactProduct -&gt; CompactProduct -&gt; CompactProduct
+max :: CompactProduct -&gt; CompactProduct -&gt; CompactProduct
+$cmax :: CompactProduct -&gt; CompactProduct -&gt; CompactProduct
+&gt;= :: CompactProduct -&gt; CompactProduct -&gt; Bool
+$c&gt;= :: CompactProduct -&gt; CompactProduct -&gt; Bool
+&gt; :: CompactProduct -&gt; CompactProduct -&gt; Bool
+$c&gt; :: CompactProduct -&gt; CompactProduct -&gt; Bool
+&lt;= :: CompactProduct -&gt; CompactProduct -&gt; Bool
+$c&lt;= :: CompactProduct -&gt; CompactProduct -&gt; Bool
+&lt; :: CompactProduct -&gt; CompactProduct -&gt; Bool
+$c&lt; :: CompactProduct -&gt; CompactProduct -&gt; Bool
+compare :: CompactProduct -&gt; CompactProduct -&gt; Ordering
+$ccompare :: CompactProduct -&gt; CompactProduct -&gt; Ordering
+$cp1Ord :: Eq CompactProduct
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679127649"><span id="local-6989586621679127651"><span id="local-6989586621679127653"><span id="local-6989586621679127655"><span class="annot"><span class="annottext">ReadPrec [CompactProduct]
+ReadPrec CompactProduct
+Int -&gt; ReadS CompactProduct
+ReadS [CompactProduct]
+(Int -&gt; ReadS CompactProduct)
+-&gt; ReadS [CompactProduct]
+-&gt; ReadPrec CompactProduct
+-&gt; ReadPrec [CompactProduct]
+-&gt; Read CompactProduct
+forall a.
+(Int -&gt; ReadS a)
+-&gt; ReadS [a] -&gt; ReadPrec a -&gt; ReadPrec [a] -&gt; Read a
+readListPrec :: ReadPrec [CompactProduct]
+$creadListPrec :: ReadPrec [CompactProduct]
+readPrec :: ReadPrec CompactProduct
+$creadPrec :: ReadPrec CompactProduct
+readList :: ReadS [CompactProduct]
+$creadList :: ReadS [CompactProduct]
+readsPrec :: Int -&gt; ReadS CompactProduct
+$creadsPrec :: Int -&gt; ReadS CompactProduct
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Read</span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679127643"><span id="local-6989586621679127645"><span id="local-6989586621679127647"><span class="annot"><span class="annottext">Int -&gt; CompactProduct -&gt; ShowS
+[CompactProduct] -&gt; ShowS
+CompactProduct -&gt; String
+(Int -&gt; CompactProduct -&gt; ShowS)
+-&gt; (CompactProduct -&gt; String)
+-&gt; ([CompactProduct] -&gt; ShowS)
+-&gt; Show CompactProduct
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [CompactProduct] -&gt; ShowS
+$cshowList :: [CompactProduct] -&gt; ShowS
+show :: CompactProduct -&gt; String
+$cshow :: CompactProduct -&gt; String
+showsPrec :: Int -&gt; CompactProduct -&gt; ShowS
+$cshowsPrec :: Int -&gt; CompactProduct -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-77"></span><span>
+</span><span id="line-78"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Arbitrary</span></span><span> </span><span class="annot"><a href="Dep.Data.Product.html#CompactProduct"><span class="hs-identifier hs-type">CompactProduct</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-79"></span><span>  </span><span id="local-6989586621679127640"><span class="annot"><span class="annottext">arbitrary :: Gen CompactProduct
+</span><a href="#local-6989586621679127640"><span class="hs-identifier hs-var hs-var hs-var hs-var">arbitrary</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">forall b. ToCompact Product b =&gt; Product -&gt; b
+forall a b. ToCompact a b =&gt; a -&gt; b
+</span><a href="Dep.Data.LogicItem.html#toCompact"><span class="hs-identifier hs-var">toCompact</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="Dep.Data.Product.html#Product"><span class="hs-identifier hs-type">Product</span></a></span><span> </span><span class="annot"><span class="annottext">(Product -&gt; CompactProduct) -&gt; Gen Product -&gt; Gen CompactProduct
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Gen Product
+forall a. Arbitrary a =&gt; Gen a
+</span><span class="hs-identifier hs-var">arbitrary</span></span><span>
+</span><span id="line-80"></span><span>  </span><span id="local-6989586621679127639"><span class="annot"><span class="annottext">shrink :: CompactProduct -&gt; [CompactProduct]
+</span><a href="#local-6989586621679127639"><span class="hs-identifier hs-var hs-var hs-var hs-var">shrink</span></a></span></span><span> </span><span id="local-6989586621679127638"><span class="annot"><span class="annottext">CompactProduct
+</span><a href="#local-6989586621679127638"><span class="hs-identifier hs-var">cp</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">forall b. ToCompact Product b =&gt; Product -&gt; b
+forall a b. ToCompact a b =&gt; a -&gt; b
+</span><a href="Dep.Data.LogicItem.html#toCompact"><span class="hs-identifier hs-var">toCompact</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="Dep.Data.Product.html#Product"><span class="hs-identifier hs-type">Product</span></a></span><span> </span><span class="annot"><span class="annottext">(Product -&gt; CompactProduct) -&gt; [Product] -&gt; [CompactProduct]
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Product -&gt; [Product]
+forall a. Arbitrary a =&gt; a -&gt; [a]
+</span><span class="hs-identifier hs-var">shrink</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CompactProduct -&gt; Product
+forall a b. ToCompact a b =&gt; b -&gt; a
+</span><a href="Dep.Data.LogicItem.html#fromCompact"><span class="hs-identifier hs-var">fromCompact</span></a></span><span> </span><span class="annot"><span class="annottext">CompactProduct
+</span><a href="#local-6989586621679127638"><span class="hs-identifier hs-var">cp</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-81"></span><span>
+</span><span id="line-82"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679127634"><span class="annot"><span class="hs-identifier hs-type">Binary</span></span><span> </span><span class="annot"><a href="Dep.Data.Product.html#CompactProduct"><span class="hs-identifier hs-type">CompactProduct</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-83"></span><span>  </span><span id="local-6989586621679127633"><span class="annot"><span class="annottext">put :: CompactProduct -&gt; Put
+</span><a href="#local-6989586621679127633"><span class="hs-identifier hs-var hs-var hs-var hs-var">put</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Product.html#CompactProduct"><span class="hs-identifier hs-type">CompactProduct</span></a></span><span> </span><span id="local-6989586621679127632"><span class="annot"><span class="annottext">CompactProduct'
+</span><a href="#local-6989586621679127632"><span class="hs-identifier hs-var">cp</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CompactProduct' -&gt; Put
+forall t. Binary t =&gt; t -&gt; Put
+</span><span class="hs-identifier hs-var">put</span></span><span> </span><span class="annot"><span class="annottext">CompactProduct'
+</span><a href="#local-6989586621679127632"><span class="hs-identifier hs-var">cp</span></a></span><span>
+</span><span id="line-84"></span><span>  </span><span id="local-6989586621679127631"><span class="annot"><span class="annottext">get :: Get CompactProduct
+</span><a href="#local-6989586621679127631"><span class="hs-identifier hs-var hs-var hs-var hs-var">get</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CompactProduct' -&gt; CompactProduct
+</span><a href="Dep.Data.Product.html#CompactProduct"><span class="hs-identifier hs-var">CompactProduct</span></a></span><span> </span><span class="annot"><span class="annottext">(CompactProduct' -&gt; CompactProduct)
+-&gt; Get CompactProduct' -&gt; Get CompactProduct
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Get CompactProduct'
+forall t. Binary t =&gt; Get t
+</span><span class="hs-identifier hs-var">get</span></span><span>
+</span><span id="line-85"></span><span>
+</span><span id="line-86"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679127628"><span class="annot"><a href="Dep.Data.LogicItem.html#EvaluateItem"><span class="hs-identifier hs-type">EvaluateItem</span></a></span><span> </span><span class="annot"><a href="Dep.Data.Product.html#CompactProduct"><span class="hs-identifier hs-type">CompactProduct</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-87"></span><span>  </span><span id="local-6989586621679127625"><span class="annot"><span class="annottext">evaluateItem :: (Int -&gt; Bool) -&gt; CompactProduct -&gt; Bool
+</span><a href="#local-6989586621679127625"><span class="hs-identifier hs-var hs-var hs-var hs-var">evaluateItem</span></a></span></span><span> </span><span id="local-6989586621679127624"><span class="annot"><span class="annottext">Int -&gt; Bool
+</span><a href="#local-6989586621679127624"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">~</span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Product.html#CompactProduct"><span class="hs-identifier hs-type">CompactProduct</span></a></span><span> </span><span id="local-6989586621679127623"><span class="annot"><span class="annottext">CompactProduct'
+</span><a href="#local-6989586621679127623"><span class="hs-identifier hs-var">p</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Bool) -&gt; CompactProduct' -&gt; Bool
+forall (t :: * -&gt; *) a. Foldable t =&gt; (a -&gt; Bool) -&gt; t a -&gt; Bool
+</span><span class="hs-identifier hs-var">all</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Bool
+</span><a href="#local-6989586621679127622"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">CompactProduct'
+</span><a href="#local-6989586621679127623"><span class="hs-identifier hs-var">p</span></a></span><span>
+</span><span id="line-88"></span><span>    </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679127622"><span class="annot"><span class="annottext">go :: Int -&gt; Bool
+</span><a href="#local-6989586621679127622"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span id="local-6989586621679127621"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127621"><span class="hs-identifier hs-var">n</span></a></span></span><span>
+</span><span id="line-89"></span><span>            </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127621"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&lt;</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool
+</span><span class="hs-identifier hs-var">not</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Bool
+</span><a href="#local-6989586621679127624"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">-</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127621"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-90"></span><span>            </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Bool
+</span><a href="#local-6989586621679127624"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127621"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-91"></span><span>  </span><span id="local-6989586621679127619"><span class="annot"><span class="annottext">isTrivial :: CompactProduct -&gt; ThreeValue
+</span><a href="#local-6989586621679127619"><span class="hs-identifier hs-var hs-var hs-var hs-var">isTrivial</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Product.html#CompactProduct"><span class="hs-identifier hs-type">CompactProduct</span></a></span><span> </span><span id="local-6989586621679127618"><span class="annot"><span class="annottext">CompactProduct'
+</span><a href="#local-6989586621679127618"><span class="hs-identifier hs-var">cp</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ThreeValue -&gt; ThreeValue -&gt; Bool -&gt; ThreeValue
+forall a. a -&gt; a -&gt; Bool -&gt; a
+</span><span class="hs-identifier hs-var">bool</span></span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#DontCare"><span class="hs-identifier hs-var">DontCare</span></a></span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#One"><span class="hs-identifier hs-var">One</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Int -&gt; Bool) -&gt; CompactProduct' -&gt; Bool
+forall (t :: * -&gt; *) a. Foldable t =&gt; (a -&gt; Bool) -&gt; t a -&gt; Bool
+</span><span class="hs-identifier hs-var">all</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">CompactProduct'
+</span><a href="#local-6989586621679127618"><span class="hs-identifier hs-var">cp</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-92"></span><span>  </span><span id="local-6989586621679127617"><span class="annot"><span class="annottext">numberOfVariables :: CompactProduct -&gt; Int
+</span><a href="#local-6989586621679127617"><span class="hs-identifier hs-var hs-var hs-var hs-var">numberOfVariables</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Product.html#CompactProduct"><span class="hs-identifier hs-type">CompactProduct</span></a></span><span> </span><span id="local-6989586621679127616"><span class="annot"><span class="annottext">CompactProduct'
+</span><a href="#local-6989586621679127616"><span class="hs-identifier hs-var">cp</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CompactProduct' -&gt; Int
+forall (t :: * -&gt; *) a. (Foldable t, Ord a) =&gt; t a -&gt; a
+</span><span class="hs-identifier hs-var">maximum</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; CompactProduct' -&gt; CompactProduct'
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Int) -&gt; CompactProduct' -&gt; CompactProduct'
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">abs</span></span><span> </span><span class="annot"><span class="annottext">CompactProduct'
+</span><a href="#local-6989586621679127616"><span class="hs-identifier hs-var">cp</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-93"></span><span>
+</span><span id="line-94"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679127610"><span id="local-6989586621679127612"><span class="annot"><span class="hs-identifier hs-type">Hashable</span></span><span> </span><span class="annot"><a href="Dep.Data.Product.html#CompactProduct"><span class="hs-identifier hs-type">CompactProduct</span></a></span></span></span><span>
+</span><span id="line-95"></span><span>
+</span><span id="line-96"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679127608"><span class="annot"><span class="hs-identifier hs-type">NFData</span></span><span> </span><span class="annot"><a href="Dep.Data.Product.html#CompactProduct"><span class="hs-identifier hs-type">CompactProduct</span></a></span></span><span>
+</span><span id="line-97"></span><span>
+</span><span id="line-98"></span><span class="hs-comment">-- | A type synonym to present a sum of products where each item of the list is a 'Product''.</span><span>
+</span><span id="line-99"></span><span class="hs-keyword">type</span><span> </span><span id="SumOfProducts%27"><span class="annot"><a href="Dep.Data.Product.html#SumOfProducts%27"><span class="hs-identifier hs-var">SumOfProducts'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Dep.Data.Product.html#Product%27"><span class="hs-identifier hs-type">Product'</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-100"></span><span>
+</span><span id="line-101"></span><span class="hs-comment">-- | A data type that is used to specify a sum of products. This type can be used</span><span>
+</span><span id="line-102"></span><span class="hs-comment">-- to specify new instance other than these of a list of lists of 'Int's.</span><span>
+</span><span id="line-103"></span><span id="local-6989586621679127606"><span id="local-6989586621679127607"></span></span><span class="hs-keyword">newtype</span><span> </span><span id="SumOfProducts"><span class="annot"><a href="Dep.Data.Product.html#SumOfProducts"><span class="hs-identifier hs-var">SumOfProducts</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="SumOfProducts"><span class="annot"><a href="Dep.Data.Product.html#SumOfProducts"><span class="hs-identifier hs-var">SumOfProducts</span></a></span></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Dep.Data.Product.html#Product"><span class="hs-identifier hs-type">Product</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="%24cSumOfProducts"><span id="%24tSumOfProducts"><span id="local-6989586621679127577"><span id="local-6989586621679127579"><span id="local-6989586621679127581"><span id="local-6989586621679127583"><span id="local-6989586621679127585"><span id="local-6989586621679127587"><span id="local-6989586621679127589"><span id="local-6989586621679127591"><span id="local-6989586621679127593"><span id="local-6989586621679127595"><span id="local-6989586621679127597"><span id="local-6989586621679127599"><span id="local-6989586621679127601"><span id="local-6989586621679127603"><span class="annot"><span class="annottext">Typeable SumOfProducts
+DataType
+Constr
+Typeable SumOfProducts
+-&gt; (forall (c :: * -&gt; *).
+    (forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+    -&gt; (forall g. g -&gt; c g) -&gt; SumOfProducts -&gt; c SumOfProducts)
+-&gt; (forall (c :: * -&gt; *).
+    (forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+    -&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c SumOfProducts)
+-&gt; (SumOfProducts -&gt; Constr)
+-&gt; (SumOfProducts -&gt; DataType)
+-&gt; (forall (t :: * -&gt; *) (c :: * -&gt; *).
+    Typeable t =&gt;
+    (forall d. Data d =&gt; c (t d)) -&gt; Maybe (c SumOfProducts))
+-&gt; (forall (t :: * -&gt; * -&gt; *) (c :: * -&gt; *).
+    Typeable t =&gt;
+    (forall d e. (Data d, Data e) =&gt; c (t d e))
+    -&gt; Maybe (c SumOfProducts))
+-&gt; ((forall b. Data b =&gt; b -&gt; b) -&gt; SumOfProducts -&gt; SumOfProducts)
+-&gt; (forall r r'.
+    (r -&gt; r' -&gt; r)
+    -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; SumOfProducts -&gt; r)
+-&gt; (forall r r'.
+    (r' -&gt; r -&gt; r)
+    -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; SumOfProducts -&gt; r)
+-&gt; (forall u. (forall d. Data d =&gt; d -&gt; u) -&gt; SumOfProducts -&gt; [u])
+-&gt; (forall u.
+    Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; SumOfProducts -&gt; u)
+-&gt; (forall (m :: * -&gt; *).
+    Monad m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; SumOfProducts -&gt; m SumOfProducts)
+-&gt; (forall (m :: * -&gt; *).
+    MonadPlus m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; SumOfProducts -&gt; m SumOfProducts)
+-&gt; (forall (m :: * -&gt; *).
+    MonadPlus m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; SumOfProducts -&gt; m SumOfProducts)
+-&gt; Data SumOfProducts
+SumOfProducts -&gt; DataType
+SumOfProducts -&gt; Constr
+(forall b. Data b =&gt; b -&gt; b) -&gt; SumOfProducts -&gt; SumOfProducts
+(forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+-&gt; (forall g. g -&gt; c g) -&gt; SumOfProducts -&gt; c SumOfProducts
+(forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+-&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c SumOfProducts
+forall a.
+Typeable a
+-&gt; (forall (c :: * -&gt; *).
+    (forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+    -&gt; (forall g. g -&gt; c g) -&gt; a -&gt; c a)
+-&gt; (forall (c :: * -&gt; *).
+    (forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+    -&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c a)
+-&gt; (a -&gt; Constr)
+-&gt; (a -&gt; DataType)
+-&gt; (forall (t :: * -&gt; *) (c :: * -&gt; *).
+    Typeable t =&gt;
+    (forall d. Data d =&gt; c (t d)) -&gt; Maybe (c a))
+-&gt; (forall (t :: * -&gt; * -&gt; *) (c :: * -&gt; *).
+    Typeable t =&gt;
+    (forall d e. (Data d, Data e) =&gt; c (t d e)) -&gt; Maybe (c a))
+-&gt; ((forall b. Data b =&gt; b -&gt; b) -&gt; a -&gt; a)
+-&gt; (forall r r'.
+    (r -&gt; r' -&gt; r) -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; a -&gt; r)
+-&gt; (forall r r'.
+    (r' -&gt; r -&gt; r) -&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; a -&gt; r)
+-&gt; (forall u. (forall d. Data d =&gt; d -&gt; u) -&gt; a -&gt; [u])
+-&gt; (forall u. Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; a -&gt; u)
+-&gt; (forall (m :: * -&gt; *).
+    Monad m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; a -&gt; m a)
+-&gt; (forall (m :: * -&gt; *).
+    MonadPlus m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; a -&gt; m a)
+-&gt; (forall (m :: * -&gt; *).
+    MonadPlus m =&gt;
+    (forall d. Data d =&gt; d -&gt; m d) -&gt; a -&gt; m a)
+-&gt; Data a
+forall u. Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; SumOfProducts -&gt; u
+forall u. (forall d. Data d =&gt; d -&gt; u) -&gt; SumOfProducts -&gt; [u]
+forall r r'.
+(r -&gt; r' -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; SumOfProducts -&gt; r
+forall r r'.
+(r' -&gt; r -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; SumOfProducts -&gt; r
+forall (m :: * -&gt; *).
+Monad m =&gt;
+(forall d. Data d =&gt; d -&gt; m d) -&gt; SumOfProducts -&gt; m SumOfProducts
+forall (m :: * -&gt; *).
+MonadPlus m =&gt;
+(forall d. Data d =&gt; d -&gt; m d) -&gt; SumOfProducts -&gt; m SumOfProducts
+forall (c :: * -&gt; *).
+(forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+-&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c SumOfProducts
+forall (c :: * -&gt; *).
+(forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+-&gt; (forall g. g -&gt; c g) -&gt; SumOfProducts -&gt; c SumOfProducts
+forall (t :: * -&gt; *) (c :: * -&gt; *).
+Typeable t =&gt;
+(forall d. Data d =&gt; c (t d)) -&gt; Maybe (c SumOfProducts)
+forall (t :: * -&gt; * -&gt; *) (c :: * -&gt; *).
+Typeable t =&gt;
+(forall d e. (Data d, Data e) =&gt; c (t d e))
+-&gt; Maybe (c SumOfProducts)
+$cSumOfProducts :: Constr
+$tSumOfProducts :: DataType
+gmapMo :: (forall d. Data d =&gt; d -&gt; m d) -&gt; SumOfProducts -&gt; m SumOfProducts
+$cgmapMo :: forall (m :: * -&gt; *).
+MonadPlus m =&gt;
+(forall d. Data d =&gt; d -&gt; m d) -&gt; SumOfProducts -&gt; m SumOfProducts
+gmapMp :: (forall d. Data d =&gt; d -&gt; m d) -&gt; SumOfProducts -&gt; m SumOfProducts
+$cgmapMp :: forall (m :: * -&gt; *).
+MonadPlus m =&gt;
+(forall d. Data d =&gt; d -&gt; m d) -&gt; SumOfProducts -&gt; m SumOfProducts
+gmapM :: (forall d. Data d =&gt; d -&gt; m d) -&gt; SumOfProducts -&gt; m SumOfProducts
+$cgmapM :: forall (m :: * -&gt; *).
+Monad m =&gt;
+(forall d. Data d =&gt; d -&gt; m d) -&gt; SumOfProducts -&gt; m SumOfProducts
+gmapQi :: Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; SumOfProducts -&gt; u
+$cgmapQi :: forall u. Int -&gt; (forall d. Data d =&gt; d -&gt; u) -&gt; SumOfProducts -&gt; u
+gmapQ :: (forall d. Data d =&gt; d -&gt; u) -&gt; SumOfProducts -&gt; [u]
+$cgmapQ :: forall u. (forall d. Data d =&gt; d -&gt; u) -&gt; SumOfProducts -&gt; [u]
+gmapQr :: (r' -&gt; r -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; SumOfProducts -&gt; r
+$cgmapQr :: forall r r'.
+(r' -&gt; r -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; SumOfProducts -&gt; r
+gmapQl :: (r -&gt; r' -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; SumOfProducts -&gt; r
+$cgmapQl :: forall r r'.
+(r -&gt; r' -&gt; r)
+-&gt; r -&gt; (forall d. Data d =&gt; d -&gt; r') -&gt; SumOfProducts -&gt; r
+gmapT :: (forall b. Data b =&gt; b -&gt; b) -&gt; SumOfProducts -&gt; SumOfProducts
+$cgmapT :: (forall b. Data b =&gt; b -&gt; b) -&gt; SumOfProducts -&gt; SumOfProducts
+dataCast2 :: (forall d e. (Data d, Data e) =&gt; c (t d e))
+-&gt; Maybe (c SumOfProducts)
+$cdataCast2 :: forall (t :: * -&gt; * -&gt; *) (c :: * -&gt; *).
+Typeable t =&gt;
+(forall d e. (Data d, Data e) =&gt; c (t d e))
+-&gt; Maybe (c SumOfProducts)
+dataCast1 :: (forall d. Data d =&gt; c (t d)) -&gt; Maybe (c SumOfProducts)
+$cdataCast1 :: forall (t :: * -&gt; *) (c :: * -&gt; *).
+Typeable t =&gt;
+(forall d. Data d =&gt; c (t d)) -&gt; Maybe (c SumOfProducts)
+dataTypeOf :: SumOfProducts -&gt; DataType
+$cdataTypeOf :: SumOfProducts -&gt; DataType
+toConstr :: SumOfProducts -&gt; Constr
+$ctoConstr :: SumOfProducts -&gt; Constr
+gunfold :: (forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+-&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c SumOfProducts
+$cgunfold :: forall (c :: * -&gt; *).
+(forall b r. Data b =&gt; c (b -&gt; r) -&gt; c r)
+-&gt; (forall r. r -&gt; c r) -&gt; Constr -&gt; c SumOfProducts
+gfoldl :: (forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+-&gt; (forall g. g -&gt; c g) -&gt; SumOfProducts -&gt; c SumOfProducts
+$cgfoldl :: forall (c :: * -&gt; *).
+(forall d b. Data d =&gt; c (d -&gt; b) -&gt; d -&gt; c b)
+-&gt; (forall g. g -&gt; c g) -&gt; SumOfProducts -&gt; c SumOfProducts
+$cp1Data :: Typeable SumOfProducts
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Data</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679127571"><span id="local-6989586621679127573"><span class="annot"><span class="annottext">SumOfProducts -&gt; SumOfProducts -&gt; Bool
+(SumOfProducts -&gt; SumOfProducts -&gt; Bool)
+-&gt; (SumOfProducts -&gt; SumOfProducts -&gt; Bool) -&gt; Eq SumOfProducts
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: SumOfProducts -&gt; SumOfProducts -&gt; Bool
+$c/= :: SumOfProducts -&gt; SumOfProducts -&gt; Bool
+== :: SumOfProducts -&gt; SumOfProducts -&gt; Bool
+$c== :: SumOfProducts -&gt; SumOfProducts -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">(forall x. SumOfProducts -&gt; Rep SumOfProducts x)
+-&gt; (forall x. Rep SumOfProducts x -&gt; SumOfProducts)
+-&gt; Generic SumOfProducts
+forall x. Rep SumOfProducts x -&gt; SumOfProducts
+forall x. SumOfProducts -&gt; Rep SumOfProducts x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+$cto :: forall x. Rep SumOfProducts x -&gt; SumOfProducts
+$cfrom :: forall x. SumOfProducts -&gt; Rep SumOfProducts x
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679127554"><span id="local-6989586621679127556"><span id="local-6989586621679127558"><span id="local-6989586621679127560"><span id="local-6989586621679127562"><span id="local-6989586621679127564"><span id="local-6989586621679127566"><span class="annot"><span class="annottext">Eq SumOfProducts
+Eq SumOfProducts
+-&gt; (SumOfProducts -&gt; SumOfProducts -&gt; Ordering)
+-&gt; (SumOfProducts -&gt; SumOfProducts -&gt; Bool)
+-&gt; (SumOfProducts -&gt; SumOfProducts -&gt; Bool)
+-&gt; (SumOfProducts -&gt; SumOfProducts -&gt; Bool)
+-&gt; (SumOfProducts -&gt; SumOfProducts -&gt; Bool)
+-&gt; (SumOfProducts -&gt; SumOfProducts -&gt; SumOfProducts)
+-&gt; (SumOfProducts -&gt; SumOfProducts -&gt; SumOfProducts)
+-&gt; Ord SumOfProducts
+SumOfProducts -&gt; SumOfProducts -&gt; Bool
+SumOfProducts -&gt; SumOfProducts -&gt; Ordering
+SumOfProducts -&gt; SumOfProducts -&gt; SumOfProducts
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: SumOfProducts -&gt; SumOfProducts -&gt; SumOfProducts
+$cmin :: SumOfProducts -&gt; SumOfProducts -&gt; SumOfProducts
+max :: SumOfProducts -&gt; SumOfProducts -&gt; SumOfProducts
+$cmax :: SumOfProducts -&gt; SumOfProducts -&gt; SumOfProducts
+&gt;= :: SumOfProducts -&gt; SumOfProducts -&gt; Bool
+$c&gt;= :: SumOfProducts -&gt; SumOfProducts -&gt; Bool
+&gt; :: SumOfProducts -&gt; SumOfProducts -&gt; Bool
+$c&gt; :: SumOfProducts -&gt; SumOfProducts -&gt; Bool
+&lt;= :: SumOfProducts -&gt; SumOfProducts -&gt; Bool
+$c&lt;= :: SumOfProducts -&gt; SumOfProducts -&gt; Bool
+&lt; :: SumOfProducts -&gt; SumOfProducts -&gt; Bool
+$c&lt; :: SumOfProducts -&gt; SumOfProducts -&gt; Bool
+compare :: SumOfProducts -&gt; SumOfProducts -&gt; Ordering
+$ccompare :: SumOfProducts -&gt; SumOfProducts -&gt; Ordering
+$cp1Ord :: Eq SumOfProducts
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679127546"><span id="local-6989586621679127548"><span id="local-6989586621679127550"><span id="local-6989586621679127552"><span class="annot"><span class="annottext">ReadPrec [SumOfProducts]
+ReadPrec SumOfProducts
+Int -&gt; ReadS SumOfProducts
+ReadS [SumOfProducts]
+(Int -&gt; ReadS SumOfProducts)
+-&gt; ReadS [SumOfProducts]
+-&gt; ReadPrec SumOfProducts
+-&gt; ReadPrec [SumOfProducts]
+-&gt; Read SumOfProducts
+forall a.
+(Int -&gt; ReadS a)
+-&gt; ReadS [a] -&gt; ReadPrec a -&gt; ReadPrec [a] -&gt; Read a
+readListPrec :: ReadPrec [SumOfProducts]
+$creadListPrec :: ReadPrec [SumOfProducts]
+readPrec :: ReadPrec SumOfProducts
+$creadPrec :: ReadPrec SumOfProducts
+readList :: ReadS [SumOfProducts]
+$creadList :: ReadS [SumOfProducts]
+readsPrec :: Int -&gt; ReadS SumOfProducts
+$creadsPrec :: Int -&gt; ReadS SumOfProducts
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Read</span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679127540"><span id="local-6989586621679127542"><span id="local-6989586621679127544"><span class="annot"><span class="annottext">Int -&gt; SumOfProducts -&gt; ShowS
+[SumOfProducts] -&gt; ShowS
+SumOfProducts -&gt; String
+(Int -&gt; SumOfProducts -&gt; ShowS)
+-&gt; (SumOfProducts -&gt; String)
+-&gt; ([SumOfProducts] -&gt; ShowS)
+-&gt; Show SumOfProducts
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [SumOfProducts] -&gt; ShowS
+$cshowList :: [SumOfProducts] -&gt; ShowS
+show :: SumOfProducts -&gt; String
+$cshow :: SumOfProducts -&gt; String
+showsPrec :: Int -&gt; SumOfProducts -&gt; ShowS
+$cshowsPrec :: Int -&gt; SumOfProducts -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-104"></span><span>
+</span><span id="line-105"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Arbitrary</span></span><span> </span><span class="annot"><a href="Dep.Data.Product.html#SumOfProducts"><span class="hs-identifier hs-type">SumOfProducts</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-106"></span><span>  </span><span id="local-6989586621679127537"><span class="annot"><span class="annottext">arbitrary :: Gen SumOfProducts
+</span><a href="#local-6989586621679127537"><span class="hs-identifier hs-var hs-var hs-var hs-var">arbitrary</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Product] -&gt; SumOfProducts
+</span><a href="Dep.Data.Product.html#SumOfProducts"><span class="hs-identifier hs-var">SumOfProducts</span></a></span><span> </span><span class="annot"><span class="annottext">([Product] -&gt; SumOfProducts) -&gt; Gen [Product] -&gt; Gen SumOfProducts
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Gen [Product]
+forall a. Arbitrary a =&gt; Gen a
+</span><span class="hs-identifier hs-var">arbitrary</span></span><span>
+</span><span id="line-107"></span><span>  </span><span id="local-6989586621679127536"><span class="annot"><span class="annottext">shrink :: SumOfProducts -&gt; [SumOfProducts]
+</span><a href="#local-6989586621679127536"><span class="hs-identifier hs-var hs-var hs-var hs-var">shrink</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Product.html#SumOfProducts"><span class="hs-identifier hs-type">SumOfProducts</span></a></span><span> </span><span id="local-6989586621679127535"><span class="annot"><span class="annottext">[Product]
+</span><a href="#local-6989586621679127535"><span class="hs-identifier hs-var">sop</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Product] -&gt; SumOfProducts
+</span><a href="Dep.Data.Product.html#SumOfProducts"><span class="hs-identifier hs-var">SumOfProducts</span></a></span><span> </span><span class="annot"><span class="annottext">([Product] -&gt; SumOfProducts) -&gt; [[Product]] -&gt; [SumOfProducts]
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">[Product] -&gt; [[Product]]
+forall a. Arbitrary a =&gt; a -&gt; [a]
+</span><span class="hs-identifier hs-var">shrink</span></span><span> </span><span class="annot"><span class="annottext">[Product]
+</span><a href="#local-6989586621679127535"><span class="hs-identifier hs-var">sop</span></a></span><span>
+</span><span id="line-108"></span><span>
+</span><span id="line-109"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679127531"><span class="annot"><span class="hs-identifier hs-type">Binary</span></span><span> </span><span class="annot"><a href="Dep.Data.Product.html#SumOfProducts"><span class="hs-identifier hs-type">SumOfProducts</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-110"></span><span>  </span><span id="local-6989586621679127530"><span class="annot"><span class="annottext">get :: Get SumOfProducts
+</span><a href="#local-6989586621679127530"><span class="hs-identifier hs-var hs-var hs-var hs-var">get</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Product] -&gt; SumOfProducts
+</span><a href="Dep.Data.Product.html#SumOfProducts"><span class="hs-identifier hs-var">SumOfProducts</span></a></span><span> </span><span class="annot"><span class="annottext">([Product] -&gt; SumOfProducts) -&gt; Get [Product] -&gt; Get SumOfProducts
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Get [Product]
+forall t. Binary t =&gt; Get t
+</span><span class="hs-identifier hs-var">get</span></span><span>
+</span><span id="line-111"></span><span>  </span><span id="local-6989586621679127529"><span class="annot"><span class="annottext">put :: SumOfProducts -&gt; Put
+</span><a href="#local-6989586621679127529"><span class="hs-identifier hs-var hs-var hs-var hs-var">put</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Product.html#SumOfProducts"><span class="hs-identifier hs-type">SumOfProducts</span></a></span><span> </span><span id="local-6989586621679127528"><span class="annot"><span class="annottext">[Product]
+</span><a href="#local-6989586621679127528"><span class="hs-identifier hs-var">sp</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Product] -&gt; Put
+forall t. Binary t =&gt; [t] -&gt; Put
+</span><span class="hs-identifier hs-var">putList</span></span><span> </span><span class="annot"><span class="annottext">[Product]
+</span><a href="#local-6989586621679127528"><span class="hs-identifier hs-var">sp</span></a></span><span>
+</span><span id="line-112"></span><span>
+</span><span id="line-113"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679127525"><span class="annot"><a href="Dep.Data.LogicItem.html#EvaluateItem"><span class="hs-identifier hs-type">EvaluateItem</span></a></span><span> </span><span class="annot"><a href="Dep.Data.Product.html#SumOfProducts"><span class="hs-identifier hs-type">SumOfProducts</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-114"></span><span>  </span><span id="local-6989586621679127522"><span class="annot"><span class="annottext">evaluateItem :: (Int -&gt; Bool) -&gt; SumOfProducts -&gt; Bool
+</span><a href="#local-6989586621679127522"><span class="hs-identifier hs-var hs-var hs-var hs-var">evaluateItem</span></a></span></span><span> </span><span id="local-6989586621679127521"><span class="annot"><span class="annottext">Int -&gt; Bool
+</span><a href="#local-6989586621679127521"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">~</span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Product.html#SumOfProducts"><span class="hs-identifier hs-type">SumOfProducts</span></a></span><span> </span><span id="local-6989586621679127520"><span class="annot"><span class="annottext">[Product]
+</span><a href="#local-6989586621679127520"><span class="hs-identifier hs-var">s</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Product -&gt; Bool) -&gt; [Product] -&gt; Bool
+forall (t :: * -&gt; *) a. Foldable t =&gt; (a -&gt; Bool) -&gt; t a -&gt; Bool
+</span><span class="hs-identifier hs-var">any</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Int -&gt; Bool) -&gt; Product -&gt; Bool
+forall a. EvaluateItem a =&gt; (Int -&gt; Bool) -&gt; a -&gt; Bool
+</span><a href="Dep.Data.LogicItem.html#evaluateItem"><span class="hs-identifier hs-var">evaluateItem</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Bool
+</span><a href="#local-6989586621679127521"><span class="hs-identifier hs-var">f</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[Product]
+</span><a href="#local-6989586621679127520"><span class="hs-identifier hs-var">s</span></a></span><span>
+</span><span id="line-115"></span><span>  </span><span id="local-6989586621679127518"><span class="annot"><span class="annottext">isTrivial :: SumOfProducts -&gt; ThreeValue
+</span><a href="#local-6989586621679127518"><span class="hs-identifier hs-var hs-var hs-var hs-var">isTrivial</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Product.html#SumOfProducts"><span class="hs-identifier hs-type">SumOfProducts</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#Zero"><span class="hs-identifier hs-var">Zero</span></a></span><span>
+</span><span id="line-116"></span><span>  </span><span class="annot"><a href="Dep.Data.LogicItem.html#isTrivial"><span class="hs-identifier hs-var">isTrivial</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Product.html#SumOfProducts"><span class="hs-identifier hs-type">SumOfProducts</span></a></span><span> </span><span id="local-6989586621679127517"><span class="annot"><span class="annottext">[Product]
+</span><a href="#local-6989586621679127517"><span class="hs-identifier hs-var">sop</span></a></span></span><span class="hs-special">)</span><span>
+</span><span id="line-117"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><a href="Dep.Data.Three.html#Leaf"><span class="hs-identifier hs-type">Leaf</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Three Bool -&gt; Three Bool
+forall a. Simplify a =&gt; a -&gt; a
+</span><a href="Dep.Class.Simplify.html#simplify"><span class="hs-identifier hs-var">simplify</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool -&gt; Three Bool -&gt; [Product'] -&gt; Three Bool
+forall a. a -&gt; Three a -&gt; [Product'] -&gt; Three a
+</span><a href="Dep.Data.Three.html#wipeAll"><span class="hs-identifier hs-var">wipeAll</span></a></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool -&gt; Three Bool
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Product -&gt; Product') -&gt; [Product] -&gt; [Product']
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="annot"><span class="annottext">Product -&gt; Product'
+</span><a href="#local-6989586621679127516"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">[Product]
+</span><a href="#local-6989586621679127517"><span class="hs-identifier hs-var">sop</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#One"><span class="hs-identifier hs-var">One</span></a></span><span>
+</span><span id="line-118"></span><span>    </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#DontCare"><span class="hs-identifier hs-var">DontCare</span></a></span><span>
+</span><span id="line-119"></span><span>    </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679127516"><span class="annot"><span class="annottext">go :: Product -&gt; Product'
+</span><a href="#local-6989586621679127516"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="hs-glyph">~</span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Product.html#Product"><span class="hs-identifier hs-type">Product</span></a></span><span> </span><span id="local-6989586621679127515"><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679127515"><span class="hs-identifier hs-var">p</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679127515"><span class="hs-identifier hs-var">p</span></a></span><span>
+</span><span id="line-120"></span><span>  </span><span id="local-6989586621679127514"><span class="annot"><span class="annottext">numberOfVariables :: SumOfProducts -&gt; Int
+</span><a href="#local-6989586621679127514"><span class="hs-identifier hs-var hs-var hs-var hs-var">numberOfVariables</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Dep.Data.Product.html#SumOfProducts"><span class="hs-identifier hs-type">SumOfProducts</span></a></span><span> </span><span id="local-6989586621679127513"><span class="annot"><span class="annottext">[Product]
+</span><a href="#local-6989586621679127513"><span class="hs-identifier hs-var">sop</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CompactProduct' -&gt; Int
+forall (t :: * -&gt; *) a. (Foldable t, Ord a) =&gt; t a -&gt; a
+</span><span class="hs-identifier hs-var">maximum</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; CompactProduct' -&gt; CompactProduct'
+forall a. a -&gt; [a] -&gt; [a]
+</span><span class="hs-glyph hs-var">:</span></span><span> </span><span class="annot"><span class="annottext">(Product -&gt; Int) -&gt; [Product] -&gt; CompactProduct'
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="annot"><span class="annottext">Product -&gt; Int
+forall a. EvaluateItem a =&gt; a -&gt; Int
+</span><a href="Dep.Data.LogicItem.html#numberOfVariables"><span class="hs-identifier hs-var">numberOfVariables</span></a></span><span> </span><span class="annot"><span class="annottext">[Product]
+</span><a href="#local-6989586621679127513"><span class="hs-identifier hs-var">sop</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-121"></span><span>
+</span><span id="line-122"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679127509"><span id="local-6989586621679127511"><span class="annot"><span class="hs-identifier hs-type">Hashable</span></span><span> </span><span class="annot"><a href="Dep.Data.Product.html#SumOfProducts"><span class="hs-identifier hs-type">SumOfProducts</span></a></span></span></span><span>
+</span><span id="line-123"></span><span>
+</span><span id="line-124"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679127507"><span class="annot"><span class="hs-identifier hs-type">NFData</span></span><span> </span><span class="annot"><a href="Dep.Data.Product.html#SumOfProducts"><span class="hs-identifier hs-type">SumOfProducts</span></a></span></span><span>
+</span><span id="line-125"></span><span>
+</span><span id="line-126"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679127502"><span id="local-6989586621679127504"><span class="annot"><span class="hs-identifier hs-type">Semigroup</span></span><span> </span><span class="annot"><a href="Dep.Data.Product.html#SumOfProducts"><span class="hs-identifier hs-type">SumOfProducts</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-127"></span><span>  </span><span class="annot"><a href="Dep.Data.Product.html#SumOfProducts"><span class="hs-identifier hs-type">SumOfProducts</span></a></span><span> </span><span id="local-6989586621679127500"><span class="annot"><span class="annottext">[Product]
+</span><a href="#local-6989586621679127500"><span class="hs-identifier hs-var">sopa</span></a></span></span><span> </span><span id="local-6989586621679127499"><span class="annot"><span class="annottext">&lt;&gt; :: SumOfProducts -&gt; SumOfProducts -&gt; SumOfProducts
+</span><span class="hs-operator hs-var hs-var hs-var hs-var">&lt;&gt;</span></span></span><span> </span><span class="annot"><a href="Dep.Data.Product.html#SumOfProducts"><span class="hs-identifier hs-type">SumOfProducts</span></a></span><span> </span><span id="local-6989586621679127498"><span class="annot"><span class="annottext">[Product]
+</span><a href="#local-6989586621679127498"><span class="hs-identifier hs-var">sopb</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Product] -&gt; SumOfProducts
+</span><a href="Dep.Data.Product.html#SumOfProducts"><span class="hs-identifier hs-var">SumOfProducts</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[Product]
+</span><a href="#local-6989586621679127500"><span class="hs-identifier hs-var">sopa</span></a></span><span> </span><span class="annot"><span class="annottext">[Product] -&gt; [Product] -&gt; [Product]
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">[Product]
+</span><a href="#local-6989586621679127498"><span class="hs-identifier hs-var">sopb</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-128"></span><span>
+</span><span id="line-129"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679127492"><span id="local-6989586621679127494"><span class="annot"><span class="hs-identifier hs-type">Monoid</span></span><span> </span><span class="annot"><a href="Dep.Data.Product.html#SumOfProducts"><span class="hs-identifier hs-type">SumOfProducts</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-130"></span><span>  </span><span id="local-6989586621679127490"><span class="annot"><span class="annottext">mempty :: SumOfProducts
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">mempty</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Product] -&gt; SumOfProducts
+</span><a href="Dep.Data.Product.html#SumOfProducts"><span class="hs-identifier hs-var">SumOfProducts</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><span id="line-131"></span><span>
+</span><span id="line-132"></span><span class="hs-comment">-- | Convert the given sum of products to a 'Text' object that presents</span><span>
+</span><span id="line-133"></span><span class="hs-comment">-- the 'SumOfProducts'' as a 'Text' object with variables as subscript.</span><span>
+</span><span id="line-134"></span><span class="hs-comment">--</span><span>
+</span><span id="line-135"></span><span class="hs-comment">-- &gt;&gt;&gt; showSumOfProducts 'x' [[One, One], [DontCare, Zero, One]]</span><span>
+</span><span id="line-136"></span><span class="hs-comment">-- &quot;x&#8320;x&#8321; + x&#8321;'x&#8322;&quot;</span><span>
+</span><span id="line-137"></span><span class="annot"><a href="Dep.Data.Product.html#showSumOfProducts"><span class="hs-identifier hs-type">showSumOfProducts</span></a></span><span>
+</span><span id="line-138"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>  </span><span class="hs-comment">-- ^ The name of the root variable that will be used with subscripts.</span><span>
+</span><span id="line-139"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Product.html#SumOfProducts%27"><span class="hs-identifier hs-type">SumOfProducts'</span></a></span><span> </span><span class="hs-comment">-- ^ The given sum of products to convert to a 'Text'.</span><span>
+</span><span id="line-140"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="hs-comment">-- ^ The corresponding 'Text' object that presents the given 'SumOfProducts''.</span><span>
+</span><span id="line-141"></span><span id="showSumOfProducts"><span class="annot"><span class="annottext">showSumOfProducts :: Char -&gt; [Product'] -&gt; Text
+</span><a href="Dep.Data.Product.html#showSumOfProducts"><span class="hs-identifier hs-var hs-var">showSumOfProducts</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Text) -&gt; [Product'] -&gt; Text
+</span><a href="Dep.Data.Product.html#showSumOfProducts%27"><span class="hs-identifier hs-var">showSumOfProducts'</span></a></span><span> </span><span class="annot"><span class="annottext">((Int -&gt; Text) -&gt; [Product'] -&gt; Text)
+-&gt; (Char -&gt; Int -&gt; Text) -&gt; Char -&gt; [Product'] -&gt; Text
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Char -&gt; Int -&gt; Text
+</span><a href="Dep.Data.LogicItem.html#subscriptVariable"><span class="hs-identifier hs-var">subscriptVariable</span></a></span><span>
+</span><span id="line-142"></span><span>
+</span><span id="line-143"></span><span class="hs-comment">-- | Convert the given sum of products to a 'Text' object that presents</span><span>
+</span><span id="line-144"></span><span class="hs-comment">-- the 'SumOfProducts'' as a 'Text' object with variables as subscript.</span><span>
+</span><span id="line-145"></span><span class="hs-comment">--</span><span>
+</span><span id="line-146"></span><span class="hs-comment">-- &gt;&gt;&gt; showSumOfProducts' (subscriptVariable 'y') [[One, One], [DontCare, Zero, One]]</span><span>
+</span><span id="line-147"></span><span class="hs-comment">-- &quot;y&#8320;y&#8321; + y&#8321;'y&#8322;&quot;</span><span>
+</span><span id="line-148"></span><span class="annot"><a href="Dep.Data.Product.html#showSumOfProducts%27"><span class="hs-identifier hs-type">showSumOfProducts'</span></a></span><span>
+</span><span id="line-149"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span class="hs-special">)</span><span> </span><span class="hs-comment">-- ^ A function that maps the given index to the variable name.</span><span>
+</span><span id="line-150"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Product.html#SumOfProducts%27"><span class="hs-identifier hs-type">SumOfProducts'</span></a></span><span> </span><span class="hs-comment">-- ^ The given sum of products to convert to a 'Text'.</span><span>
+</span><span id="line-151"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="hs-comment">-- ^ The corresponding 'Text' object that presents the given 'SumOfProducts''.</span><span>
+</span><span id="line-152"></span><span id="showSumOfProducts%27"><span class="annot"><span class="annottext">showSumOfProducts' :: (Int -&gt; Text) -&gt; [Product'] -&gt; Text
+</span><a href="Dep.Data.Product.html#showSumOfProducts%27"><span class="hs-identifier hs-var hs-var">showSumOfProducts'</span></a></span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Text
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span>
+</span><span id="line-153"></span><span class="annot"><a href="Dep.Data.Product.html#showSumOfProducts%27"><span class="hs-identifier hs-var">showSumOfProducts'</span></a></span><span> </span><span id="local-6989586621679127488"><span class="annot"><span class="annottext">Int -&gt; Text
+</span><a href="#local-6989586621679127488"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679127487"><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679127487"><span class="hs-identifier hs-var">x</span></a></span></span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span id="local-6989586621679127486"><span class="annot"><span class="annottext">[Product']
+</span><a href="#local-6989586621679127486"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Product' -&gt; [Product'] -&gt; Text
+</span><a href="#local-6989586621679127485"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679127487"><span class="hs-identifier hs-var">x</span></a></span><span> </span><span class="annot"><span class="annottext">[Product']
+</span><a href="#local-6989586621679127486"><span class="hs-identifier hs-var">xs</span></a></span><span>
+</span><span id="line-154"></span><span>  </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679127485"><span class="annot"><span class="annottext">go :: Product' -&gt; [Product'] -&gt; Text
+</span><a href="#local-6989586621679127485"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span id="local-6989586621679127484"><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679127484"><span class="hs-identifier hs-var">z</span></a></span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Product' -&gt; Text
+</span><a href="#local-6989586621679127483"><span class="hs-identifier hs-var">go'</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span> </span><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679127484"><span class="hs-identifier hs-var">z</span></a></span><span>
+</span><span id="line-155"></span><span>        </span><span class="annot"><a href="#local-6989586621679127485"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span id="local-6989586621679127482"><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679127482"><span class="hs-identifier hs-var">z</span></a></span></span><span> </span><span class="hs-glyph">~</span><span class="hs-special">(</span><span id="local-6989586621679127481"><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679127481"><span class="hs-identifier hs-var">y</span></a></span></span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span id="local-6989586621679127480"><span class="annot"><span class="annottext">[Product']
+</span><a href="#local-6989586621679127480"><span class="hs-identifier hs-var">ys</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Product' -&gt; Text
+</span><a href="#local-6989586621679127483"><span class="hs-identifier hs-var">go'</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot; + &quot;</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Text -&gt; Text
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Product' -&gt; [Product'] -&gt; Text
+</span><a href="#local-6989586621679127485"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679127481"><span class="hs-identifier hs-var">y</span></a></span><span> </span><span class="annot"><span class="annottext">[Product']
+</span><a href="#local-6989586621679127480"><span class="hs-identifier hs-var">ys</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679127482"><span class="hs-identifier hs-var">z</span></a></span><span>
+</span><span id="line-156"></span><span>        </span><span id="local-6989586621679127483"><span class="annot"><span class="annottext">go' :: Text -&gt; Product' -&gt; Text
+</span><a href="#local-6989586621679127483"><span class="hs-identifier hs-var hs-var">go'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Text) -&gt; Text -&gt; Product' -&gt; Text
+</span><a href="Dep.Data.Product.html#showProduct%27%27"><span class="hs-identifier hs-var">showProduct''</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Text
+</span><a href="#local-6989586621679127488"><span class="hs-identifier hs-var">f</span></a></span><span>
+</span><span id="line-157"></span><span>
+</span><span id="line-158"></span><span class="hs-comment">-- | Print a given product as a sequence of variables that can be negated.</span><span>
+</span><span id="line-159"></span><span class="hs-comment">-- for example:</span><span>
+</span><span id="line-160"></span><span class="hs-comment">--</span><span>
+</span><span id="line-161"></span><span class="hs-comment">-- &gt;&gt;&gt; showProduct 'x' [One, DontCare, Zero, One]</span><span>
+</span><span id="line-162"></span><span class="hs-comment">-- &quot;x&#8320;x&#8322;'x&#8323;&quot;</span><span>
+</span><span id="line-163"></span><span class="annot"><a href="Dep.Data.Product.html#showProduct"><span class="hs-identifier hs-type">showProduct</span></a></span><span>
+</span><span id="line-164"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>  </span><span class="hs-comment">-- ^ The name of the root variable that will be used with subscripts.</span><span>
+</span><span id="line-165"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Product.html#Product%27"><span class="hs-identifier hs-type">Product'</span></a></span><span> </span><span class="hs-comment">-- ^ The given product to convert to a 'Text'.</span><span>
+</span><span id="line-166"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="hs-comment">-- ^ The corresponding 'Text' object that presents the given 'Product''.</span><span>
+</span><span id="line-167"></span><span id="showProduct"><span class="annot"><span class="annottext">showProduct :: Char -&gt; Product' -&gt; Text
+</span><a href="Dep.Data.Product.html#showProduct"><span class="hs-identifier hs-var hs-var">showProduct</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Char -&gt; Text -&gt; Product' -&gt; Text
+</span><a href="Dep.Data.Product.html#showProduct%27"><span class="hs-operator hs-var">`showProduct'`</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span class="hs-special">)</span><span>
+</span><span id="line-168"></span><span>
+</span><span id="line-169"></span><span class="hs-comment">-- | Print a given product as a sequence of variables that can be negated.</span><span>
+</span><span id="line-170"></span><span class="hs-comment">-- for example:</span><span>
+</span><span id="line-171"></span><span class="hs-comment">--</span><span>
+</span><span id="line-172"></span><span class="hs-comment">-- &gt;&gt;&gt; showProduct' 'x' mempty [One, DontCare, Zero, One]</span><span>
+</span><span id="line-173"></span><span class="hs-comment">-- &quot;x&#8320;x&#8322;'x&#8323;&quot;</span><span>
+</span><span id="line-174"></span><span class="annot"><a href="Dep.Data.Product.html#showProduct%27"><span class="hs-identifier hs-type">showProduct'</span></a></span><span>
+</span><span id="line-175"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>  </span><span class="hs-comment">-- ^ The name of the root variable that will be used with subscripts.</span><span>
+</span><span id="line-176"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>  </span><span class="hs-comment">-- ^ The text that will be added as tail, this is useful if we combine products.</span><span>
+</span><span id="line-177"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Product.html#Product%27"><span class="hs-identifier hs-type">Product'</span></a></span><span> </span><span class="hs-comment">-- ^ The given product to convert to a 'Text'.</span><span>
+</span><span id="line-178"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="hs-comment">-- ^ The corresponding 'Text' object that presents the given 'Product''.</span><span>
+</span><span id="line-179"></span><span id="showProduct%27"><span class="annot"><span class="annottext">showProduct' :: Char -&gt; Text -&gt; Product' -&gt; Text
+</span><a href="Dep.Data.Product.html#showProduct%27"><span class="hs-identifier hs-var hs-var">showProduct'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Text) -&gt; Text -&gt; Product' -&gt; Text
+</span><a href="Dep.Data.Product.html#showProduct%27%27"><span class="hs-identifier hs-var">showProduct''</span></a></span><span> </span><span class="annot"><span class="annottext">((Int -&gt; Text) -&gt; Text -&gt; Product' -&gt; Text)
+-&gt; (Char -&gt; Int -&gt; Text) -&gt; Char -&gt; Text -&gt; Product' -&gt; Text
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Char -&gt; Int -&gt; Text
+</span><a href="Dep.Data.LogicItem.html#subscriptVariable"><span class="hs-identifier hs-var">subscriptVariable</span></a></span><span>
+</span><span id="line-180"></span><span>
+</span><span id="line-181"></span><span class="hs-comment">-- | Print a given product as a sequence of variables that can be negated.</span><span>
+</span><span id="line-182"></span><span class="hs-comment">-- for example:</span><span>
+</span><span id="line-183"></span><span class="hs-comment">--</span><span>
+</span><span id="line-184"></span><span class="hs-comment">-- &gt;&gt;&gt; showProduct' (subscriptVariable 'y') mempty [One, DontCare, Zero, One]</span><span>
+</span><span id="line-185"></span><span class="hs-comment">-- &quot;y&#8320;y&#8322;'y&#8323;&quot;</span><span>
+</span><span id="line-186"></span><span class="annot"><a href="Dep.Data.Product.html#showProduct%27%27"><span class="hs-identifier hs-type">showProduct''</span></a></span><span>
+</span><span id="line-187"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span class="hs-special">)</span><span> </span><span class="hs-comment">-- ^ A function that maps the given index to the variable name.</span><span>
+</span><span id="line-188"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>  </span><span class="hs-comment">-- ^ The text that will be added as tail, this is useful if we combine products.</span><span>
+</span><span id="line-189"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Dep.Data.Product.html#Product%27"><span class="hs-identifier hs-type">Product'</span></a></span><span> </span><span class="hs-comment">-- ^ The given product to convert to a 'Text'.</span><span>
+</span><span id="line-190"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="hs-comment">-- ^ The corresponding 'Text' object that presents the given 'Product''.</span><span>
+</span><span id="line-191"></span><span id="showProduct%27%27"><span class="annot"><span class="annottext">showProduct'' :: (Int -&gt; Text) -&gt; Text -&gt; Product' -&gt; Text
+</span><a href="Dep.Data.Product.html#showProduct%27%27"><span class="hs-identifier hs-var hs-var">showProduct''</span></a></span></span><span> </span><span id="local-6989586621679127478"><span class="annot"><span class="annottext">Int -&gt; Text
+</span><a href="#local-6989586621679127478"><span class="hs-identifier hs-var">ci</span></a></span></span><span> </span><span id="local-6989586621679127477"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679127477"><span class="hs-identifier hs-var">tl</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Product' -&gt; Text
+</span><a href="#local-6989586621679127476"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span>
+</span><span id="line-192"></span><span>    </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679127476"><span class="annot"><span class="annottext">go :: Int -&gt; Product' -&gt; Text
+</span><a href="#local-6989586621679127476"><span class="hs-identifier hs-var hs-var">go</span></a></span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679127477"><span class="hs-identifier hs-var">tl</span></a></span><span>
+</span><span id="line-193"></span><span>          </span><span class="annot"><a href="#local-6989586621679127476"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span id="local-6989586621679127475"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127475"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#DontCare"><span class="hs-identifier hs-var">DontCare</span></a></span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span id="local-6989586621679127474"><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679127474"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Product' -&gt; Text
+</span><a href="#local-6989586621679127476"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127475"><span class="hs-identifier hs-var">n</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679127474"><span class="hs-identifier hs-var">xs</span></a></span><span>
+</span><span id="line-194"></span><span>          </span><span class="annot"><a href="#local-6989586621679127476"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span id="local-6989586621679127473"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127473"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#One"><span class="hs-identifier hs-var">One</span></a></span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span id="local-6989586621679127472"><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679127472"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Text -&gt; Text) -&gt; Int -&gt; Product' -&gt; Text
+</span><a href="#local-6989586621679127471"><span class="hs-identifier hs-var">_printvar</span></a></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Text
+forall a. a -&gt; a
+</span><span class="hs-identifier hs-var">id</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127473"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679127472"><span class="hs-identifier hs-var">xs</span></a></span><span>
+</span><span id="line-195"></span><span>          </span><span class="annot"><a href="#local-6989586621679127476"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span id="local-6989586621679127469"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127469"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">~</span><span class="hs-special">(</span><span class="annot"><span class="annottext">ThreeValue
+</span><a href="Dep.Data.ThreeValue.html#Zero"><span class="hs-identifier hs-var">Zero</span></a></span><span class="annot"><span class="hs-glyph hs-type">:</span></span><span id="local-6989586621679127468"><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679127468"><span class="hs-identifier hs-var">xs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Text -&gt; Text) -&gt; Int -&gt; Product' -&gt; Text
+</span><a href="#local-6989586621679127471"><span class="hs-identifier hs-var">_printvar</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Char -&gt; Text -&gt; Text
+</span><span class="hs-identifier hs-var">cons</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'\''</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127469"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679127468"><span class="hs-identifier hs-var">xs</span></a></span><span>
+</span><span id="line-196"></span><span>          </span><span id="local-6989586621679127471"><span class="annot"><span class="annottext">_printvar :: (Text -&gt; Text) -&gt; Int -&gt; Product' -&gt; Text
+</span><a href="#local-6989586621679127471"><span class="hs-identifier hs-var hs-var">_printvar</span></a></span></span><span> </span><span id="local-6989586621679127467"><span class="annot"><span class="annottext">Text -&gt; Text
+</span><a href="#local-6989586621679127467"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span id="local-6989586621679127466"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127466"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span id="local-6989586621679127465"><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679127465"><span class="hs-identifier hs-var">xs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Text
+</span><a href="#local-6989586621679127478"><span class="hs-identifier hs-var">ci</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127466"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Text -&gt; Text
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Text
+</span><a href="#local-6989586621679127467"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; Product' -&gt; Text
+</span><a href="#local-6989586621679127476"><span class="hs-identifier hs-var">go</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679127466"><span class="hs-identifier hs-var">n</span></a></span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">1</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Product'
+</span><a href="#local-6989586621679127465"><span class="hs-identifier hs-var">xs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-197"></span></pre></body></html>

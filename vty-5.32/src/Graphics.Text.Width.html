@@ -1,0 +1,142 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-comment">-- Copyright 2009 Corey O'Connor</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# OPTIONS_GHC -D_XOPEN_SOURCE #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE ForeignFunctionInterface #-}</span><span>
+</span><span id="line-4"></span><span class="hs-comment">-- | This module provides functions to measure the terminal column width</span><span>
+</span><span id="line-5"></span><span class="hs-comment">-- of characters and strings.</span><span>
+</span><span id="line-6"></span><span class="hs-comment">--</span><span>
+</span><span id="line-7"></span><span class="hs-comment">-- The functions provided in this module all ultimately make calls to</span><span>
+</span><span id="line-8"></span><span class="hs-comment">-- the C implementation in @cbits/mk_wcwidth.c@. That code manages some</span><span>
+</span><span id="line-9"></span><span class="hs-comment">-- global state that carries a table of Unicode character widths. For</span><span>
+</span><span id="line-10"></span><span class="hs-comment">-- more details, see 'Graphics.Vty.UnicodeWidthTable.Install', the C</span><span>
+</span><span id="line-11"></span><span class="hs-comment">-- code, and the &quot;Multi-Column Character Support&quot; section of the project</span><span>
+</span><span id="line-12"></span><span class="hs-comment">-- @README@.</span><span>
+</span><span id="line-13"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Graphics.Text.Width</span><span>
+</span><span id="line-14"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Graphics.Text.Width.html#wcwidth"><span class="hs-identifier">wcwidth</span></a></span><span>
+</span><span id="line-15"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Text.Width.html#wcswidth"><span class="hs-identifier">wcswidth</span></a></span><span>
+</span><span id="line-16"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Text.Width.html#wctwidth"><span class="hs-identifier">wctwidth</span></a></span><span>
+</span><span id="line-17"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Text.Width.html#wctlwidth"><span class="hs-identifier">wctlwidth</span></a></span><span>
+</span><span id="line-18"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Text.Width.html#safeWcwidth"><span class="hs-identifier">safeWcwidth</span></a></span><span>
+</span><span id="line-19"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Text.Width.html#safeWcswidth"><span class="hs-identifier">safeWcswidth</span></a></span><span>
+</span><span id="line-20"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Text.Width.html#safeWctwidth"><span class="hs-identifier">safeWctwidth</span></a></span><span>
+</span><span id="line-21"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Text.Width.html#safeWctlwidth"><span class="hs-identifier">safeWctlwidth</span></a></span><span>
+</span><span id="line-22"></span><span>  </span><span class="hs-special">)</span><span>
+</span><span id="line-23"></span><span class="hs-keyword">where</span><span>
+</span><span id="line-24"></span><span>
+</span><span id="line-25"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.List</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">foldl'</span></span><span class="hs-special">)</span><span>
+</span><span id="line-26"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Text</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">T</span></span><span>
+</span><span id="line-27"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Data.Text.Lazy</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">TL</span></span><span>
+</span><span id="line-28"></span><span>
+</span><span id="line-29"></span><span class="hs-keyword">foreign</span><span> </span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-keyword">ccall</span></span><span> </span><span class="annot"><span class="hs-keyword">unsafe</span></span><span> </span><span class="annot"><span class="hs-string">&quot;vty_mk_wcwidth&quot;</span></span><span> </span><span id="wcwidth"><span class="annot"><a href="Graphics.Text.Width.html#wcwidth"><span class="hs-identifier hs-var">wcwidth</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-30"></span><span>
+</span><span id="line-31"></span><span class="annot"><a href="Graphics.Text.Width.html#wcswidth"><span class="hs-identifier hs-type">wcswidth</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-32"></span><span id="wcswidth"><span class="annot"><span class="annottext">wcswidth :: String -&gt; Int
+</span><a href="Graphics.Text.Width.html#wcswidth"><span class="hs-identifier hs-var hs-var">wcswidth</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Char -&gt; Int) -&gt; Int -&gt; String -&gt; Int
+forall (t :: * -&gt; *) b a.
+Foldable t =&gt;
+(b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b
+</span><span class="hs-identifier hs-var">foldl'</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679364681"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679364681"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span id="local-6989586621679364680"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679364680"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Int
+</span><a href="Graphics.Text.Width.html#wcwidth"><span class="hs-identifier hs-var">wcwidth</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679364680"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679364681"><span class="hs-identifier hs-var">l</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span>
+</span><span id="line-33"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="hs-pragma">[</span><span class="hs-pragma">1</span><span class="hs-pragma">]</span><span> </span><span class="annot"><a href="Graphics.Text.Width.html#wcswidth"><span class="hs-pragma hs-type">wcswidth</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-34"></span><span>
+</span><span id="line-35"></span><span class="annot"><a href="Graphics.Text.Width.html#wctwidth"><span class="hs-identifier hs-type">wctwidth</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">T.Text</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-36"></span><span id="wctwidth"><span class="annot"><span class="annottext">wctwidth :: Text -&gt; Int
+</span><a href="Graphics.Text.Width.html#wctwidth"><span class="hs-identifier hs-var hs-var">wctwidth</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Char -&gt; Int) -&gt; Int -&gt; Text -&gt; Int
+forall a. (a -&gt; Char -&gt; a) -&gt; a -&gt; Text -&gt; a
+</span><span class="hs-identifier hs-var">T.foldl'</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679364677"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679364677"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span id="local-6989586621679364676"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679364676"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Int
+</span><a href="Graphics.Text.Width.html#wcwidth"><span class="hs-identifier hs-var">wcwidth</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679364676"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679364677"><span class="hs-identifier hs-var">l</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span>
+</span><span id="line-37"></span><span>
+</span><span id="line-38"></span><span class="annot"><a href="Graphics.Text.Width.html#wctlwidth"><span class="hs-identifier hs-type">wctlwidth</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">TL.Text</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-39"></span><span id="wctlwidth"><span class="annot"><span class="annottext">wctlwidth :: Text -&gt; Int
+</span><a href="Graphics.Text.Width.html#wctlwidth"><span class="hs-identifier hs-var hs-var">wctlwidth</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Char -&gt; Int) -&gt; Int -&gt; Text -&gt; Int
+forall a. (a -&gt; Char -&gt; a) -&gt; a -&gt; Text -&gt; a
+</span><span class="hs-identifier hs-var">TL.foldl'</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679364674"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679364674"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span id="local-6989586621679364673"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679364673"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Int
+</span><a href="Graphics.Text.Width.html#wcwidth"><span class="hs-identifier hs-var">wcwidth</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679364673"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679364674"><span class="hs-identifier hs-var">l</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span>
+</span><span id="line-40"></span><span>
+</span><span id="line-41"></span><span class="hs-pragma">{-# RULES</span><span>
+</span><span id="line-42"></span><span class="annot"><span class="hs-pragma">&quot;wcswidth/unpack&quot;</span></span><span> </span><span class="hs-pragma">forall</span><span> </span><span id="local-6989586621679364672"><span class="annot"><a href="#local-6989586621679364672"><span class="hs-pragma hs-var">x</span></a></span></span><span class="hs-pragma">.</span><span> </span><span class="annot"><a href="Graphics.Text.Width.html#wcswidth"><span class="hs-pragma hs-type">wcswidth</span></a></span><span> </span><span class="hs-pragma">(</span><span class="annot"><span class="hs-pragma hs-type">T.unpack</span></span><span> </span><span class="annot"><a href="#local-6989586621679364672"><span class="hs-pragma hs-type">x</span></a></span><span class="hs-pragma">)</span><span> </span><span class="hs-pragma">=</span><span> </span><span class="annot"><a href="Graphics.Text.Width.html#wctwidth"><span class="hs-pragma hs-type">wctwidth</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679364672"><span class="hs-pragma hs-type">x</span></a></span><span>
+</span><span id="line-43"></span><span class="annot"><span class="hs-pragma">&quot;wcswidth/lazy-unpack&quot;</span></span><span> </span><span class="hs-pragma">forall</span><span> </span><span id="local-6989586621679364670"><span class="annot"><a href="#local-6989586621679364670"><span class="hs-pragma hs-var">x</span></a></span></span><span class="hs-pragma">.</span><span> </span><span class="annot"><a href="Graphics.Text.Width.html#wcswidth"><span class="hs-pragma hs-type">wcswidth</span></a></span><span> </span><span class="hs-pragma">(</span><span class="annot"><span class="hs-pragma hs-type">TL.unpack</span></span><span> </span><span class="annot"><a href="#local-6989586621679364670"><span class="hs-pragma hs-type">x</span></a></span><span class="hs-pragma">)</span><span> </span><span class="hs-pragma">=</span><span> </span><span class="annot"><a href="Graphics.Text.Width.html#wctlwidth"><span class="hs-pragma hs-type">wctlwidth</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679364670"><span class="hs-pragma hs-type">x</span></a></span><span>
+</span><span id="line-44"></span><span>  </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-45"></span><span>
+</span><span id="line-46"></span><span class="hs-comment">-- | Returns the display width of a character. Assumes all characters</span><span>
+</span><span id="line-47"></span><span class="hs-comment">-- with unknown widths are 0 width.</span><span>
+</span><span id="line-48"></span><span class="annot"><a href="Graphics.Text.Width.html#safeWcwidth"><span class="hs-identifier hs-type">safeWcwidth</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-49"></span><span id="safeWcwidth"><span class="annot"><span class="annottext">safeWcwidth :: Char -&gt; Int
+</span><a href="Graphics.Text.Width.html#safeWcwidth"><span class="hs-identifier hs-var hs-var">safeWcwidth</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Ord a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-identifier hs-var">max</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Int) -&gt; (Char -&gt; Int) -&gt; Char -&gt; Int
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Char -&gt; Int
+</span><a href="Graphics.Text.Width.html#wcwidth"><span class="hs-identifier hs-var">wcwidth</span></a></span><span>
+</span><span id="line-50"></span><span>
+</span><span id="line-51"></span><span class="hs-comment">-- | Returns the display width of a string. Assumes all characters with</span><span>
+</span><span id="line-52"></span><span class="hs-comment">-- unknown widths are 0 width.</span><span>
+</span><span id="line-53"></span><span class="annot"><a href="Graphics.Text.Width.html#safeWcswidth"><span class="hs-identifier hs-type">safeWcswidth</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-54"></span><span id="safeWcswidth"><span class="annot"><span class="annottext">safeWcswidth :: String -&gt; Int
+</span><a href="Graphics.Text.Width.html#safeWcswidth"><span class="hs-identifier hs-var hs-var">safeWcswidth</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Char -&gt; Int) -&gt; Int -&gt; String -&gt; Int
+forall (t :: * -&gt; *) b a.
+Foldable t =&gt;
+(b -&gt; a -&gt; b) -&gt; b -&gt; t a -&gt; b
+</span><span class="hs-identifier hs-var">foldl'</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679364666"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679364666"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span id="local-6989586621679364665"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679364665"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Int
+</span><a href="Graphics.Text.Width.html#safeWcwidth"><span class="hs-identifier hs-var">safeWcwidth</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679364665"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679364666"><span class="hs-identifier hs-var">l</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span>
+</span><span id="line-55"></span><span>
+</span><span id="line-56"></span><span class="hs-comment">-- | Returns the display width of a text. Assumes all characters with</span><span>
+</span><span id="line-57"></span><span class="hs-comment">-- unknown widths are 0 width.</span><span>
+</span><span id="line-58"></span><span class="annot"><a href="Graphics.Text.Width.html#safeWctwidth"><span class="hs-identifier hs-type">safeWctwidth</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">T.Text</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-59"></span><span id="safeWctwidth"><span class="annot"><span class="annottext">safeWctwidth :: Text -&gt; Int
+</span><a href="Graphics.Text.Width.html#safeWctwidth"><span class="hs-identifier hs-var hs-var">safeWctwidth</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Char -&gt; Int) -&gt; Int -&gt; Text -&gt; Int
+forall a. (a -&gt; Char -&gt; a) -&gt; a -&gt; Text -&gt; a
+</span><span class="hs-identifier hs-var">T.foldl'</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679364664"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679364664"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span id="local-6989586621679364663"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679364663"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Int
+</span><a href="Graphics.Text.Width.html#safeWcwidth"><span class="hs-identifier hs-var">safeWcwidth</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679364663"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679364664"><span class="hs-identifier hs-var">l</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span>
+</span><span id="line-60"></span><span>
+</span><span id="line-61"></span><span class="hs-comment">-- | Returns the display width of a lazy text. Assumes all characters</span><span>
+</span><span id="line-62"></span><span class="hs-comment">-- with unknown widths are 0 width.</span><span>
+</span><span id="line-63"></span><span class="annot"><a href="Graphics.Text.Width.html#safeWctlwidth"><span class="hs-identifier hs-type">safeWctlwidth</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">TL.Text</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-64"></span><span id="safeWctlwidth"><span class="annot"><span class="annottext">safeWctlwidth :: Text -&gt; Int
+</span><a href="Graphics.Text.Width.html#safeWctlwidth"><span class="hs-identifier hs-var hs-var">safeWctlwidth</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Int -&gt; Char -&gt; Int) -&gt; Int -&gt; Text -&gt; Int
+forall a. (a -&gt; Char -&gt; a) -&gt; a -&gt; Text -&gt; a
+</span><span class="hs-identifier hs-var">TL.foldl'</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679364662"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679364662"><span class="hs-identifier hs-var">l</span></a></span></span><span> </span><span id="local-6989586621679364661"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679364661"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Int
+</span><a href="Graphics.Text.Width.html#safeWcwidth"><span class="hs-identifier hs-var">safeWcwidth</span></a></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679364661"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="annot"><span class="annottext">Int -&gt; Int -&gt; Int
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679364662"><span class="hs-identifier hs-var">l</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Int
+</span><span class="hs-number">0</span></span><span>
+</span><span id="line-65"></span></pre></body></html>

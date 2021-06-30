@@ -1,0 +1,78 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# OPTIONS_HADDOCK hide #-}</span><span>
+</span><span id="line-2"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Graphics.Vty.Debug.Image</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-3"></span><span>
+</span><span id="line-4"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.html"><span class="hs-identifier">Graphics.Vty.Image</span></a></span><span>
+</span><span id="line-5"></span><span>
+</span><span id="line-6"></span><span class="hs-keyword">type</span><span> </span><span id="ImageConstructLog"><span class="annot"><a href="Graphics.Vty.Debug.Image.html#ImageConstructLog"><span class="hs-identifier hs-var">ImageConstructLog</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Graphics.Vty.Debug.Image.html#ImageConstructEvent"><span class="hs-identifier hs-type">ImageConstructEvent</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-7"></span><span class="hs-keyword">data</span><span> </span><span id="ImageConstructEvent"><span class="annot"><a href="Graphics.Vty.Debug.Image.html#ImageConstructEvent"><span class="hs-identifier hs-var">ImageConstructEvent</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="ImageConstructEvent"><span class="annot"><a href="Graphics.Vty.Debug.Image.html#ImageConstructEvent"><span class="hs-identifier hs-var">ImageConstructEvent</span></a></span></span><span>
+</span><span id="line-8"></span><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span> </span><span id="local-6989586621679365691"><span id="local-6989586621679365693"><span id="local-6989586621679365695"><span class="annot"><span class="annottext">Int -&gt; ImageConstructEvent -&gt; ShowS
+[ImageConstructEvent] -&gt; ShowS
+ImageConstructEvent -&gt; String
+(Int -&gt; ImageConstructEvent -&gt; ShowS)
+-&gt; (ImageConstructEvent -&gt; String)
+-&gt; ([ImageConstructEvent] -&gt; ShowS)
+-&gt; Show ImageConstructEvent
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [ImageConstructEvent] -&gt; ShowS
+$cshowList :: [ImageConstructEvent] -&gt; ShowS
+show :: ImageConstructEvent -&gt; String
+$cshow :: ImageConstructEvent -&gt; String
+showsPrec :: Int -&gt; ImageConstructEvent -&gt; ShowS
+$cshowsPrec :: Int -&gt; ImageConstructEvent -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679365686"><span id="local-6989586621679365688"><span class="annot"><span class="annottext">ImageConstructEvent -&gt; ImageConstructEvent -&gt; Bool
+(ImageConstructEvent -&gt; ImageConstructEvent -&gt; Bool)
+-&gt; (ImageConstructEvent -&gt; ImageConstructEvent -&gt; Bool)
+-&gt; Eq ImageConstructEvent
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: ImageConstructEvent -&gt; ImageConstructEvent -&gt; Bool
+$c/= :: ImageConstructEvent -&gt; ImageConstructEvent -&gt; Bool
+== :: ImageConstructEvent -&gt; ImageConstructEvent -&gt; Bool
+$c== :: ImageConstructEvent -&gt; ImageConstructEvent -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span> </span><span class="hs-special">)</span><span>
+</span><span id="line-9"></span><span>
+</span><span id="line-10"></span><span class="annot"><a href="Graphics.Vty.Debug.Image.html#forwardImageOps"><span class="hs-identifier hs-type">forwardImageOps</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-11"></span><span id="forwardImageOps"><span class="annot"><span class="annottext">forwardImageOps :: [Image -&gt; Image]
+</span><a href="Graphics.Vty.Debug.Image.html#forwardImageOps"><span class="hs-identifier hs-var hs-var">forwardImageOps</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(ImageOp -&gt; Image -&gt; Image) -&gt; [ImageOp] -&gt; [Image -&gt; Image]
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="annot"><span class="annottext">ImageOp -&gt; Image -&gt; Image
+</span><a href="Graphics.Vty.Debug.Image.html#forwardTransform"><span class="hs-identifier hs-var">forwardTransform</span></a></span><span> </span><span class="annot"><span class="annottext">[ImageOp]
+</span><a href="Graphics.Vty.Debug.Image.html#debugImageOps"><span class="hs-identifier hs-var">debugImageOps</span></a></span><span>
+</span><span id="line-12"></span><span>
+</span><span id="line-13"></span><span class="annot"><a href="Graphics.Vty.Debug.Image.html#forwardTransform"><span class="hs-identifier hs-type">forwardTransform</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Graphics.Vty.Debug.Image.html#reverseTransform"><span class="hs-identifier hs-type">reverseTransform</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Debug.Image.html#ImageOp"><span class="hs-identifier hs-type">ImageOp</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-14"></span><span>
+</span><span id="line-15"></span><span id="forwardTransform"><span class="annot"><span class="annottext">forwardTransform :: ImageOp -&gt; Image -&gt; Image
+</span><a href="Graphics.Vty.Debug.Image.html#forwardTransform"><span class="hs-identifier hs-var hs-var">forwardTransform</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Graphics.Vty.Debug.Image.html#ImageOp"><span class="hs-identifier hs-type">ImageOp</span></a></span><span> </span><span id="local-6989586621679365679"><span class="annot"><span class="annottext">Image -&gt; Image
+</span><a href="#local-6989586621679365679"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="annot"><span class="annottext">Image -&gt; Image
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image -&gt; Image
+</span><a href="#local-6989586621679365679"><span class="hs-identifier hs-var">f</span></a></span><span>
+</span><span id="line-16"></span><span id="reverseTransform"><span class="annot"><span class="annottext">reverseTransform :: ImageOp -&gt; Image -&gt; Image
+</span><a href="Graphics.Vty.Debug.Image.html#reverseTransform"><span class="hs-identifier hs-var hs-var">reverseTransform</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Graphics.Vty.Debug.Image.html#ImageOp"><span class="hs-identifier hs-type">ImageOp</span></a></span><span> </span><span class="annot"><span class="annottext">Image -&gt; Image
+</span><span class="hs-identifier">_</span></span><span> </span><span id="local-6989586621679365678"><span class="annot"><span class="annottext">Image -&gt; Image
+</span><a href="#local-6989586621679365678"><span class="hs-identifier hs-var">r</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Image -&gt; Image
+</span><a href="#local-6989586621679365678"><span class="hs-identifier hs-var">r</span></a></span><span>
+</span><span id="line-17"></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">data</span><span> </span><span id="ImageOp"><span class="annot"><a href="Graphics.Vty.Debug.Image.html#ImageOp"><span class="hs-identifier hs-var">ImageOp</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="ImageOp"><span class="annot"><a href="Graphics.Vty.Debug.Image.html#ImageOp"><span class="hs-identifier hs-var">ImageOp</span></a></span></span><span> </span><span class="annot"><a href="Graphics.Vty.Debug.Image.html#ImageEndo"><span class="hs-identifier hs-type">ImageEndo</span></a></span><span> </span><span class="annot"><a href="Graphics.Vty.Debug.Image.html#ImageEndo"><span class="hs-identifier hs-type">ImageEndo</span></a></span><span>
+</span><span id="line-19"></span><span class="hs-keyword">type</span><span> </span><span id="ImageEndo"><span class="annot"><a href="Graphics.Vty.Debug.Image.html#ImageEndo"><span class="hs-identifier hs-var">ImageEndo</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Graphics.Vty.Image.Internal.html#Image"><span class="hs-identifier hs-type">Image</span></a></span><span>
+</span><span id="line-20"></span><span>
+</span><span id="line-21"></span><span class="annot"><a href="Graphics.Vty.Debug.Image.html#debugImageOps"><span class="hs-identifier hs-type">debugImageOps</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Graphics.Vty.Debug.Image.html#ImageOp"><span class="hs-identifier hs-type">ImageOp</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-22"></span><span id="debugImageOps"><span class="annot"><span class="annottext">debugImageOps :: [ImageOp]
+</span><a href="Graphics.Vty.Debug.Image.html#debugImageOps"><span class="hs-identifier hs-var hs-var">debugImageOps</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-23"></span><span>    </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">ImageOp
+</span><a href="Graphics.Vty.Debug.Image.html#idImageOp"><span class="hs-identifier hs-var">idImageOp</span></a></span><span>
+</span><span id="line-24"></span><span>    </span><span class="hs-comment">-- , renderSingleColumnCharOp</span><span>
+</span><span id="line-25"></span><span>    </span><span class="hs-comment">-- , renderDoubleColumnCharOp</span><span>
+</span><span id="line-26"></span><span>    </span><span class="hs-special">]</span><span>
+</span><span id="line-27"></span><span>
+</span><span id="line-28"></span><span class="annot"><a href="Graphics.Vty.Debug.Image.html#idImageOp"><span class="hs-identifier hs-type">idImageOp</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Graphics.Vty.Debug.Image.html#ImageOp"><span class="hs-identifier hs-type">ImageOp</span></a></span><span>
+</span><span id="line-29"></span><span id="idImageOp"><span class="annot"><span class="annottext">idImageOp :: ImageOp
+</span><a href="Graphics.Vty.Debug.Image.html#idImageOp"><span class="hs-identifier hs-var hs-var">idImageOp</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Image -&gt; Image) -&gt; (Image -&gt; Image) -&gt; ImageOp
+</span><a href="Graphics.Vty.Debug.Image.html#ImageOp"><span class="hs-identifier hs-var">ImageOp</span></a></span><span> </span><span class="annot"><span class="annottext">Image -&gt; Image
+forall a. a -&gt; a
+</span><span class="hs-identifier hs-var">id</span></span><span> </span><span class="annot"><span class="annottext">Image -&gt; Image
+forall a. a -&gt; a
+</span><span class="hs-identifier hs-var">id</span></span><span>
+</span><span id="line-30"></span><span>
+</span><span id="line-31"></span><span class="hs-comment">-- renderCharOp :: ImageOp</span><span>
+</span><span id="line-32"></span><span class="hs-comment">-- renderCharOp = ImageOp id id</span><span>
+</span><span id="line-33"></span></pre></body></html>
