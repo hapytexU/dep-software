@@ -25,7 +25,7 @@ import Dep.Data.ThreeValue(ThreeValue)
 import Dep.Utils(Operator)
 
 import Graphics.Vty.Attributes(Attr)
-import Graphics.Vty.Image(Image, char, string, (<->), (<|>))  -- , (<->), (<|>), char, safeWcswidth, string)
+import Graphics.Vty.Image(Image, char, (<->))  -- , (<->), (<|>), char, safeWcswidth, string)
 
 type KLine = String
 type KRaster = [KLine]
