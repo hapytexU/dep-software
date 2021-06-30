@@ -69,9 +69,9 @@ circuit = Widget Fixed Fixed $ do
   let tree' = Split (Split (Split (Split la lb) (Split lc ld)) (Split (Split le lf) (Split lg lh))) (Split (Split (Split li lj) (Split lk ll)) (Split (Split lm ln) (Split lo lp)))
   let tree'' = Split (Split (Split (Split lA lB) (Split lC lD)) (Split (Split lE lF) (Split lG lH))) (Split (Split (Split lI lJ) (Split lK lL)) (Split (Split lM lN) (Split lO lP)))
   let tree''' = Split tree' tree''
-  let tree'''' = Split tree''' tree'''
-  let tree''''' = Split tree'''' tree''''
-  let tree'''''' = Split tree''''' tree''''' --}
+  -- let tree'''' = Split tree''' tree'''
+  -- let tree''''' = Split tree'''' tree''''
+  -- let tree'''''' = Split tree''''' tree''''' --}
   let tree = tree''' -- Split tree'''''' tree''''''
 
   -- let tree = Split (Split (Split (Split la lb) (Split lc ld)) (Split (Split le lf) (Split lg lh))) (Split (Split (Split li lj) (Split lk ll)) (Split (Split lm ln) (Split lo lp)))
