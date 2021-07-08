@@ -17,7 +17,6 @@ library
   hs-source-dirs: src
   exposed-modules:
      Dep.Algorithm.Synthesis
-   , Dep.Algorithm.Levenshtein
    , Dep.Bricks.Box
    , Dep.Bricks.Circuit
    , Dep.Bricks.Gate
@@ -52,6 +51,7 @@ library
     , Diff >= 0.3 && < 0.4
     , hashable >=1.2.7.0
     , lens >= 4.0
+    , levenshtein >= 0.1
     , parsec >=3.0
     , QuickCheck
     , template-haskell >=2.16.0.0

@@ -16,6 +16,7 @@ module Dep.Bricks.Karnaugh (
   ) where
 
 import Data.List(transpose)
+import Data.Foldable.Levenshtein(levenshtein)
 
 import Dep.Algorithm.Synthesis(synthesis)
 import Dep.Bricks.Utils(fromRaster, inRaster')  -- harrow', varrow'
