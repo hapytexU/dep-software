@@ -12,6 +12,7 @@ A module to render, update, and interact with Karnaugh cards.
 
 module Dep.Bricks.Karnaugh (
     renderKarnaugh, renderKarnaugh'
+  , vvar
   ) where
 
 import Data.List(transpose)
@@ -25,10 +26,13 @@ import Dep.Data.ThreeValue(ThreeValue)
 import Dep.Utils(Operator)
 
 import Graphics.Vty.Attributes(Attr)
-import Graphics.Vty.Image(Image, (<->), string)  -- , (<->), (<|>), char, safeWcswidth, string)
+import Graphics.Vty.Image(Image, (<->), safeWcswidth, string)  -- , (<->), (<|>), char, safeWcswidth, string)
 
 type KLine = String
 type KRaster = [KLine]
+
+-- markLeft :: [String]
+-- markLeft =  +++
 
 hmask :: Char -> Char -> Char -> Int -> Int -> String
 hmask c0 ci cn = go
@@ -36,6 +40,21 @@ hmask c0 ci cn = go
 
 hvar :: String -> Int -> Int -> String
 hvar st n m = replicate (n + div (m-length st+1) 2) ' ' ++ st
+
+vmask :: Char -> Char -> Char -> Int -> Int -> [String]
+vmask c0 ci cn = go
+  where go n m = replicate n " " ++ [c0] : replicate m [ci] ++ [[cn]]
+
+vvar :: String -> Int -> Int -> [String]
+vvar st n m = replicate h0 ws ++ [st] ++ repeat ws
+  where ws = replicate (safeWcswidth st) ' '
+        h0 = n + div (m + 1) 2
+
+infixr 5 +++
+
+(+++) :: [[a]] -> [[a]] -> [[a]]
+(+++) = zipWith (++)
+
 
 -- twig :: Attr -> Int -> Image
 -- twig atr n = foldMap ((<|> char atr '\x2572') . string atr . (`replicate` ' ')) [0 .. n-1]
@@ -89,8 +108,8 @@ _recurse :: CharRenderable a => (Int -> Operator KRaster) -> (Int -> Operator KR
 _recurse ma mb !n = go
       where fn = _recurse mb ma (n-1)
             man = ma n
-            go l |
-              n <= 0 = [[charRenderItem (leftmost l)]]  -- leftmost is used to prevent cases with multiple items
+            go l
+              | n <= 0 = [[charRenderItem (leftmost l)]]  -- leftmost is used to prevent cases with multiple items
             go l@(Leaf _) = let fnl = fn l in man (fnl, fnl)
             go (Link l) = let fnl = fn l in man (fnl, fnl)
             go ~(Split la lb) = man (fn la, fn lb)
@@ -124,7 +143,7 @@ renderKarnaugh :: CharRenderable a
   -> [String]  -- ^ The names of the variables that are rendered. If there are no sufficient variables, it will work with x₀, x₁, x₂, etc.
   -> Attr  -- ^ The base 'Attr'ibute to render the /Karnaugh card/.
   -> Image  -- ^ The image that contains a rendered version of the /Karnaugh card/.
-renderKarnaugh ts _ _ atr = string atr (hvar "x\x2080" 10 7) <-> string atr (hmask '\x251c' '\x2500' '\x2524' 10 7) <-> string atr (hvar "x\x2081" 4 9) <-> string atr (hmask '\x251c' '\x2500' '\x2524' 4 9) <-> fromRaster atr (inRaster' recs)
+renderKarnaugh ts _ _ atr = string atr (hvar "x\x2080" 10 7) <-> string atr (hmask '\x251c' '\x2500' '\x2524' 10 7) <-> string atr (hvar "x\x2082" 4 9) <-> string atr (hmask '\x251c' '\x2500' '\x2524' 4 9) <-> fromRaster atr (inRaster' recs +++ (vmask '\x252c' '\x2502' '\x2534' 4 3 +++ vvar "x\x2081" 4 3))
 -- renderKarnaugh ts _ _ atr = foldr ((<->) . string atr) emptyImage (addBottomMark "x\x2083" (addTopMark "x\x2081" (addLeftMark "x\x2082" (addRightMark "x\x2084" (inRaster' recs)))))
   where dpt = depth ts
         recs = swapit _recurse (_mergeHorizontal _horizontalThin _horizontalThick) (_mergeVertical _verticalThin _verticalThick) dpt ts

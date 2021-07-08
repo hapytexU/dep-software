@@ -20,6 +20,7 @@ import Dep.Bricks.Karnaugh(renderKarnaugh)
 import Dep.Data.Three(Three(Leaf, Split))
 -- import Dep.Data.ThreeValue(ThreeValue(Zero, One, DontCare))
 
+import Graphics.Vty.Image((<|>), emptyImage)
 import Graphics.Vty.Attributes(defAttr)
 
 -- | A widget that is used to render electronics circuitry.
@@ -32,48 +33,56 @@ circuit = Widget Fixed Fixed $ do
   -- let l0 = Leaf Zero
   -- let l1 = Leaf One
   -- let ld = Leaf DontCare
-  let la = Leaf 'a'
-  let lb = Leaf 'b'
-  let lc = Leaf 'c'
-  let ld = Leaf 'd'
-  let le = Leaf 'e'
-  let lf = Leaf 'f'
-  let lg = Leaf 'g'
-  let lh = Leaf 'h'
-  let li = Leaf 'i'
-  let lj = Leaf 'j'
-  let lk = Leaf 'k'
-  let ll = Leaf 'l'
-  let lm = Leaf 'm'
-  let ln = Leaf 'n'
-  let lo = Leaf 'o'
-  let lp = Leaf 'p'
+  let l = Leaf
+  let l0 = l '0'
+  let l1 = l '1'
+  let l2 = l '2'
+  let l3 = l '3'
+  let l4 = l '4'
+  let l5 = l '5'
+  let l6 = l '6'
+  let l7 = l '7'
+  let l8 = l '8'
+  let l9 = l '9'
+  let la = l 'a'
+  let lb = l 'b'
+  let lc = l 'c'
+  let ld = l 'd'
+  let le = l 'e'
+  let lf = l 'f'
+  let lg = l 'g'
+  let lh = l 'h'
+  let li = l 'i'
+  let lj = l 'j'
+  let lk = l 'k'
+  let ll = l 'l'
+  let lm = l 'm'
+  let ln = l 'n'
+  let lo = l 'o'
+  let lp = l 'p'
+  let lq = l 'q'
+  let lr = l 'r'
+  let ls = l 's'
+  let lt = l 't'
+  let lu = l 'u'
+  let lv = l 'v'
 
-  let lA = Leaf 'A'
-  let lB = Leaf 'B'
-  let lC = Leaf 'C'
-  let lD = Leaf 'D'
-  let lE = Leaf 'E'
-  let lF = Leaf 'F'
-  let lG = Leaf 'G'
-  let lH = Leaf 'H'
-  let lI = Leaf 'I'
-  let lJ = Leaf 'J'
-  let lK = Leaf 'K'
-  let lL = Leaf 'L'
-  let lM = Leaf 'M'
-  let lN = Leaf 'N'
-  let lO = Leaf 'O'
-  let lP = Leaf 'P'
+  let t0 = l0
+  let t1 = Split l0 l1
+  let t2 = Split t1 (Split l2 l3)
+  let t3 = Split t2 (Split (Split l4 l5) (Split l6 l7))
+  let t4 = Split t3 (Split (Split (Split l8 l9) (Split la lb)) (Split (Split lc ld) (Split le lf)))
+  let t5 = Split t4 (Split (Split (Split (Split lg lh) (Split li lj)) (Split (Split lk ll) (Split lm ln))) (Split (Split (Split lo lp) (Split lq lr)) (Split (Split ls lt) (Split lu lv))))
+  let g t = renderKarnaugh t mempty undefined defAttr
 
-  let tree' = Split (Split (Split (Split la lb) (Split lc ld)) (Split (Split le lf) (Split lg lh))) (Split (Split (Split li lj) (Split lk ll)) (Split (Split lm ln) (Split lo lp)))
-  let tree'' = Split (Split (Split (Split lA lB) (Split lC lD)) (Split (Split lE lF) (Split lG lH))) (Split (Split (Split lI lJ) (Split lK lL)) (Split (Split lM lN) (Split lO lP)))
-  let tree''' = Split tree' tree''
+  -- let tree' = Split (Split (Split (Split la lb) (Split lc ld)) (Split (Split le lf) (Split lg lh))) (Split (Split (Split li lj) (Split lk ll)) (Split (Split lm ln) (Split lo lp)))
+  -- let tree'' = Split (Split (Split (Split lA lB) (Split lC lD)) (Split (Split lE lF) (Split lG lH))) (Split (Split (Split lI lJ) (Split lK lL)) (Split (Split lM lN) (Split lO lP)))
+  -- let tree''' = Split tree' tree''
   -- let tree'''' = Split tree''' tree'''
   -- let tree''''' = Split tree'''' tree''''
   -- let tree'''''' = Split tree''''' tree''''' --}
-  let tree = tree''' -- Split tree'''''' tree''''''
+  let tree = t2 -- tree''' -- Split tree'''''' tree''''''
 
   -- let tree = Split (Split (Split (Split la lb) (Split lc ld)) (Split (Split le lf) (Split lg lh))) (Split (Split (Split li lj) (Split lk ll)) (Split (Split lm ln) (Split lo lp)))
 --   return (emptyResult & imageL .~ renderKarnaugh' (Split (Split (Split (Split l1 l0) l1) (Split (Split l0 l1) l1)) (Split (Split l1 ld) ld)) defAttr)
-  return (emptyResult & imageL .~ renderKarnaugh tree mempty undefined defAttr)
+  return (emptyResult & imageL .~ (foldr ((<|>) . g) emptyImage [t0, t1, t2, t3, t4, t5]))

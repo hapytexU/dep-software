@@ -49,6 +49,8 @@ extra-deps:
 - QuickCheck-2.13.2@sha256:636e7265bf75122e7e2f97627c47aad3b772ee3b35b134cafb6095116ce8d07a,6974
 - splitmix-0.0.5@sha256:4a49661be63f5aea0e132e9ab51be918789bb4dceb4ab9b15b85ba9cbbef5999,5412
 - unicode-tricks-0.8.0.0@sha256:6953575404b763971f9073f6e0d76b4201fb6ea86e823adf062ac764bb8bc62f,2124
+- github: hapytex/levenshtein
+  commit: master
 
 # Override default flag values for local packages and extra-deps
 # flags: {}

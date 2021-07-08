@@ -183,10 +183,6 @@ _simplifyLink l@(Leaf _) = l
 _simplifyLink l = Link l
 
 instance Eq a => Simplify (Three a) where
-  -- | Simplify the given 'Three' object by minimizing common
-  -- subtrees. This is used to determine sum-of-products and
-  -- products-of-sums more efficiently, but can also be used
-  -- to make a table more readable.
   simplify l@(Leaf _) = l
   simplify (Link l) = _simplifyLink (simplify l)
   simplify (Split la lb)
