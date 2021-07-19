@@ -15,10 +15,12 @@ module Dep.Bricks.Karnaugh (
   , vvar
   ) where
 
-import Data.List(transpose)
+import Data.Char.Small(asSub')
+import Data.List(transpose, zipWith4)
+import Data.Text(unpack)
 
 import Dep.Algorithm.Synthesis(synthesis)
-import Dep.Bricks.Utils(fromRaster, inRaster')  -- harrow', varrow'
+import Dep.Bricks.Utils((+++), fromRaster, inRaster')  -- harrow', varrow'
 import Dep.Class.Renderable(CharRenderable(charRenderItem))
 import Dep.Data.Product(SumOfProducts)
 import Dep.Data.Three(Three(Leaf, Link, Split), depth, leftmost)
@@ -26,38 +28,83 @@ import Dep.Data.ThreeValue(ThreeValue)
 import Dep.Utils(Operator)
 
 import Graphics.Vty.Attributes(Attr)
-import Graphics.Vty.Image(Image, (<->), safeWcswidth, string)  -- , (<->), (<|>), char, safeWcswidth, string)
+import Graphics.Vty.Image(Image, (<->), (<|>), char, safeWcswidth, string)  -- , (<->), (<|>), char, safeWcswidth, string)
 
 type KLine = String
 type KRaster = [KLine]
-
--- markLeft :: [String]
--- markLeft =  +++
 
 hmask :: Char -> Char -> Char -> Int -> Int -> String
 hmask c0 ci cn = go
   where go n m = replicate n ' ' ++ c0 : replicate m ci ++ [cn]
 
+hmask' :: Int -> Int -> String
+hmask' = hmask '\x251c' '\x2500' '\x2524'
+
+hadd0 :: Int -> String -> Int -> Attr -> Image -> Image
+hadd0 0 _ _ atr  = ((char atr ' ' <-> char atr ' ') <->)
+hadd0 dpt n0 i atr = ((string atr (hvarI n0 dpt i) <-> string atr (hmaskI dpt i)) <->)
+
+hadd2 :: Int -> String -> Int -> Attr -> Image -> Image
+hadd2 dpt n2 i atr
+  | dpt <= 2 = id
+  | otherwise = (<-> (string atr (hmaskJ dpt i) <-> string atr (hvarJ n2 dpt i)))
+
+vadd :: Int -> String -> Int -> Attr -> Image
+vadd dpt n1 i atr
+  | dpt < 2 = twig atr 2 0
+  | otherwise = twig atr 2 (1 + w)
+  where w = safeWcswidth n1
+
+depthToAlign :: Int -> (Int, Int)
+depthToAlign n = go (div (n+1) 2)
+  where go 1 = (2, 1)
+        go 2 = (4, 3)
+        go 3 = (10, 7)
+        go n
+          | n <= 0 = (0, 0)
+          | otherwise = let ~(di, dj) = go (n-1) in (2*di, 2*dj + 3)
+
+depthToAlign' :: Int -> (Int, Int)
+depthToAlign' n = go (div (n+1) 2)
+  where go 1 = (1, 1)
+        go 2 = (2, 3)
+        go 3 = (4, 9)
+        go 4 = (10, 17)
+        go n
+          | n <= 0 = (0, 0)
+          | otherwise = let ~(di, dj) = go (n-1) in (2*di, 2*dj + 3)
+
+
+twig :: Attr -> Int -> Int -> Image
+twig atr n ofs = foldMap go (take n [ofs .. ])
+  where go n = string atr (replicate n ' ') <|> char atr '\x2572'
+
 hvar :: String -> Int -> Int -> String
-hvar st n m = replicate (n + div (m-length st+1) 2) ' ' ++ st
+hvar st n m = replicate (n + div (m-length st+3) 2) ' ' ++ st
+
+hvarI :: String -> Int -> Int -> String
+hvarI s dpt _ = uncurry (hvar s) (depthToAlign dpt)
+
+hvarJ :: String -> Int -> Int -> String
+hvarJ s dpt _ = uncurry (hvar s) (depthToAlign' dpt)
 
 vmask :: Char -> Char -> Char -> Int -> Int -> [String]
 vmask c0 ci cn = go
   where go n m = replicate n " " ++ [c0] : replicate m [ci] ++ [[cn]]
 
+vmask' :: Int -> Int -> [String]
+vmask' = vmask '\x252c' '\x2502' '\x2534'
+
+hmaskI :: Int -> Int -> String
+hmaskI dpt _ = uncurry hmask' (depthToAlign dpt)
+
+hmaskJ :: Int -> Int -> String
+hmaskJ dpt _ = uncurry hmask' (depthToAlign' dpt)
+
 vvar :: String -> Int -> Int -> [String]
 vvar st n m = replicate h0 ws ++ [st] ++ repeat ws
   where ws = replicate (safeWcswidth st) ' '
         h0 = n + div (m + 1) 2
-
-infixr 5 +++
-
-(+++) :: [[a]] -> [[a]] -> [[a]]
-(+++) = zipWith (++)
-
-
--- twig :: Attr -> Int -> Image
--- twig atr n = foldMap ((<|> char atr '\x2572') . string atr . (`replicate` ' ')) [0 .. n-1]
 
 flipFrameH :: Char -> Char
 flipFrameH '\x250f' = '\x2517'
@@ -103,6 +150,10 @@ _mergeHorizontal spl spr n
   | otherwise = uncurry (zipWith3 f' spr)
   where f sp xs ys = xs ++ sp : reverse ys
         f' sp xs ys = xs ++ sp ++ mapFrameV (reverse ys)
+        m = div 15 2 :: Int
+        l = div m 2 :: Int
+        sp i | i < -l || i > l = " "
+             | otherwise = "\x2502"
 
 _recurse :: CharRenderable a => (Int -> Operator KRaster) -> (Int -> Operator KRaster) -> Int -> Three a -> KRaster
 _recurse ma mb !n = go
@@ -143,9 +194,11 @@ renderKarnaugh :: CharRenderable a
   -> [String]  -- ^ The names of the variables that are rendered. If there are no sufficient variables, it will work with x₀, x₁, x₂, etc.
   -> Attr  -- ^ The base 'Attr'ibute to render the /Karnaugh card/.
   -> Image  -- ^ The image that contains a rendered version of the /Karnaugh card/.
-renderKarnaugh ts _ _ atr = string atr (hvar "x\x2080" 10 7) <-> string atr (hmask '\x251c' '\x2500' '\x2524' 10 7) <-> string atr (hvar "x\x2082" 4 9) <-> string atr (hmask '\x251c' '\x2500' '\x2524' 4 9) <-> fromRaster atr (inRaster' recs +++ (vmask '\x252c' '\x2502' '\x2534' 4 3 +++ vvar "x\x2081" 4 3))
+renderKarnaugh ts _ ns atr = twig atr 2 0 <|> hadd0 dpt n0 0 atr (hadd2 dpt n2 0 atr (fromRaster atr (inRaster' recs )))  -- +++ (vmask' 4 3 +++ vvar "x\x2081" 4 3)
 -- renderKarnaugh ts _ _ atr = foldr ((<->) . string atr) emptyImage (addBottomMark "x\x2083" (addTopMark "x\x2081" (addLeftMark "x\x2082" (addRightMark "x\x2084" (inRaster' recs)))))
   where dpt = depth ts
-        recs = swapit _recurse (_mergeHorizontal _horizontalThin _horizontalThick) (_mergeVertical _verticalThin _verticalThick) dpt ts
-        swapit | even dpt = id
-               | otherwise = id
+        recs = _recurse (_mergeHorizontal _horizontalThin _horizontalThick) (_mergeVertical _verticalThin _verticalThick) dpt ts
+        ~(n0:n1:n2:n3:ns') = ns ++ map (('x' :) . unpack . asSub') [0 ..]
+        mask2 = string atr (hvar "x\x2082" 4 9) <-> string atr (hmask' 4 9)
+--         swapit | even dpt = id
+--               | otherwise = id

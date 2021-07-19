@@ -23,7 +23,7 @@ module Dep.Data.Three (
     -- * Lookups and constructions
   , nstep, apply, applyTo, wipe, wipeAll
     -- * Retrieve children according to a path
-  , children, children'
+  , children, children', allSubtrees, allSubtrees'
     -- * Convert the 'Three' to an key-value list
   , toTraces, toTraces', toTraces''
   ) where
@@ -324,6 +324,23 @@ flipAllThree ~(Split l r) = Split (flipAllThree r) (flipAllThree l)
 
 _most :: (a -> a -> a) -> Three a -> a
 _most = three id id
+
+-- | Obtain for a given list of 'Tree's all the subtrees.
+allSubtrees'
+  :: [Three a]  -- ^ The given list of 'Three's to append as tail of the target list.
+  -> [Three a]  -- ^ The list of 'Three's that acts like the /origins/.
+  -> [Three a]  -- ^ A list of all subtrees of the given trees, we thus move one level down.
+allSubtrees' = foldr go
+  where go l@(Leaf _) = (l:)
+        go (Link l) = (l:)
+        go (Split la lb) = (la:) . (lb:)
+
+-- | Obtain for a given list of 'Tree's all the subtrees.
+allSubtrees
+  :: [Three a]  -- ^ The list of 'Three's that acts like the /origins/.
+  -> [Three a]  -- ^ A list of all subtrees of the given trees, we thus move one level down.
+allSubtrees = allSubtrees' []
+
 
 -- | Obtain the leftmost item of the 'Three'.
 leftmost

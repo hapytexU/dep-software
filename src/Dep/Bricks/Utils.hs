@@ -23,6 +23,8 @@ module Dep.Bricks.Utils (
   , Row, Raster
     -- * Raster (for Karnaugh cards)
   , inRaster, inRaster'
+    -- List of strings processing
+  , (+++), stitch
   ) where
 
 import Data.Text(Text, cons, pack, singleton, unpack)
@@ -149,3 +151,22 @@ inRaster'
 inRaster' img = ('\x250f' : take w (cycle "\x2501\x252f\x2501\x252f\x2501\x252f\x2501\x2513 \x250f") ++ "\x2513") : go (cycle "\x2503\x2520\x2503\x2520\x2503\x2520\x2503\x2517 \x250f") (cycle "\x2503\x2528\x2503\x2528\x2503\x2528\x2503\x251b \x2513") img ++ ['\x2517' : take w (cycle "\x2501\x2537\x2501\x2537\x2501\x2537\x2501\x251b \x2517") ++ "\x251b"]
     where w = maximum (map length img)
           go = zipWith3 (\x y z -> x : z ++ [y])
+
+infixr 5 +++
+
+-- | Combine two lists of lists together by concatenating the elementwise sublists.
+-- This is used to /stitch/ two lists of 'String's together. This is an alias for the
+-- 'stitch' function.
+(+++)
+  :: [[a]]  -- ^ The first list of lists to stitch.
+  -> [[a]]  -- ^ The second list of lists to stitch.
+  -> [[a]]  -- ^ A combination of the two lists of lists where elementwise concatenation is performed.
+(+++) = zipWith (++)
+
+-- | Combine two lists of lists together by concatenating the elementwise sublists.
+-- This is used to /stitch/ two lists of 'String's together.
+stitch
+  :: [[a]]  -- ^ The first list of lists to stitch.
+  -> [[a]]  -- ^ The second list of lists to stitch.
+  -> [[a]]  -- ^ A combination of the two lists of lists where elementwise concatenation is performed.
+stitch = (+++)
