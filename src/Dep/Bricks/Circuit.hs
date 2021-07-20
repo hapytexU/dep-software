@@ -79,7 +79,7 @@ circuit = Widget Fixed Fixed $ do
   let t9 = Split t8 t8
   let ta = Split t9 t9
   let tb = Split ta ta
-  let g t = renderKarnaugh t mempty [] defAttr
+  let g t = renderKarnaugh t mempty ["a", "g", "c"] defAttr
 
   -- let tree' = Split (Split (Split (Split la lb) (Split lc ld)) (Split (Split le lf) (Split lg lh))) (Split (Split (Split li lj) (Split lk ll)) (Split (Split lm ln) (Split lo lp)))
   -- let tree'' = Split (Split (Split (Split lA lB) (Split lC lD)) (Split (Split lE lF) (Split lG lH))) (Split (Split (Split lI lJ) (Split lK lL)) (Split (Split lM lN) (Split lO lP)))
@@ -91,4 +91,4 @@ circuit = Widget Fixed Fixed $ do
 
   -- let tree = Split (Split (Split (Split la lb) (Split lc ld)) (Split (Split le lf) (Split lg lh))) (Split (Split (Split li lj) (Split lk ll)) (Split (Split lm ln) (Split lo lp)))
 --   return (emptyResult & imageL .~ renderKarnaugh' (Split (Split (Split (Split l1 l0) l1) (Split (Split l0 l1) l1)) (Split (Split l1 ld) ld)) defAttr)
-  return (emptyResult & imageL .~ (foldr ((<|>) . g) emptyImage (drop 8 [t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, ta, tb])))
+  return (emptyResult & imageL .~ (foldr ((<|>) . g) emptyImage (drop 0 [t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, ta, tb])))

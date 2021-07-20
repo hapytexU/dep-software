@@ -44,16 +44,23 @@ hadd0 :: Int -> String -> Int -> Attr -> Image -> Image
 hadd0 0 _ _ atr  = ((char atr ' ' <-> char atr ' ') <->)
 hadd0 dpt n0 i atr = ((string atr (hvarI n0 dpt i) <-> string atr (hmaskI dpt i)) <->)
 
+vadd1 :: Int -> String -> Int -> Attr -> Image -> Image
+vadd1 dpt n1 i atr
+  | dpt < 2 = (twig atr 2 0 <|>)
+  | otherwise = ((twig atr 2 (w - 1) <-> go) <|>)
+  where w = safeWcswidth n1
+        go = let ~(di, dj) = depthToAlign (dpt-1) in foldMap (string atr) (vvar n1 di dj +++ vmask' di dj)
+
 hadd2 :: Int -> String -> Int -> Attr -> Image -> Image
 hadd2 dpt n2 i atr
   | dpt <= 2 = id
   | otherwise = (<-> (string atr (hmaskJ dpt i) <-> string atr (hvarJ n2 dpt i)))
 
-vadd :: Int -> String -> Int -> Attr -> Image
-vadd dpt n1 i atr
-  | dpt < 2 = twig atr 2 0
-  | otherwise = twig atr 2 (1 + w)
-  where w = safeWcswidth n1
+vadd3 :: Int -> String -> Int -> Attr -> Image -> Image
+vadd3 dpt n3 i atr
+  | dpt <= 3 = id
+  | otherwise = (<|> go)
+  where go = let ~(di, dj) = depthToAlign' (dpt-1) in foldMap (string atr) (vmask' di dj +++ vvar n3 di dj)
 
 depthToAlign :: Int -> (Int, Int)
 depthToAlign n = go (div (n+1) 2)
@@ -194,7 +201,7 @@ renderKarnaugh :: CharRenderable a
   -> [String]  -- ^ The names of the variables that are rendered. If there are no sufficient variables, it will work with x₀, x₁, x₂, etc.
   -> Attr  -- ^ The base 'Attr'ibute to render the /Karnaugh card/.
   -> Image  -- ^ The image that contains a rendered version of the /Karnaugh card/.
-renderKarnaugh ts _ ns atr = twig atr 2 0 <|> hadd0 dpt n0 0 atr (hadd2 dpt n2 0 atr (fromRaster atr (inRaster' recs )))  -- +++ (vmask' 4 3 +++ vvar "x\x2081" 4 3)
+renderKarnaugh ts _ ns atr = vadd1 dpt n1 0 atr (hadd0 dpt n0 0 atr (hadd2 dpt n2 0 atr (vadd3 dpt n3 0 atr (fromRaster atr (inRaster' recs)))))  -- +++ (vmask' 4 3 +++ vvar "x\x2081" 4 3)
 -- renderKarnaugh ts _ _ atr = foldr ((<->) . string atr) emptyImage (addBottomMark "x\x2083" (addTopMark "x\x2081" (addLeftMark "x\x2082" (addRightMark "x\x2084" (inRaster' recs)))))
   where dpt = depth ts
         recs = _recurse (_mergeHorizontal _horizontalThin _horizontalThick) (_mergeVertical _verticalThin _verticalThick) dpt ts
