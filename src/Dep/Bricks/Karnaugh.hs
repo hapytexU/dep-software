@@ -151,10 +151,10 @@ _mergeVertical spt spb n
         go' (xs, ys@(y:_)) = xs ++ cyspb y ++ map mapFrameH (reverse ys)
 
 
-_mergeHorizontal :: KLine -> KRaster -> Int -> Operator KRaster
+_mergeHorizontal :: KLine -> (Int -> KRaster) -> Int -> Operator KRaster
 _mergeHorizontal spl spr n
   | n <= 4 = uncurry (zipWith3 f spl)
-  | otherwise = uncurry (zipWith3 f' spr)
+  | otherwise = uncurry (zipWith3 f' (spr 0))
   where f sp xs ys = xs ++ sp : reverse ys
         f' sp xs ys = xs ++ sp ++ mapFrameV (reverse ys)
         m = div 15 2 :: Int
@@ -175,8 +175,12 @@ _recurse ma mb !n = go
 _horizontalThin :: String
 _horizontalThin = cycle "\x2502\x253c"
 
-_horizontalThick :: [String]
-_horizontalThick = cycle ["\x2503 \x2503", "\x2528 \x2520", "\x2503 \x2503", "\x2528 \x2520", "\x2503 \x2503", "\x2528 \x2520", "\x2503 \x2503", "\x251b \x2517", "   ", "\x2513 \x250f"]
+_horizontalThick :: Int -> [String]
+--_horizontalThick _ = cycle (transpose (l0 : l1 : l2 : []))
+--   where l0 = "\x2503\x2528\x2503\x2528\x2503\x2528\x2503\x251b \x2513"
+--         l1 = repeat ' '
+--         l2 = "\x2503\x2520\x2503\x2520\x2503\x2520\x2503\x2517 \x250f"
+_horizontalThick _ = cycle ["\x2503 \x2503", "\x2528 \x2520", "\x2503 \x2503", "\x2528 \x2520", "\x2503 \x2503", "\x2528 \x2520", "\x2503 \x2503", "\x251b \x2517", "   ", "\x2513 \x250f"]
 
 _verticalThin :: String
 _verticalThin = cycle "\x2500\x253c"
@@ -201,8 +205,7 @@ renderKarnaugh :: CharRenderable a
   -> [String]  -- ^ The names of the variables that are rendered. If there are no sufficient variables, it will work with x₀, x₁, x₂, etc.
   -> Attr  -- ^ The base 'Attr'ibute to render the /Karnaugh card/.
   -> Image  -- ^ The image that contains a rendered version of the /Karnaugh card/.
-renderKarnaugh ts _ ns atr = vadd1 dpt n1 0 atr (hadd0 dpt n0 0 atr (hadd2 dpt n2 0 atr (vadd3 dpt n3 0 atr (fromRaster atr (inRaster' recs)))))  -- +++ (vmask' 4 3 +++ vvar "x\x2081" 4 3)
--- renderKarnaugh ts _ _ atr = foldr ((<->) . string atr) emptyImage (addBottomMark "x\x2083" (addTopMark "x\x2081" (addLeftMark "x\x2082" (addRightMark "x\x2084" (inRaster' recs)))))
+renderKarnaugh ts _ ns atr = vadd1 dpt n1 0 atr (hadd0 dpt n0 0 atr (hadd2 dpt n2 0 atr (vadd3 dpt n3 0 atr (fromRaster atr (inRaster' recs)))))
   where dpt = depth ts
         recs = _recurse (_mergeHorizontal _horizontalThin _horizontalThick) (_mergeVertical _verticalThin _verticalThick) dpt ts
         ~(n0:n1:n2:n3:ns') = ns ++ map (('x' :) . unpack . asSub') [0 ..]

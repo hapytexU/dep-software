@@ -1,5 +1,7 @@
-module Dep.Data.FiniteStateMachine where
+module Dep.Data.FiniteStateMachine (
+    module Dep.Data.FiniteStateMachine.Mealy
+  , module Dep.Data.FiniteStateMachine.Moore
+  ) where
 
-
-data MooreFiniteStateMachine st it ot
-  = MooreFiniteStateMachine { mooreStates :: [st], mooreInputs :: [it], mooreTransition :: st -> it -> Maybe st, mooreEmit :: st -> ot }
+import Dep.Data.FiniteStateMachine.Mealy
+import Dep.Data.FiniteStateMachine.Moore

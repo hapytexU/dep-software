@@ -32,6 +32,9 @@ library
    , Dep.Class.NonDeterministicWalkable
    , Dep.Class.Renderable
    , Dep.Class.Walkable
+   , Dep.Data.FiniteStateMachine
+   , Dep.Data.FiniteStateMachine.Mealy
+   , Dep.Data.FiniteStateMachine.Moore
    , Dep.Data.LogicItem
    , Dep.Data.Product
    , Dep.Data.Sum
@@ -50,6 +53,7 @@ library
     , deepseq >=1.4.3.0
     , Diff >= 0.3 && < 0.4
     , hashable >=1.2.7.0
+    , hashmap >=1.2.0.0
     , lens >= 4.0
     , levenshtein >= 0.1
     , parsec >=3.0
